@@ -1,20 +1,11 @@
 import {
-    auth,
-    loginAdmin,
-    logoutAdmin,
-    getOrders,
-    updateOrderStatus,
-    getProduk,
-    saveProduk,
-    updateProduk,
-    deleteProduk,
-    getGaleri,
-    saveGaleri,
-    deleteGaleri,
-    updateGaleri,
-    uploadGambar,
-listenBanners, saveBanner, updateBanner, deleteBanner
+    auth, loginAdmin, logoutAdmin, getOrders, updateOrderStatus,
+    getProduk, saveProduk, updateProduk, deleteProduk,
+    getGaleri, saveGaleri, deleteGaleri, updateGaleri, uploadGambar,
+    listenBanners, saveBanner, updateBanner, deleteBanner,
+    listenBannerText, saveBannerText
 } from './firebase.js';
+
 
 import { 
     onAuthStateChanged 
@@ -875,6 +866,38 @@ window.moveBannerDown = async (id, index) => {
     await updateBanner(allBanners[index].id, { order: allBanners[index+1].order });
     await updateBanner(allBanners[index+1].id, { order: temp });
 };
+
+// --- FUNGSI TEKS GARIS BANNER ---
+listenBannerText((data) => {
+    document.getElementById('bTextTop').value = data.topText || '';
+    document.getElementById('bTextBottom').value = data.bottomText || '';
+});
+
+window.openModalBannerText = () => {
+    document.getElementById('modalBannerText').classList.add('show');
+};
+
+window.closeModalBannerText = () => {
+    document.getElementById('modalBannerText').classList.remove('show');
+};
+
+window.saveBannerTextData = async () => {
+    const btn = document.getElementById('btnSaveBannerText');
+    btn.disabled = true; btn.innerText = 'MENYIMPAN...';
+    try {
+        await saveBannerText({
+            topText: document.getElementById('bTextTop').value,
+            bottomText: document.getElementById('bTextBottom').value
+        });
+        showToast('TEKS BANNER DISIMPAN ✓');
+        closeModalBannerText();
+    } catch(err) {
+        console.error(err);
+        showToast('GAGAL SIMPAN!', true);
+    }
+    btn.disabled = false; btn.innerText = 'SIMPAN';
+};
+
 
 
 window.hapusProdukOrder =
