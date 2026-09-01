@@ -1,3 +1,5 @@
+import { listenProduk, listenGaleri, listenBanners } from './firebase.js';
+
 const PAGE_SLUGS = {
     home: '/',
     preorder: '/preorder',
@@ -18,9 +20,14 @@ const SLUG_TO_PAGE = {
 
 function updateMeta(title, description) {
     document.title = title;
-    document.querySelector('meta[name="description"]').content = description;
-    document.querySelector('meta[property="og:title"]').content = title;
-    document.querySelector('meta[property="og:description"]').content = description;
+    const descMeta = document.querySelector('meta[name="description"]');
+    if (descMeta) descMeta.content = description;
+    
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.content = title;
+    
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.content = description;
 }
 
 const META = {
@@ -33,10 +40,7 @@ const META = {
 };
 
 function slugify(text) {
-    return text.toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .trim();
+    return text.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim();
 }
 
 function formatRupiah(value) {
@@ -44,8 +48,6 @@ function formatRupiah(value) {
 }
 
 let galleryImages = [];
-
-import { listenProduk, listenGaleri, listenBanners } from './firebase.js';
 let products = [];
 let cart = { prod: null, size: '', color: '' };
 let lastPage = 'home';
@@ -93,7 +95,9 @@ function removeCartItem(id) {
     if (cartItems.length === 0) {
         const floatingBtn = document.getElementById('floatingCartBtn');
         if (floatingBtn) floatingBtn.style.display = 'none';
-        if (document.getElementById('cartPage').classList.contains('active')) {
+        
+        const cPage = document.getElementById('cartPage');
+        if (cPage && cPage.classList.contains('active')) {
             showPage(lastPage || 'home');
         }
     }
@@ -110,7 +114,8 @@ function renderCartPage() {
                 <p style="font-weight:700; font-size:14px; letter-spacing:1px;">KERANJANG KOSONG</p>
                 <p style="font-size:12px; margin-top:8px; color:#333;">Tambahkan produk dulu yuk!</p>
             </div>`;
-        document.getElementById('cartCheckoutBtn').style.display = 'none';
+        const chkBtn = document.getElementById('cartCheckoutBtn');
+        if (chkBtn) chkBtn.style.display = 'none';
         return;
     }
 
@@ -130,8 +135,11 @@ function renderCartPage() {
         </div>
     `).join('');
 
-    document.getElementById('cartTotal').innerText = formatRupiah(total);
-    document.getElementById('cartCheckoutBtn').style.display = 'block';
+    const tEl = document.getElementById('cartTotal');
+    if(tEl) tEl.innerText = formatRupiah(total);
+    
+    const chkBtn = document.getElementById('cartCheckoutBtn');
+    if(chkBtn) chkBtn.style.display = 'block';
 }
 
 function goToCartCheckout() {
@@ -170,9 +178,15 @@ function validateCartForm() {
 
     const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
 
-    document.getElementById('cartSumItems').innerHTML = itemsHTML;
-    document.getElementById('cartSumTotal').innerText = formatRupiah(total);
-    document.getElementById('cartSumCust').innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
+    const sumItems = document.getElementById('cartSumItems');
+    if (sumItems) sumItems.innerHTML = itemsHTML;
+    
+    const sumTotal = document.getElementById('cartSumTotal');
+    if (sumTotal) sumTotal.innerText = formatRupiah(total);
+    
+    const sumCust = document.getElementById('cartSumCust');
+    if (sumCust) sumCust.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
+    
     showPage('cartSummary');
 }
 
@@ -181,7 +195,8 @@ async function sendCartWA() {
     const n = document.getElementById('cartInName').value;
     const p = document.getElementById('cartInPhone').value;
     const a = document.getElementById('cartInAddress').value;
-    const buktiFile = document.getElementById('cartInputBukti').files[0];
+    const inputB = document.getElementById('cartInputBukti');
+    const buktiFile = inputB ? inputB.files[0] : null;
     
     if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
 
@@ -240,6 +255,7 @@ async function previewCartBukti(input) {
     const reader = new FileReader();
     reader.onload = e => {
         const previewImg = document.getElementById('cartPreviewImg');
+        if(!previewImg) return;
         previewImg.src = e.target.result;
         previewImg.style.display = 'block';
         previewImg.style.opacity = '0.4';
@@ -254,7 +270,9 @@ async function previewCartBukti(input) {
         previewImg.parentElement.appendChild(spinner);
     };
     reader.readAsDataURL(file);
-    document.getElementById('cartLabelBukti').innerText = ' Mengupload...';
+    
+    const label = document.getElementById('cartLabelBukti');
+    if (label) label.innerText = ' Mengupload...';
 
     const { uploadGambar } = await import('./firebase.js');
     uploadedCartBuktiURL = await uploadGambar(file, 'bukti');
@@ -264,12 +282,11 @@ async function previewCartBukti(input) {
     if (spinner) spinner.remove();
 
     if (uploadedCartBuktiURL) {
-        previewImg.style.opacity = '1';
-        previewImg.style.filter = 'none';
-        document.getElementById('cartLabelBukti').innerText = ' Upload berhasil!';
+        if(previewImg) { previewImg.style.opacity = '1'; previewImg.style.filter = 'none'; }
+        if (label) label.innerText = ' Upload berhasil!';
     } else {
-        previewImg.style.display = 'none';
-        document.getElementById('cartLabelBukti').innerText = ' Gagal upload, coba lagi';
+        if(previewImg) previewImg.style.display = 'none';
+        if (label) label.innerText = ' Gagal upload, coba lagi';
         uploadedCartBuktiURL = null;
     }
 }
@@ -282,6 +299,7 @@ async function previewBukti(input) {
     const reader = new FileReader();
     reader.onload = e => {
         const previewImg = document.getElementById('previewImg');
+        if(!previewImg) return;
         previewImg.src = e.target.result;
         previewImg.style.display = 'block';
         previewImg.style.opacity = '0.4';
@@ -296,7 +314,9 @@ async function previewBukti(input) {
         previewImg.parentElement.appendChild(spinner);
     };
     reader.readAsDataURL(file);
-    document.getElementById('labelBukti').innerText = '⏳ Mengupload...';
+    
+    const label = document.getElementById('labelBukti');
+    if(label) label.innerText = '⏳ Mengupload...';
 
     const { uploadGambar } = await import('./firebase.js');
     uploadedBuktiURL = await uploadGambar(file, 'bukti');
@@ -306,77 +326,84 @@ async function previewBukti(input) {
     if (spinner) spinner.remove();
 
     if (uploadedBuktiURL) {
-        previewImg.style.opacity = '1';
-        previewImg.style.filter = 'none';
-        document.getElementById('labelBukti').innerText = '✓ Upload berhasil!';
+        if (previewImg) { previewImg.style.opacity = '1'; previewImg.style.filter = 'none'; }
+        if (label) label.innerText = '✓ Upload berhasil!';
     } else {
-        previewImg.style.display = 'none';
-        document.getElementById('labelBukti').innerText = '✗ Gagal upload, coba lagi';
+        if (previewImg) previewImg.style.display = 'none';
+        if (label) label.innerText = '✗ Gagal upload, coba lagi';
         uploadedBuktiURL = null;
     }
 }
 
 window.onload = async () => {
-    history.replaceState({ page: 'home' }, '', window.location.pathname);
-    listenBanners((firestoreBanners) => {
-        renderBannerSlider(firestoreBanners);
-    });
+    try {
+        history.replaceState({ page: 'home' }, '', window.location.pathname);
+        listenBanners((firestoreBanners) => {
+            renderBannerSlider(firestoreBanners);
+        });
 
-    listenProduk((firestoreProducts) => {
-        products = firestoreProducts.map(p => ({
-            id: p.id,
-            name: p.nama,
-            price: p.harga,
-            badge: p.badge?.toLowerCase() || '',
-            status: p.status || '',
-            colors: p.warna ? p.warna.split('/').map(c => c.trim()) : [],
-            stock: p.stok ? p.stok.split('/').map(s => s.trim()) : [],
-            thumbnail: p.thumbnail || '',
-            details: p.details || [],
-            specs: p.specs || '',
-            showcase: p.showcase || 'no',
-            dpAllowed: p.dpAllowed || 'yes',
-            order: p.order || 0
-        }));
+        listenProduk((firestoreProducts) => {
+            products = firestoreProducts.map(p => ({
+                id: p.id,
+                name: p.nama,
+                price: p.harga,
+                badge: p.badge?.toLowerCase() || '',
+                status: p.status || '',
+                colors: p.warna ? p.warna.split('/').map(c => c.trim()) : [],
+                stock: p.stok ? p.stok.split('/').map(s => s.trim()) : [],
+                thumbnail: p.thumbnail || '',
+                details: p.details || [],
+                specs: p.specs || '',
+                showcase: p.showcase || 'no',
+                dpAllowed: p.dpAllowed || 'yes',
+                order: p.order || 0
+            }));
 
-        products.sort((a, b) => (b.order || 0) - (a.order || 0));
-        renderAllSections();
+            products.sort((a, b) => (b.order || 0) - (a.order || 0));
+            renderAllSections();
 
-        const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-        const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) || path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) || path.match(/^([^\/]+)\/summary$/);
-        
-        if (orderMatch) {
-            const productSlug = orderMatch[1];
-            let pageId = 'detail';
-            if (path.endsWith('/form')) pageId = 'form';
-            if (path.endsWith('/summary')) pageId = 'summary';
+            const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+            const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) || path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) || path.match(/^([^\/]+)\/summary$/);
+            
+            if (orderMatch) {
+                const productSlug = orderMatch[1];
+                let pageId = 'detail';
+                if (path.endsWith('/form')) pageId = 'form';
+                if (path.endsWith('/summary')) pageId = 'summary';
 
-            const found = products.find(p => slugify(p.name) === productSlug);
+                const found = products.find(p => slugify(p.name) === productSlug);
 
-            if (found) {
-                cart = { prod: found, size: '', color: found.colors.length === 1 ? found.colors[0] : '' };
-                goDetailSilent(found);
-                showPageSilent(pageId);
-                if (!document.referrer.includes(window.location.hostname)) {
+                if (found) {
+                    cart = { prod: found, size: '', color: found.colors.length === 1 ? found.colors[0] : '' };
+                    goDetailSilent(found);
+                    showPageSilent(pageId);
+                    if (!document.referrer.includes(window.location.hostname)) {
+                        history.replaceState({ page: 'home' }, '', '/');
+                        history.pushState({ page: 'detail', product: productSlug }, '', `/${productSlug}`);
+                    }
+                } else {
                     history.replaceState({ page: 'home' }, '', '/');
-                    history.pushState({ page: 'detail', product: productSlug }, '', `/${productSlug}`);
+                    showPage('home');
                 }
             } else {
-                history.replaceState({ page: 'home' }, '', '/');
-                showPage('home');
+                const targetPage = SLUG_TO_PAGE[path] || 'home';
+                if (targetPage !== 'home') showPage(targetPage);
             }
-        } else {
-            const targetPage = SLUG_TO_PAGE[path] || 'home';
-            if (targetPage !== 'home') showPage(targetPage);
-        }
-    });
+        });
 
-    listenGaleri((firestoreGaleri) => {
-        galleryImages = firestoreGaleri.map(g => g.url);
-        renderGallery();
-    });
-
-    setTimeout(() => document.getElementById('loader').classList.add('hide'), 1000);
+        listenGaleri((firestoreGaleri) => {
+            galleryImages = firestoreGaleri.map(g => g.url);
+            renderGallery();
+        });
+    } catch (error) {
+        console.error("Initialization Error:", error);
+    } finally {
+        // FAIL-SAFE LOADING SCREEN REMOVER
+        setTimeout(() => {
+            const loader = document.getElementById('loader');
+            if (loader) loader.classList.add('hide');
+        }, 1000);
+    }
 
     const orderPages = ['detail', 'form', 'summary', 'cartPage', 'cartForm', 'cartSummary'];
     window.addEventListener('popstate', (e) => {
@@ -386,7 +413,8 @@ window.onload = async () => {
         if (orderPages.includes(page) && !cart.prod) {
             history.replaceState({ page: 'home' }, '', '/');
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('home').classList.add('active');
+            const pHome = document.getElementById('home');
+            if(pHome) pHome.classList.add('active');
             if(menuBtn) menuBtn.style.display = 'flex';
             return;
         }
@@ -427,7 +455,7 @@ function renderList(items, containerId) {
                 <div style="padding:25px">
                     <h3>${p.name}</h3>
                     <p style="opacity:0.5; font-weight:600;">${isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
-                    <button onclick="sessionStorage.setItem('lastPage', document.querySelector('.page.active').id); vibrate(40); goDetail('${p.id}');" ${isSold ? 'disabled' : ''}>
+                    <button onclick="sessionStorage.setItem('lastPage', document.querySelector('.page.active') ? document.querySelector('.page.active').id : 'home'); vibrate(40); goDetail('${p.id}');" ${isSold ? 'disabled' : ''}>
                         ${isSold ? 'SOLD' : 'SELECT'}
                     </button>
                 </div>
@@ -552,29 +580,36 @@ function goDetail(id) {
 
     cart = { prod: p, size: '', color: p.colors.length === 1 ? p.colors[0] : '' };
 
-    document.getElementById('detName').innerText = p.name;
-    document.getElementById('detPrice').innerText = formatRupiah(p.price);
+    const elName = document.getElementById('detName');
+    if(elName) elName.innerText = p.name;
+    
+    const elPrice = document.getElementById('detPrice');
+    if(elPrice) elPrice.innerText = formatRupiah(p.price);
 
     const slider = document.getElementById('detImgs');
-    if (p.details && p.details.length > 0) {
-        slider.innerHTML = p.details.map(i => `<img src="${i}">`).join('');
-    } else {
-        slider.innerHTML = `<img src="${p.thumbnail}">`;
+    if(slider) {
+        if (p.details && p.details.length > 0) {
+            slider.innerHTML = p.details.map(i => `<img src="${i}">`).join('');
+        } else {
+            slider.innerHTML = `<img src="${p.thumbnail}">`;
+        }
+        slider.scrollLeft = 0; 
     }
-    slider.scrollLeft = 0; 
 
     let cHTML = `<div class="section-label">PILIH WARNA</div><div class="option-box">`;
     p.colors.forEach(c => {
         cHTML += `<div class="${cart.color === c ? 'active' : ''}" onclick="selOpt('color','${c}',this)">${c}</div>`;
     });
-    document.getElementById('colorArea').innerHTML = cHTML + `</div>`;
+    const colArea = document.getElementById('colorArea');
+    if(colArea) colArea.innerHTML = cHTML + `</div>`;
 
     let sHTML = `<div class="section-label">PILIH UKURAN</div><div class="option-box">`;
     ["S", "M", "L", "XL", "XXL", "XXXL"].forEach(s => {
         const isAvail = p.stock.includes(s);
         sHTML += `<div class="${isAvail ? '' : 'disabled'}" onclick="${isAvail ? `selOpt('size','${s}',this)` : ''}">${s}</div>`;
     });
-    document.getElementById('sizeArea').innerHTML = sHTML + `</div>`;
+    const szArea = document.getElementById('sizeArea');
+    if(szArea) szArea.innerHTML = sHTML + `</div>`;
 
     showPage('detail');
 }
@@ -610,10 +645,17 @@ function validateForm() {
     const n = document.getElementById('inName').value, p = document.getElementById('inPhone').value, a = document.getElementById('inAddress').value;
     if(!n || !p || !a) return triggerAlert("LENGKAPI DATA!");
     
-    document.getElementById('sumProd').innerText = cart.prod.name;
-    document.getElementById('sumVar').innerText = `${cart.color} | ${cart.size}`;
-    document.getElementById('sumPrice').innerText = formatRupiah(cart.prod.price);
-    document.getElementById('sumCust').innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
+    const sumP = document.getElementById('sumProd');
+    if(sumP) sumP.innerText = cart.prod.name;
+    
+    const sumV = document.getElementById('sumVar');
+    if(sumV) sumV.innerText = `${cart.color} | ${cart.size}`;
+    
+    const sumPr = document.getElementById('sumPrice');
+    if(sumPr) sumPr.innerText = formatRupiah(cart.prod.price);
+    
+    const sumC = document.getElementById('sumCust');
+    if(sumC) sumC.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
 
     const dpNote = document.getElementById('dpNoteArea');
     if (cart.prod.dpAllowed === 'no') {
@@ -633,7 +675,8 @@ async function sendWA() {
     const n = document.getElementById('inName').value;
     const p = document.getElementById('inPhone').value;
     const a = document.getElementById('inAddress').value;
-    const buktiFile = document.getElementById('inputBukti').files[0];
+    const inputB = document.getElementById('inputBukti');
+    const buktiFile = inputB ? inputB.files[0] : null;
     
     if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
 
@@ -676,7 +719,6 @@ async function sendWA() {
     }
 }
 
-
 function openSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='flex'; }
 function closeSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='none'; }
 function openSpecs() { 
@@ -691,29 +733,36 @@ function openQRIS() { vibrate(30); const m=document.getElementById('qrisModal');
 function closeQRIS() { const m=document.getElementById('qrisModal'); if(m) m.style.display = 'none'; }
 
 function goDetailSilent(p) {
-    document.getElementById('detName').innerText = p.name;
-    document.getElementById('detPrice').innerText = formatRupiah(p.price);
+    const elName = document.getElementById('detName');
+    if(elName) elName.innerText = p.name;
+    
+    const elPrice = document.getElementById('detPrice');
+    if(elPrice) elPrice.innerText = formatRupiah(p.price);
 
     const slider = document.getElementById('detImgs');
-    if (p.details && p.details.length > 0) {
-        slider.innerHTML = p.details.map(i => `<img src="${i}">`).join('');
-    } else {
-        slider.innerHTML = `<img src="${p.thumbnail}">`;
+    if(slider) {
+        if (p.details && p.details.length > 0) {
+            slider.innerHTML = p.details.map(i => `<img src="${i}">`).join('');
+        } else {
+            slider.innerHTML = `<img src="${p.thumbnail}">`;
+        }
+        slider.scrollLeft = 0;
     }
-    slider.scrollLeft = 0;
 
     let cHTML = `<div class="section-label">PILIH WARNA</div><div class="option-box">`;
     p.colors.forEach(c => {
         cHTML += `<div class="${p.colors.length === 1 ? 'active' : ''}" onclick="selOpt('color','${c}',this)">${c}</div>`;
     });
-    document.getElementById('colorArea').innerHTML = cHTML + `</div>`;
+    const colArea = document.getElementById('colorArea');
+    if(colArea) colArea.innerHTML = cHTML + `</div>`;
 
     let sHTML = `<div class="section-label">PILIH UKURAN</div><div class="option-box">`;
     ["S", "M", "L", "XL", "XXL", "XXXL"].forEach(s => {
         const isAvail = p.stock.includes(s);
         sHTML += `<div class="${isAvail ? '' : 'disabled'}" onclick="${isAvail ? `selOpt('size','${s}',this)` : ''}">${s}</div>`;
     });
-    document.getElementById('sizeArea').innerHTML = sHTML + `</div>`;
+    const szArea = document.getElementById('sizeArea');
+    if(szArea) szArea.innerHTML = sHTML + `</div>`;
 }
 
 function showPageSilent(id) {
@@ -752,6 +801,7 @@ window.validateCartForm = validateCartForm;
 window.sendCartWA = sendCartWA;
 window.previewCartBukti = previewCartBukti;
 window.openCart = openCart;
+window.goToSlide = goToSlide;
 
 function openCart() {
     vibrate(20);
@@ -787,18 +837,21 @@ function renderBannerSlider(banners) {
     `).join('');
 }
 
-window.goToSlide = function(index) {
+function goToSlide(index) {
     const track = document.getElementById('bannerTrack');
     if(track) track.scrollTo({ left: index * track.clientWidth, behavior: 'smooth' });
-};
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const track = document.getElementById('bannerTrack');
-    const dots = document.querySelectorAll('#bannerDots .dot');
-    if(track && dots.length > 0) {
+    if(track) {
         track.addEventListener('scroll', () => {
-            let index = Math.round(track.scrollLeft / track.clientWidth);
-            dots.forEach(d => d.classList.remove('active'));
-            if(dots[index]) dots[index].classList.add('active');
+            const dots = document.querySelectorAll('#bannerDots .dot');
+            if (dots.length > 0) {
+                let index = Math.round(track.scrollLeft / track.clientWidth);
+                dots.forEach(d => d.classList.remove('active'));
+                if(dots[index]) dots[index].classList.add('active');
+            }
         });
     }
+});
