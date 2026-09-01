@@ -397,6 +397,26 @@ function hapusBukti(inputId, chipId, imgId, labelId) {
 window.onload = async () => {
     try {
         history.replaceState({ page: 'home' }, '', window.location.pathname);
+
+        listenBannerText((data) => {
+            const barAtas = document.getElementById('barAtas');
+            const barBawah = document.getElementById('barBawah');
+
+            if (data.topText && data.topText.trim() !== "") {
+                barAtas.innerText = data.topText;
+                barAtas.style.display = 'block';
+            } else {
+                barAtas.style.display = 'none';
+            }
+
+            if (data.bottomText && data.bottomText.trim() !== "") {
+                barBawah.innerText = data.bottomText;
+                barBawah.style.display = 'block';
+            } else {
+                barBawah.style.display = 'none';
+            }
+        });
+
         listenBanners((firestoreBanners) => {
             renderBannerSlider(firestoreBanners);
         });
