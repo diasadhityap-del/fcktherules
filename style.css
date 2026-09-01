@@ -86,9 +86,10 @@ header .description {
 .card.sold-out { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
 .card img { width: 100%; display: block; }
 .badge { position: absolute; top: 15px; left: 15px; padding: 6px 14px; font-size: 10px; font-weight: 700; border-radius: 8px; z-index: 2; color: #fff; }
-.pre { background: #00c853; }
-.ready { background: #002456; }
-.sold { background: #ff3b3b; }
+.pre { background: #002456; } /* Ubah Pre-order jadi Navy */
+.ready { background: #000000; } /* Ubah Ready Stock jadi Hitam */
+.sold { background: #ff3b3b; } /* Sold out biarkan Merah atau ganti abu-abu gelap #333333 */
+
 
 /* FOOTER */
 footer { background: #f9f9f9; border-top: 1px solid #eaeaea; padding: 60px 20px; text-align: center; margin-top: 40px; color: #000; }
