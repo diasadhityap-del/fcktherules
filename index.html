@@ -173,11 +173,11 @@ justify-content:center;
         </div>
     </div>
 
-        <div class="page" id="summary">
+            <div class="page" id="summary">
         <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
         <div class="detail-container" style="padding-top:80px;">
             <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
-            
+
             <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
                 <h3 id="sumProd" style="margin:0; font-size:18px; color:#000;">-</h3>
                 <p id="sumVar" style="font-size:13px; color:#555; margin:8px 0;">-</p>
@@ -186,7 +186,6 @@ justify-content:center;
                 <p id="sumCust" style="font-size:13px; line-height:1.8; margin:0; color:#000;"></p>
             </div>
 
-                        <!-- INFORMASI PEMBAYARAN (REKENING & QRIS) -->
             <div style="background:#f9f9f9; border:1px solid #eaeaea; padding:20px; border-radius:15px; margin-top:20px;">
                 <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">REKENING PEMBAYARAN</span>
                 <div style="margin-top:15px; font-size:15px; line-height:1.8; font-weight:600; color:#000;">
@@ -204,22 +203,9 @@ justify-content:center;
                 </div>
             </div>
 
-
-                <p style="font-size:11px; color:#555; margin-top:12px; line-height:1.5; text-align:center;">
-                    Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
-                </p>
-
-                <p style="font-size:11px; color:#555; margin-top:8px; line-height:1.5; text-align:center;">
-                    Setelah pembayaran, upload bukti pembayaran di bawah.
-                </p>
-            </div>
-
-            <!-- INFO DP -->
             <div id="dpNoteArea" style="display:none; margin-top:20px;">
-                <!-- Akan diisi otomatis oleh JavaScript -->
-            </div>
+                </div>
 
-            <!-- UPLOAD BUKTI -->
             <div style="margin-top:20px;">
                 <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
                 <label for="inputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
@@ -237,9 +223,9 @@ justify-content:center;
             <div class="btn-container" style="margin-top: 15px;">
                 <button onclick="sendWA()" style="background:#000; color:#fff;">CHECKOUT (WA)</button>
             </div>
-
         </div>
     </div>
+
 
 
 <!-- HALAMAN LAIN -->
@@ -370,12 +356,11 @@ justify-content:center;
 </div>
 
 <!-- CART SUMMARY PAGE -->
-    <div class="page" id="cartSummary">
+        <div class="page" id="cartSummary">
         <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
         <div class="detail-container" style="padding-top:80px;">
             <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
 
-            <!-- Items -->
             <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
                 <div id="cartSumItems"></div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #eaeaea;">
@@ -384,13 +369,11 @@ justify-content:center;
                 </div>
             </div>
 
-            <!-- Customer -->
             <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea; margin-top:16px;">
                 <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">DATA PENGIRIMAN</span>
                 <p id="cartSumCust" style="font-size:13px; line-height:1.8; margin:12px 0 0; color:#000;"></p>
             </div>
 
-                        <!-- INFORMASI PEMBAYARAN (REKENING & QRIS) -->
             <div style="background:#f9f9f9; border:1px solid #eaeaea; padding:20px; border-radius:15px; margin-top:16px;">
                 <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">REKENING PEMBAYARAN</span>
                 <div style="margin-top:15px; font-size:15px; line-height:1.8; font-weight:600; color:#000;">
@@ -408,22 +391,9 @@ justify-content:center;
                 </div>
             </div>
 
-
-                <p style="font-size:11px; color:#555; margin-top:12px; line-height:1.5; text-align:center;">
-                    Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
-                </p>
-
-                <p style="font-size:11px; color:#555; margin-top:8px; line-height:1.5; text-align:center;">
-                    Setelah pembayaran, upload bukti pembayaran di bawah.
-                </p>
-            </div>
-
-            <!-- INFO DP -->
             <div id="cartDpNoteArea" style="display:none; margin-top:20px;">
-                <!-- Akan diisi otomatis oleh JavaScript -->
-            </div>
+                </div>
 
-            <!-- Upload Bukti -->
             <div style="margin-top:20px;">
                 <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
                 <label for="cartInputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
@@ -442,6 +412,7 @@ justify-content:center;
             </div>
         </div>
     </div>
+
 
 
 <script type="module" src="script.js"></script>
