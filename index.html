@@ -202,21 +202,11 @@ justify-content:center;
     </p>
 </div>
 
-<!-- TIPE PEMBAYARAN -->
-<div id="paymentTypeArea" style="margin-top:20px;">
-    <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">TIPE PEMBAYARAN</div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div id="sumBtnLunas" onclick="pilihBayar('lunas')" style="padding:16px; border:1.5px solid #fff; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#fff; color:#000;">LUNAS</div>
-        <div id="sumBtnDP" onclick="pilihBayar('dp')" style="padding:16px; border:1.5px solid #1a1a1a; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#050505; color:#fff;">DP</div>
-    </div>
-</div>
+        <!-- INFO DP -->
+        <div id="dpNoteArea" style="display:none; margin-top:20px;">
+            <!-- Akan diisi otomatis oleh JavaScript -->
+        </div>
 
-<!-- INPUT DP -->
-<div id="sumDpArea" style="display:none; margin-top:15px;">
-    <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:10px;">NOMINAL DP</div>
-    <input type="number" id="inDP" placeholder="Rp..." style="width:100%; padding:18px; background:#0a0a0a; border:1.5px solid #1a1a1a; color:#fff; border-radius:15px; font-family:inherit; font-size:15px;">
-    <p style="font-size:10px; color:#555; margin-top:8px;">*Minimal DP Rp60.000</p>
-</div>
 
 <!-- UPLOAD BUKTI (selalu tampil) -->
 <div style="margin-top:20px;">
@@ -408,19 +398,11 @@ justify-content:center;
     </p>
 </div>
 
-        <!-- Tipe Bayar -->
-        <div id="cartPaymentTypeArea" style="margin-top:20px;">
-            <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">TIPE PEMBAYARAN</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div id="btnLunas" onclick="pilihBayar('lunas')" style="padding:16px; border:1.5px solid #fff; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#fff; color:#000;">LUNAS</div>
-                <div id="btnDP" onclick="pilihBayar('dp')" style="padding:16px; border:1.5px solid #1a1a1a; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#050505; color:#fff;">DP</div>
-            </div>
+                       <!-- INFO DP -->
+        <div id="cartDpNoteArea" style="display:none; margin-top:20px;">
+            <!-- Akan diisi otomatis oleh JavaScript -->
         </div>
-        <div id="dpArea" style="display:none; margin-top:15px;">
-            <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:10px;">NOMINAL DP</div>
-            <input type="number" id="cartInDP" placeholder="Rp..." style="width:100%; padding:18px; background:#0a0a0a; border:1.5px solid #1a1a1a; color:#fff; border-radius:15px; font-family:inherit; font-size:15px;">
-            <p style="font-size:10px; color:#555; margin-top:8px;">*Minimal DP Rp60.000</p>
-        </div>
+
 
         <!-- Upload Bukti -->
         <div style="margin-top:20px;">
