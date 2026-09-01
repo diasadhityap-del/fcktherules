@@ -1,4 +1,5 @@
-import { listenProduk, listenGaleri, listenBanners } from './firebase.js';
+import { listenProduk, listenGaleri, listenBanners, listenBannerText } from './firebase.js';
+
 
 const PAGE_SLUGS = {
     home: '/',
