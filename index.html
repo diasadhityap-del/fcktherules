@@ -167,69 +167,69 @@ justify-content:center;
         </div>
     </div>
 
-    <div class="page" id="summary">
+        <div class="page" id="summary">
         <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
         <div class="detail-container" style="padding-top:80px;">
             <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
-            <div style="background:#0a0a0a; padding:20px; border-radius:15px; border:1px solid #1a1a1a;">
-                <h3 id="sumProd" style="margin:0; font-size:18px;">-</h3>
-                <p id="sumVar" style="font-size:13px; color:#888; margin:8px 0;">-</p>
-                <h3 id="sumPrice" style="color:#00c853; margin:15px 0 0;">-</h3>
-                <hr style="border:0; border-top:1px solid #1a1a1a; margin:20px 0;">
-                <p id="sumCust" style="font-size:13px; line-height:1.8; margin:0;"></p>
+            
+            <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
+                <h3 id="sumProd" style="margin:0; font-size:18px; color:#000;">-</h3>
+                <p id="sumVar" style="font-size:13px; color:#555; margin:8px 0;">-</p>
+                <h3 id="sumPrice" style="color:#000; margin:15px 0 0;">-</h3>
+                <hr style="border:0; border-top:1px solid #eaeaea; margin:20px 0;">
+                <p id="sumCust" style="font-size:13px; line-height:1.8; margin:0; color:#000;"></p>
             </div>
 
-<!-- QRIS PEMBAYARAN -->
-<div style="background:#0a0a0a; border:1px solid #1a1a1a; padding:20px; border-radius:15px; margin-top:20px;">
-    <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">
-        QRIS PEMBAYARAN
-    </span>
+            <!-- QRIS PEMBAYARAN -->
+            <div style="background:#f9f9f9; border:1px solid #eaeaea; padding:20px; border-radius:15px; margin-top:20px;">
+                <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">
+                    QRIS PEMBAYARAN
+                </span>
 
-    <div style="background:#fff; padding:10px; border-radius:10px; margin-top:15px;">
-        <img 
-            src="/qris.jpg" 
-            alt="QRIS FvcktheRules" 
-            style="width:100%; display:block; border-radius:5px;"
-        >
+                <div style="background:#fff; padding:10px; border-radius:10px; margin-top:15px; border:1px solid #eaeaea;">
+                    <img 
+                        src="/qris.jpg" 
+                        alt="QRIS FvcktheRules" 
+                        style="width:100%; display:block; border-radius:5px;"
+                    >
+                </div>
+
+                <p style="font-size:11px; color:#555; margin-top:12px; line-height:1.5; text-align:center;">
+                    Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
+                </p>
+
+                <p style="font-size:11px; color:#555; margin-top:8px; line-height:1.5; text-align:center;">
+                    Setelah pembayaran, upload bukti pembayaran di bawah.
+                </p>
+            </div>
+
+            <!-- INFO DP -->
+            <div id="dpNoteArea" style="display:none; margin-top:20px;">
+                <!-- Akan diisi otomatis oleh JavaScript -->
+            </div>
+
+            <!-- UPLOAD BUKTI -->
+            <div style="margin-top:20px;">
+                <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
+                <label for="inputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
+                    <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+                    <span id="labelBukti">Tap untuk upload foto bukti</span>
+                </label>
+                <input type="file" id="inputBukti" accept="image/*" style="display:none;" onchange="previewBukti(this)">
+                <img id="previewImg" src="" style="display:none; width:100%; border-radius:12px; margin-top:12px; border:1px solid #eaeaea;">
+            </div>
+
+            <p style="font-size: 10px; color: #555; text-align: center; margin-top: 25px; line-height: 1.5;">
+                Tekan checkout dan anda akan diarahkan otomatis ke<br>WhatsApp admin.
+            </p>
+
+            <div class="btn-container" style="margin-top: 15px;">
+                <button onclick="sendWA()" style="background:#000; color:#fff;">CHECKOUT (WA)</button>
+            </div>
+
+        </div>
     </div>
 
-    <p style="font-size:11px; color:#666; margin-top:12px; line-height:1.5; text-align:center;">
-        Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
-    </p>
-
-    <p style="font-size:11px; color:#666; margin-top:8px; line-height:1.5; text-align:center;">
-        Setelah pembayaran, upload bukti pembayaran di bawah.
-    </p>
-</div>
-
-        <!-- INFO DP -->
-        <div id="dpNoteArea" style="display:none; margin-top:20px;">
-            <!-- Akan diisi otomatis oleh JavaScript -->
-        </div>
-
-
-<!-- UPLOAD BUKTI (selalu tampil) -->
-<div style="margin-top:20px;">
-    <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
-    <label for="inputBukti" style="display:block; padding:20px; border:1.5px dashed #1a1a1a; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px;">
-        <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
-        <span id="labelBukti">Tap untuk upload foto bukti</span>
-    </label>
-    <input type="file" id="inputBukti" accept="image/*" style="display:none;" onchange="previewBukti(this)">
-    <img id="previewImg" src="" style="display:none; width:100%; border-radius:12px; margin-top:12px; border:1px solid #1a1a1a;">
-</div>
-
-<p style="font-size: 10px; color: #555; text-align: center; margin-top: 25px; line-height: 1.5;">
-    Tekan checkout dan anda akan diarahkan otomatis ke<br>WhatsApp admin.
-</p>
-
-<div class="btn-container" style="margin-top: 15px;">
-    <button onclick="sendWA()" style="background:#00c853; color:#fff;">CHECKOUT (WA)</button>
-</div>
-
-        </div>
-    </div>
-</div>
 
 <!-- HALAMAN LAIN -->
 <div class="page" id="preorder">
@@ -354,75 +354,74 @@ justify-content:center;
 </div>
 
 <!-- CART SUMMARY PAGE -->
-<div class="page" id="cartSummary">
-    <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
-    <div class="detail-container" style="padding-top:80px;">
-        <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
+    <div class="page" id="cartSummary">
+        <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+        <div class="detail-container" style="padding-top:80px;">
+            <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
 
-        <!-- Items -->
-        <div style="background:#0a0a0a; padding:20px; border-radius:15px; border:1px solid #1a1a1a;">
-            <div id="cartSumItems"></div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #1a1a1a;">
-                <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
-                <span id="cartSumTotal" style="font-size:16px; font-weight:700; color:#00c853;"></span>
+            <!-- Items -->
+            <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
+                <div id="cartSumItems"></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #eaeaea;">
+                    <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
+                    <span id="cartSumTotal" style="font-size:16px; font-weight:700; color:#000;"></span>
+                </div>
+            </div>
+
+            <!-- Customer -->
+            <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea; margin-top:16px;">
+                <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">DATA PENGIRIMAN</span>
+                <p id="cartSumCust" style="font-size:13px; line-height:1.8; margin:12px 0 0; color:#000;"></p>
+            </div>
+
+            <!-- QRIS PEMBAYARAN -->
+            <div style="background:#f9f9f9; border:1px solid #eaeaea; padding:20px; border-radius:15px; margin-top:16px;">
+                <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">
+                    QRIS PEMBAYARAN
+                </span>
+
+                <div style="background:#fff; padding:10px; border-radius:10px; margin-top:15px; border:1px solid #eaeaea;">
+                    <img 
+                        src="/qris.jpg" 
+                        alt="QRIS FvcktheRules" 
+                        style="width:100%; display:block; border-radius:5px;"
+                    >
+                </div>
+
+                <p style="font-size:11px; color:#555; margin-top:12px; line-height:1.5; text-align:center;">
+                    Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
+                </p>
+
+                <p style="font-size:11px; color:#555; margin-top:8px; line-height:1.5; text-align:center;">
+                    Setelah pembayaran, upload bukti pembayaran di bawah.
+                </p>
+            </div>
+
+            <!-- INFO DP -->
+            <div id="cartDpNoteArea" style="display:none; margin-top:20px;">
+                <!-- Akan diisi otomatis oleh JavaScript -->
+            </div>
+
+            <!-- Upload Bukti -->
+            <div style="margin-top:20px;">
+                <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
+                <label for="cartInputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
+                    <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+                    <span id="cartLabelBukti">Tap untuk upload foto bukti</span>
+                </label>
+                <input type="file" id="cartInputBukti" accept="image/*" style="display:none;" onchange="previewCartBukti(this)">
+                <img id="cartPreviewImg" src="" style="display:none; width:100%; border-radius:12px; margin-top:12px; border:1px solid #eaeaea;">
+            </div>
+
+            <p style="font-size:10px; color:#555; text-align:center; margin-top:25px; line-height:1.5;">
+                Tekan checkout dan anda akan diarahkan otomatis ke<br>WhatsApp admin.
+            </p>
+            <div class="btn-container" style="margin-top:15px;">
+                <button onclick="sendCartWA()" style="background:#000; color:#fff;">CHECKOUT (WA)</button>
             </div>
         </div>
-
-        <!-- Customer -->
-        <div style="background:#0a0a0a; padding:20px; border-radius:15px; border:1px solid #1a1a1a; margin-top:16px;">
-            <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">DATA PENGIRIMAN</span>
-            <p id="cartSumCust" style="font-size:13px; line-height:1.8; margin:12px 0 0;"></p>
-        </div>
-
-        <!-- Rekening -->
-        <!-- QRIS PEMBAYARAN -->
-<div style="background:#0a0a0a; border:1px solid #1a1a1a; padding:20px; border-radius:15px; margin-top:16px;">
-    <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">
-        QRIS PEMBAYARAN
-    </span>
-
-    <div style="background:#fff; padding:10px; border-radius:10px; margin-top:15px;">
-        <img 
-            src="/qris.jpg" 
-            alt="QRIS FvcktheRules" 
-            style="width:100%; display:block; border-radius:5px;"
-        >
     </div>
 
-    <p style="font-size:11px; color:#666; margin-top:12px; line-height:1.5; text-align:center;">
-        Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
-    </p>
-
-    <p style="font-size:11px; color:#666; margin-top:8px; line-height:1.5; text-align:center;">
-        Setelah pembayaran, upload bukti pembayaran di bawah.
-    </p>
-</div>
-
-                       <!-- INFO DP -->
-        <div id="cartDpNoteArea" style="display:none; margin-top:20px;">
-            <!-- Akan diisi otomatis oleh JavaScript -->
-        </div>
-
-
-        <!-- Upload Bukti -->
-        <div style="margin-top:20px;">
-            <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
-            <label for="cartInputBukti" style="display:block; padding:20px; border:1.5px dashed #1a1a1a; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px;">
-                <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
-                <span id="cartLabelBukti">Tap untuk upload foto bukti</span>
-            </label>
-            <input type="file" id="cartInputBukti" accept="image/*" style="display:none;" onchange="previewCartBukti(this)">
-            <img id="cartPreviewImg" src="" style="display:none; width:100%; border-radius:12px; margin-top:12px; border:1px solid #1a1a1a;">
-        </div>
-
-        <p style="font-size:10px; color:#555; text-align:center; margin-top:25px; line-height:1.5;">
-            Tekan checkout dan anda akan diarahkan otomatis ke<br>WhatsApp admin.
-        </p>
-        <div class="btn-container" style="margin-top:15px;">
-            <button onclick="sendCartWA()" style="background:#00c853; color:#fff;">CHECKOUT (WA)</button>
-        </div>
-    </div>
-</div>
 
 <script type="module" src="script.js"></script>
 </body> 
