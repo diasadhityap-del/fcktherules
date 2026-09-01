@@ -220,7 +220,9 @@ async function executeCheckout() {
     vibrate(40);
     closeConfirm();
     
-    // Tampilkan layar loading agar pembeli tidak spam klik
+    // Taruh URL cukup 1x saja di paling atas fungsi:
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYPe_WrP95TncOpLq7qTJ2-QjuIy8YIQODC_CaPmS2Jayse3-fidmgr_ZxffTkHfEUaw/exec';
+    
     const loader = document.getElementById('loader');
     if(loader) loader.classList.remove('hide');
 
@@ -240,16 +242,12 @@ async function executeCheckout() {
                 buktiURL: buktiURL
             };
 
-            // 1. Simpan ke Firebase
             await saveOrder(orderData);
 
-            // 2. Kirim ke Google Script
-            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYPe_WrP95TncOpLq7qTJ2-QjuIy8YIQODC_CaPmS2Jayse3-fidmgr_ZxffTkHfEUaw/exec';
             fetch(SCRIPT_URL, {
                 method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({...orderData, buktiURL})
             }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
 
-            // Reset Form Single Checkout
             hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti');
             document.getElementById('inName').value = '';
             document.getElementById('inPhone').value = '';
@@ -271,14 +269,12 @@ async function executeCheckout() {
                 buktiURL
             };
 
-            // 1. Simpan ke Firebase
             await saveOrder(orderData);
 
-            // 2. Kirim ke Google Script
-            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYPe_WrP95TncOpLq7qTJ2-QjuIy8YIQODC_CaPmS2Jayse3-fidmgr_ZxffTkHfEUaw/exec';
-            fetch(SCRIPT_URL, { method:"POST", mode:"no-cors", cache:"no-cache", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(orderData) }).catch(err => console.error(err));
+            fetch(SCRIPT_URL, { 
+                method:"POST", mode:"no-cors", cache:"no-cache", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(orderData) 
+            }).catch(err => console.error(err));
 
-            // Reset Form & Keranjang Checkout
             cartItems = [];
             updateCartBadge();
             hapusBukti('cartInputBukti', 'cartFileChip', 'cartPreviewImg', 'cartLabelBukti');
@@ -287,7 +283,6 @@ async function executeCheckout() {
             document.getElementById('cartInAddress').value = '';
         }
 
-        // Kembali ke beranda dan trigger notif
         showPage('home');
         setTimeout(() => {
             triggerAlert("PESANAN BERHASIL DITERIMA!");
@@ -300,6 +295,7 @@ async function executeCheckout() {
         if(loader) loader.classList.add('hide'); 
     }
 }
+
 
 
 // --- BAGIAN UPLOAD BUKTI KERANJANG ---
