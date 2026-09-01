@@ -50,6 +50,10 @@
             <i class="fas fa-images"></i> GALERI
         </div>
 
+<div class="nav-item" id="nav-banner" onclick="switchTab('banner')">
+    <i class="fas fa-flag"></i> BANNER
+</div>
+
         <div class="sidebar-bottom">
             <div class="logout-btn" onclick="doLogout()">
                 <i class="fas fa-sign-out-alt"></i> LOGOUT
@@ -179,6 +183,19 @@
             </div>
             <div class="galeri-grid" id="galeriGrid"></div>
         </div>
+<!-- TAB BANNER -->
+<div class="tab-content" id="tab-banner">
+    <div class="header-row">
+        <div>
+            <div class="page-title">BANNER HOMEPAGE</div>
+            <div class="page-desc">Kelola banner slider yang bisa digeser</div>
+        </div>
+        <button class="add-btn" onclick="openModalBanner()">
+            <i class="fas fa-plus"></i> TAMBAH
+        </button>
+    </div>
+    <div id="bannerList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
+</div>
 
     </div>
 
@@ -193,6 +210,10 @@
         <div class="mob-nav-item" id="mob-galeri" onclick="switchTab('galeri')">
             <i class="fas fa-images"></i> GALERI
         </div>
+
+<div class="nav-item" id="nav-banner" onclick="switchTab('banner')">
+    <i class="fas fa-flag"></i> BANNER
+</div>
         <div class="mob-nav-item" onclick="doLogout()" style="color:var(--red)">
             <i class="fas fa-sign-out-alt"></i> LOGOUT
         </div>
@@ -326,6 +347,41 @@
     </div>
 
 </div>
+<!-- MODAL BANNER -->
+<div class="modal-bg" id="modalBanner">
+    <div class="modal-box">
+        <div class="modal-title" id="modalBannerTitle">TAMBAH BANNER</div>
+        <div class="form-group">
+            <label>JUDUL UTAMA</label>
+            <input type="text" id="bTitle" placeholder="Contoh: The Street Union #3">
+        </div>
+        <div class="form-group">
+            <label>DESKRIPSI KECIL</label>
+            <textarea id="bSub" rows="2" placeholder="Contoh: Welcoming Coca Cobra..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>LINK HALAMAN (Opsional)</label>
+            <select id="bLink">
+                <option value="">Tanpa Link</option>
+                <option value="katalog">Ke Katalog</option>
+                <option value="preorder">Ke Pre Order</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>FOTO BANNER (Disarankan mode landscape/mendatar)</label>
+            <div class="img-slot" onclick="document.getElementById('inputBanner').click()" style="width:100%; height:150px;">
+                <i class="fas fa-image"></i>
+                <img id="prevBanner" src="" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
+                <input type="file" id="inputBanner" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevBanner')">
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModalBanner()">BATAL</button>
+            <button class="btn-save" id="btnSaveBanner" onclick="saveBannerData()">SIMPAN</button>
+        </div>
+    </div>
+</div>
+
 <script type="module" src="admin.js"></script>
 </body>
 </html>
