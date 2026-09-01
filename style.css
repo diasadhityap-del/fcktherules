@@ -1,14 +1,14 @@
 * { box-sizing: border-box; }
 html, body {
     margin: 0; font-family: 'Montserrat', sans-serif;
-    background: #000; color: #fff; overflow-x: hidden;
+    background: #ffffff; color: #000000; overflow-x: hidden;
 }
 
 /* LOADER */
 .loader {
     position: fixed; 
     inset: 0; 
-    background: #000; /* Background hitam pekat */
+    background: #ffffff; /* Background putih */
     display: flex;
     justify-content: center; 
     align-items: center; 
@@ -17,13 +17,11 @@ html, body {
 }
 
 .loader img {
-    width: 350px; /* Ukuran logo sudah dibesarkan dari 120px ke 350px */
+    width: 350px; 
     height: auto;
-    /* Efek animasi berdenyut pelan */
     animation: pulse 1.8s ease-in-out infinite;
 }
 
-/* Animasi denyut halus (Pulse) */
 @keyframes pulse {
     0% { transform: scale(0.96); opacity: 0.7; }
     50% { transform: scale(1.04); opacity: 1; }
@@ -33,18 +31,16 @@ html, body {
 .loader.hide { 
     opacity: 0; 
     pointer-events: none; 
-    transform: scale(1.1); /* Efek zoom out halus saat loading selesai */
+    transform: scale(1.1); 
 }
-
-
 
 /* TOAST & SHAKE */
 .toast {
     position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-    background: #ff3b3b; color: #fff; padding: 14px 28px; border-radius: 50px;
+    background: #002456; color: #fff; padding: 14px 28px; border-radius: 50px;
     transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; 
     font-weight: 700; font-size: 11px; text-transform: uppercase;
-    box-shadow: 0 10px 30px rgba(255,59,59,0.3);
+    box-shadow: 0 10px 30px rgba(0,36,86,0.3);
 }
 .toast.show { top: 30px; }
 .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
@@ -57,16 +53,14 @@ html, body {
 
 /* HEADER */
 header { 
-    padding: 80px 20px 40px; /* Diubah dari height: 50vh agar lebih fleksibel */
+    padding: 80px 20px 40px; 
     display: flex; 
     flex-direction: column; 
     justify-content: center; 
     align-items: center; 
     text-align: center;
 }
-header h1 { letter-spacing: 12px; font-size: 32px; margin: 0; }
-
-/* Slogan Utama */
+header h1 { letter-spacing: 12px; font-size: 32px; margin: 0; color: #000; }
 header .slogan { 
     font-size: 10px; 
     font-weight: 700;
@@ -74,99 +68,93 @@ header .slogan {
     margin-top: 10px; 
     letter-spacing: 2px; 
     text-transform: uppercase;
+    color: #002456;
 }
-
-/* Deskripsi Baru */
 header .description {
     max-width: 300px;
     margin-top: 20px;
     font-size: 11px;
     line-height: 1.8;
-    opacity: 0.4;
+    opacity: 0.6;
     letter-spacing: 0.5px;
+    color: #000;
 }
 
 /* PRODUCTS */
 .products { display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 0 20px 80px; }
-.card { width: 100%; max-width: 450px; background: #0a0a0a; border-radius: 20px; border: 1px solid #1a1a1a; overflow: hidden; position: relative; transition: 0.3s; }
+.card { width: 100%; max-width: 450px; background: #ffffff; border-radius: 20px; border: 1px solid #eaeaea; overflow: hidden; position: relative; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 .card.sold-out { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
 .card img { width: 100%; display: block; }
-.badge { position: absolute; top: 15px; left: 15px; padding: 6px 14px; font-size: 10px; font-weight: 700; border-radius: 8px; z-index: 2; }
+.badge { position: absolute; top: 15px; left: 15px; padding: 6px 14px; font-size: 10px; font-weight: 700; border-radius: 8px; z-index: 2; color: #fff; }
 .pre { background: #00c853; }
-.ready { background: #000; color: #fff; }
+.ready { background: #002456; }
 .sold { background: #ff3b3b; }
 
 /* FOOTER */
-footer { background: #0a0a0a; border-top: 1px solid #1a1a1a; padding: 60px 20px; text-align: center; margin-top: 40px; }
-.footer-logo { letter-spacing: 10px; font-size: 22px; font-weight: 700; margin-bottom: 5px; }
-.footer-slogan { font-size: 9px; opacity: 0.3; letter-spacing: 2px; margin-bottom: 35px; text-transform: uppercase; }
+footer { background: #f9f9f9; border-top: 1px solid #eaeaea; padding: 60px 20px; text-align: center; margin-top: 40px; color: #000; }
+.footer-logo { letter-spacing: 10px; font-size: 22px; font-weight: 700; margin-bottom: 5px; color: #002456; }
+.footer-slogan { font-size: 9px; opacity: 0.5; letter-spacing: 2px; margin-bottom: 35px; text-transform: uppercase; }
 .footer-socials { display: flex; justify-content: center; gap: 25px; margin-bottom: 35px; }
-.footer-socials a { color: #fff; font-size: 20px; opacity: 0.6; text-decoration: none; }
-.footer-contact-title { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 10px; }
-.footer-contact-info { font-size: 11px; opacity: 0.5; line-height: 1.8; margin-bottom: 40px; }
-.footer-contact-info a { color: inherit; text-decoration: none; }
-.copyright { font-size: 9px; opacity: 0.2; letter-spacing: 1px; margin-top: 20px; }
+.footer-socials a { color: #002456; font-size: 20px; opacity: 0.8; text-decoration: none; }
+.footer-contact-title { font-size: 12px; font-weight: 700; color: #000; margin-bottom: 10px; }
+.footer-contact-info { font-size: 11px; opacity: 0.7; line-height: 1.8; margin-bottom: 40px; }
+.footer-contact-info a { color: #002456; text-decoration: none; font-weight: 600; }
+.copyright { font-size: 9px; opacity: 0.4; letter-spacing: 1px; margin-top: 20px; }
 
 /* PAGE SYSTEM */
-.page { position: fixed; inset: 0; overflow-y: auto; background: #000; opacity: 0; transform: translateY(20px); transition: 0.4s ease-out; pointer-events: none; z-index: 1; }
+.page { position: fixed; inset: 0; overflow-y: auto; background: #ffffff; opacity: 0; transform: translateY(20px); transition: 0.4s ease-out; pointer-events: none; z-index: 1; }
 .page.active { opacity: 1; transform: translateY(0); pointer-events: auto; z-index: 10; }
 
 /* DETAIL & GRID */
-.detail-container { max-width: 500px; margin: auto; padding: 20px 24px 160px; }
+.detail-container { max-width: 500px; margin: auto; padding: 20px 24px 160px; color: #000; }
 .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 60px; }
-.img-grid img { width: 100%; border-radius: 15px; aspect-ratio: 4/5; object-fit: cover; border: 1px solid #1a1a1a; }
+.img-grid img { width: 100%; border-radius: 15px; aspect-ratio: 4/5; object-fit: cover; border: 1px solid #eaeaea; }
 .section-label { margin-top: 30px; font-size: 11px; font-weight: 700; color: #555; letter-spacing: 1.5px; text-transform: uppercase; }
 .option-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
-.option-box div { padding: 16px; border: 1.5px solid #1a1a1a; text-align: center; border-radius: 12px; cursor: pointer; background: #050505; font-size: 14px; font-weight: 600; }
-.option-box div.active { background: #fff; color: #000; border-color: #fff; }
-.option-box div.disabled { opacity: 0.1; cursor: not-allowed; border: 1px dashed #333; text-decoration: line-through; }
+.option-box div { padding: 16px; border: 1.5px solid #eaeaea; text-align: center; border-radius: 12px; cursor: pointer; background: #ffffff; font-size: 14px; font-weight: 600; color: #000; }
+.option-box div.active { background: #002456; color: #fff; border-color: #002456; }
+.option-box div.disabled { opacity: 0.3; cursor: not-allowed; border: 1px dashed #ccc; text-decoration: line-through; background: #f5f5f5; }
 
 /* INPUTS */
 .input-group { margin-bottom: 25px; }
-.input-group label { display: block; font-size: 11px; font-weight: 700; color: #888; margin-bottom: 10px; }
-input, textarea { width: 100%; padding: 18px; background: #0a0a0a; border: 1.5px solid #1a1a1a; color: #fff; border-radius: 15px; font-family: inherit; font-size: 15px; }
+.input-group label { display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px; }
+input, textarea { width: 100%; padding: 18px; background: #ffffff; border: 1.5px solid #eaeaea; color: #000; border-radius: 15px; font-family: inherit; font-size: 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.02); }
+input:focus, textarea:focus { border-color: #002456; outline: none; }
 
 /* BUTTONS */
-button { background: #fff; color: #000; border: none; padding: 20px; width: 100%; font-weight: 700; border-radius: 15px; cursor: pointer; transition: 0.2s; }
+button { background: #002456; color: #fff; border: none; padding: 20px; width: 100%; font-weight: 700; border-radius: 15px; cursor: pointer; transition: 0.2s; }
+button:hover { background: #00183b; }
 .btn-container { margin-top: 40px; }
-.back-btn { position: fixed; top: 25px; left: 20px; z-index: 150; font-weight: 700; font-size: 12px; cursor: pointer; opacity: 0.6; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 10px; }
+.back-btn { position: fixed; top: 25px; left: 20px; z-index: 150; font-weight: 700; font-size: 12px; cursor: pointer; opacity: 0.8; padding: 10px; background: rgba(255,255,255,0.8); border: 1px solid #eaeaea; border-radius: 10px; color: #000; }
 
-/* Judul (SPESIFIKASI PRODUK) */
-/* Container Modal Spesifikasi */
+/* SPESIFIKASI PRODUK */
 .specs-box {
-    background: #0a0a0a;
-    border: 1px solid #1a1a1a;
+    background: #ffffff;
+    border: 1px solid #eaeaea;
     padding: 30px;
     border-radius: 20px;
     width: 90%;
     max-width: 400px;
     text-align: left;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
 }
 
-/* Judul (H3) - Tetap ada Garis Bawah */
 .specs-box h3 {
     margin: 0 0 15px 0;
     padding-bottom: 10px;
-    border-bottom: 1px solid #222; /* Garis pembatas tetap ada */
+    border-bottom: 1px solid #eee;
     letter-spacing: 1px;
-    
-    /* Ukuran & Warna Baru */
     font-size: 18px; 
-    color: #00c853; 
+    color: #002456; 
 }
 
-/* Isi Teks (P) */
 #specContent {
     margin: 0;
     line-height: 1.8;
-    
-    /* Ukuran & Warna Baru */
     font-size: 14px;
-    color: #ffffff; 
+    color: #000000; 
 }
 
-/* Tombol Close */
 .specs-box button {
     margin-top: 25px;
     padding: 15px;
@@ -175,51 +163,48 @@ button { background: #fff; color: #000; border: none; padding: 20px; width: 100%
     font-weight: 700;
     border-radius: 10px;
     cursor: pointer;
-    background: #111;
+    background: #002456;
     color: #fff;
-    border: 1px solid #222;
+    border: none;
 }
 
 /* --- CSS UNTUK SIDEBAR & MENU --- */
-
-/* Tombol 3 Garis di Kiri Atas */
 .menu-btn {
     position: fixed;
     top: 20px;
     left: 20px;
-    z-index: 5000; /* Angka paling tinggi agar tidak tertutup gambar */
+    z-index: 5000;
     cursor: pointer;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(255, 255, 255, 0.9);
     padding: 12px;
     border-radius: 10px;
-    border: 1px solid #1a1a1a;
+    border: 1px solid #eaeaea;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
 .bar {
     width: 25px;
     height: 2px;
-    background: #fff;
+    background: #000;
     transition: 0.3s;
 }
 
-/* Sidebar (Menu Geser) */
 .sidebar {
     position: fixed;
     top: 0;
-    left: -280px; /* Sembunyi di kiri luar layar */
+    left: -280px;
     width: 280px;
     height: 100%;
-    background: #0a0a0a;
+    background: #ffffff;
     z-index: 6000;
     transition: 0.5s cubic-bezier(0.85, 0, 0.15, 1);
-    border-right: 1px solid #1a1a1a;
+    border-right: 1px solid #eaeaea;
     padding: 100px 30px;
 }
 
-/* Munculkan sidebar saat ada class 'open' */
 .sidebar.open {
     left: 0;
 }
@@ -228,7 +213,7 @@ button { background: #fff; color: #000; border: none; padding: 20px; width: 100%
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 4px;
-    color: #444;
+    color: #002456;
     margin-bottom: 40px;
     text-transform: uppercase;
 }
@@ -242,7 +227,7 @@ button { background: #fff; color: #000; border: none; padding: 20px; width: 100%
 .nav-links li {
     font-size: 16px;
     font-weight: 700;
-    color: #fff;
+    color: #000;
     margin-bottom: 30px;
     cursor: pointer;
     letter-spacing: 1px;
@@ -250,15 +235,14 @@ button { background: #fff; color: #000; border: none; padding: 20px; width: 100%
 }
 
 .nav-links li:hover {
-    color: #00c853; /* Warna hijau saat disentuh */
+    color: #002456;
     padding-left: 10px;
 }
 
-/* Overlay (Efek gelap di luar menu) */
 .sidebar-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
     display: none;
     z-index: 5500;
@@ -268,7 +252,6 @@ button { background: #fff; color: #000; border: none; padding: 20px; width: 100%
     display: block;
 }
 
-/* Tambahan: Agar barang yang sold out di ARSIP tetap kelihatan tapi pudar */
 .sold-out-display {
     opacity: 0.7;
     filter: grayscale(0.5);
@@ -282,47 +265,44 @@ button { background: #fff; color: #000; border: none; padding: 20px; width: 100%
     gap: 10px;
     margin-top: 60px;
     padding-bottom: 10px;
-    -webkit-overflow-scrolling: touch; /* Halus di iOS */
+    -webkit-overflow-scrolling: touch;
 }
 
-/* Sembunyikan scrollbar tapi tetap bisa digeser */
 .img-slider::-webkit-scrollbar {
     display: none;
 }
 
 .img-slider img {
-    flex: 0 0 75%; /* (Ubah untuk rasio mengintip) Gambar mengambil 85% lebar layar agar gambar berikutnya sedikit terlihat (ngintip) */
-    width: 75%; /* Atur Lebar (Samakan dengan angka di atas) */
+    flex: 0 0 75%;
+    width: 75%;
     border-radius: 15px;
     aspect-ratio: 4/5;
     object-fit: cover;
-    border: 1px solid #1a1a1a;
+    border: 1px solid #eaeaea;
     scroll-snap-align: center;
 }
 
-/* Jika hanya ada 1 atau 2 gambar dan ingin full, kita atur lewat JS nanti atau biarkan 85% agar konsisten */
-
-/* --- FITUR GALERI --- */
+/* FITUR GALERI */
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2 Kolom kesamping */
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     padding: 0 20px 100px;
 }
 
 .gallery-grid img {
     width: 100%;
-    aspect-ratio: 1 / 1; /* Kotak sempurna */
+    aspect-ratio: 1 / 1;
     object-fit: cover;
     border-radius: 12px;
-    border: 1px solid #1a1a1a;
-    background: #0a0a0a;
+    border: 1px solid #eaeaea;
+    background: #f9f9f9;
 }
 
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.95);
+    background: rgba(0,0,0,0.85);
     display: none;
     justify-content: center;
     align-items: center;
@@ -347,7 +327,7 @@ button { background: #fff; color: #000; border: none; padding: 20px; width: 100%
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(255,255,255,0.5);
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -365,7 +345,7 @@ button { background: #fff; color: #000; border: none; padding: 20px; width: 100%
 
 .spinner-overlay i {
     font-size: 32px;
-    color: #fff;
+    color: #002456;
     animation: spin 1s linear infinite;
 }
 
