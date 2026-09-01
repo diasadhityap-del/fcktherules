@@ -12,7 +12,8 @@ import {
     saveGaleri,
     deleteGaleri,
     updateGaleri,
-    uploadGambar
+    uploadGambar,
+listenBanners, saveBanner, updateBanner, deleteBanner
 } from './firebase.js';
 
 import { 
@@ -806,6 +807,130 @@ window.moveProdukDown = async (id) => {
 
     await loadProduk();
 };
+
+let allBanners = [];
+let editingBannerId = null;
+
+// Tambahkan loadBanners() ke dalam onAuthStateChanged bersama loadProduk dll
+// await Promise.all([loadOrders(), loadProduk(), loadGaleri(), loadBanners()]);
+
+async function loadBanners() {
+    import('./firebase.js').then(module => {
+        module.listenBanners((data) => {
+            allBanners = data;
+            renderBanners();
+        });
+    });
+}
+
+function renderBanners() {
+    const list = document.getElementById('bannerList');
+    if (allBanners.length === 0) {
+        list.innerHTML = `<div class="empty"><i class="fas fa-flag"></i><p>Belum ada banner</p></div>`;
+        return;
+    }
+    
+    // Kita pinjam style produk-grid agar rapi
+    list.innerHTML = `<div class="produk-grid">` + allBanners.map((b, i) => `
+        <div class="produk-card">
+            <img src="${b.image}" style="aspect-ratio: 16/9;">
+            <div class="produk-info">
+                <div class="produk-name">${b.title || 'Tanpa Judul'}</div>
+                <div class="produk-actions" style="margin-top:10px;">
+                    <div class="btn-icon" onclick="moveBannerUp('${b.id}', ${i})">↑</div>
+                    <div class="btn-icon" onclick="moveBannerDown('${b.id}', ${i})">↓</div>
+                    <div class="btn-icon" onclick="editBanner('${b.id}')"><i class="fas fa-pen"></i></div>
+                    <div class="btn-icon del" onclick="hapusBanner('${b.id}')"><i class="fas fa-trash"></i></div>
+                </div>
+            </div>
+        </div>
+    `).join('') + `</div>`;
+}
+
+window.openModalBanner = () => {
+    editingBannerId = null;
+    document.getElementById('modalBannerTitle').innerText = 'TAMBAH BANNER';
+    document.getElementById('bTitle').value = '';
+    document.getElementById('bSub').value = '';
+    document.getElementById('bLink').value = '';
+    document.getElementById('prevBanner').src = '';
+    document.getElementById('prevBanner').style.display = 'none';
+    document.getElementById('modalBanner').classList.add('show');
+};
+
+window.closeModalBanner = () => { document.getElementById('modalBanner').classList.remove('show'); };
+
+window.editBanner = (id) => {
+    const b = allBanners.find(x => x.id === id);
+    if (!b) return;
+    editingBannerId = id;
+    document.getElementById('modalBannerTitle').innerText = 'EDIT BANNER';
+    document.getElementById('bTitle').value = b.title || '';
+    document.getElementById('bSub').value = b.subtitle || '';
+    document.getElementById('bLink').value = b.link || '';
+    if(b.image) {
+        document.getElementById('prevBanner').src = b.image;
+        document.getElementById('prevBanner').style.display = 'block';
+    }
+    document.getElementById('modalBanner').classList.add('show');
+};
+
+window.saveBannerData = async () => {
+    const btn = document.getElementById('btnSaveBanner');
+    btn.disabled = true; btn.innerText = 'MENYIMPAN...';
+    
+    try {
+        const { saveBanner, updateBanner } = await import('./firebase.js');
+        let imageURL = editingBannerId ? (allBanners.find(x => x.id === editingBannerId)?.image || '') : '';
+        const file = document.getElementById('inputBanner').files[0];
+        
+        if (file) {
+            imageURL = await uploadGambar(file, 'galeri'); // Pakai cloudinary preset galeri
+        }
+        
+        if (!imageURL) throw new Error("Gambar wajib diisi!");
+
+        const data = {
+            title: document.getElementById('bTitle').value,
+            subtitle: document.getElementById('bSub').value,
+            link: document.getElementById('bLink').value,
+            image: imageURL,
+            order: editingBannerId ? allBanners.find(x => x.id === editingBannerId).order : Date.now()
+        };
+
+        if (editingBannerId) await updateBanner(editingBannerId, data);
+        else await saveBanner(data);
+        
+        showToast('BANNER DISIMPAN ✓');
+        closeModalBanner();
+    } catch (err) { showToast('GAGAL SIMPAN!', true); }
+    
+    btn.disabled = false; btn.innerText = 'SIMPAN';
+};
+
+window.hapusBanner = async (id) => {
+    if (!confirm('Hapus banner ini?')) return;
+    const { deleteBanner } = await import('./firebase.js');
+    await deleteBanner(id);
+    showToast('BANNER DIHAPUS');
+};
+
+window.moveBannerUp = async (id, index) => {
+    if (index <= 0) return;
+    const { updateBanner } = await import('./firebase.js');
+    const temp = allBanners[index].order;
+    await updateBanner(allBanners[index].id, { order: allBanners[index-1].order });
+    await updateBanner(allBanners[index-1].id, { order: temp });
+};
+
+window.moveBannerDown = async (id, index) => {
+    if (index >= allBanners.length - 1) return;
+    const { updateBanner } = await import('./firebase.js');
+    const temp = allBanners[index].order;
+    await updateBanner(allBanners[index].id, { order: allBanners[index+1].order });
+    await updateBanner(allBanners[index+1].id, { order: temp });
+};
+
 
 window.hapusProdukOrder =
     hapusProdukOrder;
