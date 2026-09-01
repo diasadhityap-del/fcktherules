@@ -16,8 +16,6 @@ const SLUG_TO_PAGE = {
     'tentang': 'tentang'
 };
 
-import { listenProduk, listenGaleri, listenBanners } from './firebase.js';
-
 
 function updateMeta(title, description) {
     document.title = title;
@@ -54,7 +52,8 @@ let galleryImages = []; // Untuk menyimpan link dari kolom Q
 
 import {
     listenProduk,
-    listenGaleri
+    listenGaleri,
+    listenBanners
 } from './firebase.js';
 let products = [];
 let cart = { prod: null, size: '', color: '' };
