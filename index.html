@@ -206,6 +206,7 @@ justify-content:center;
             <div id="dpNoteArea" style="display:none; margin-top:20px;">
                 </div>
 
+                        <!-- UPLOAD BUKTI -->
             <div style="margin-top:20px;">
                 <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
                 <label for="inputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
@@ -213,8 +214,20 @@ justify-content:center;
                     <span id="labelBukti">Tap untuk upload foto bukti</span>
                 </label>
                 <input type="file" id="inputBukti" accept="image/*" style="display:none;" onchange="previewBukti(this)">
-                <img id="previewImg" src="" style="display:none; width:100%; border-radius:12px; margin-top:12px; border:1px solid #eaeaea;">
+                
+                <!-- KOTAK FILE ALA GOOGLE FORM -->
+                <div id="fileChip" style="display:none; align-items:center; justify-content:space-between; margin-top:12px; padding:10px 15px; border:1px solid #eaeaea; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden; cursor:pointer;" onclick="vibrate(20); openImage(document.getElementById('previewImg').src)">
+                        <i class="fas fa-image" style="color:#ea4335; font-size:20px;"></i>
+                        <span id="fileName" style="font-size:13px; font-weight:600; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">nama_file.jpg</span>
+                    </div>
+                    <i class="fas fa-times" style="color:#555; font-size:16px; cursor:pointer; padding:5px; margin-left:10px;" onclick="hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti')"></i>
+                </div>
+                
+                <!-- Gambar disembunyikan, datanya dipakai untuk popup (zoom) -->
+                <img id="previewImg" src="" style="display:none;">
             </div>
+
 
             <p style="font-size: 10px; color: #555; text-align: center; margin-top: 25px; line-height: 1.5;">
                 Tekan checkout dan anda akan diarahkan otomatis ke<br>WhatsApp admin.
@@ -394,6 +407,7 @@ justify-content:center;
             <div id="cartDpNoteArea" style="display:none; margin-top:20px;">
                 </div>
 
+                        <!-- Upload Bukti -->
             <div style="margin-top:20px;">
                 <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
                 <label for="cartInputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
@@ -401,8 +415,19 @@ justify-content:center;
                     <span id="cartLabelBukti">Tap untuk upload foto bukti</span>
                 </label>
                 <input type="file" id="cartInputBukti" accept="image/*" style="display:none;" onchange="previewCartBukti(this)">
-                <img id="cartPreviewImg" src="" style="display:none; width:100%; border-radius:12px; margin-top:12px; border:1px solid #eaeaea;">
+                
+                <!-- KOTAK FILE ALA GOOGLE FORM -->
+                <div id="cartFileChip" style="display:none; align-items:center; justify-content:space-between; margin-top:12px; padding:10px 15px; border:1px solid #eaeaea; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden; cursor:pointer;" onclick="vibrate(20); openImage(document.getElementById('cartPreviewImg').src)">
+                        <i class="fas fa-image" style="color:#ea4335; font-size:20px;"></i>
+                        <span id="cartFileName" style="font-size:13px; font-weight:600; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">nama_file.jpg</span>
+                    </div>
+                    <i class="fas fa-times" style="color:#555; font-size:16px; cursor:pointer; padding:5px; margin-left:10px;" onclick="hapusBukti('cartInputBukti', 'cartFileChip', 'cartPreviewImg', 'cartLabelBukti')"></i>
+                </div>
+
+                <img id="cartPreviewImg" src="" style="display:none;">
             </div>
+
 
             <p style="font-size:10px; color:#555; text-align:center; margin-top:25px; line-height:1.5;">
                 Tekan checkout dan anda akan diarahkan otomatis ke<br>WhatsApp admin.
