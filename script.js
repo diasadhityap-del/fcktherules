@@ -22,10 +22,10 @@ function updateMeta(title, description) {
     document.title = title;
     const descMeta = document.querySelector('meta[name="description"]');
     if (descMeta) descMeta.content = description;
-    
+
     const ogTitle = document.querySelector('meta[property="og:title"]');
     if (ogTitle) ogTitle.content = title;
-    
+
     const ogDesc = document.querySelector('meta[property="og:description"]');
     if (ogDesc) ogDesc.content = description;
 }
@@ -95,7 +95,7 @@ function removeCartItem(id) {
     if (cartItems.length === 0) {
         const floatingBtn = document.getElementById('floatingCartBtn');
         if (floatingBtn) floatingBtn.style.display = 'none';
-        
+
         const cPage = document.getElementById('cartPage');
         if (cPage && cPage.classList.contains('active')) {
             showPage(lastPage || 'home');
@@ -137,7 +137,7 @@ function renderCartPage() {
 
     const tEl = document.getElementById('cartTotal');
     if(tEl) tEl.innerText = formatRupiah(total);
-    
+
     const chkBtn = document.getElementById('cartCheckoutBtn');
     if(chkBtn) chkBtn.style.display = 'block';
 }
@@ -180,13 +180,13 @@ function validateCartForm() {
 
     const sumItems = document.getElementById('cartSumItems');
     if (sumItems) sumItems.innerHTML = itemsHTML;
-    
+
     const sumTotal = document.getElementById('cartSumTotal');
     if (sumTotal) sumTotal.innerText = formatRupiah(total);
-    
+
     const sumCust = document.getElementById('cartSumCust');
     if (sumCust) sumCust.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
-    
+
     showPage('cartSummary');
 }
 
@@ -197,7 +197,7 @@ async function sendCartWA() {
     const a = document.getElementById('cartInAddress').value;
     const inputB = document.getElementById('cartInputBukti');
     const buktiFile = inputB ? inputB.files[0] : null;
-    
+
     if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
 
     const btn = document.querySelector('#cartSummary button[onclick="sendCartWA()"]');
@@ -247,50 +247,6 @@ async function sendCartWA() {
     }
 }
 
-let uploadedCartBuktiURL = null;
-async function previewCartBukti(input) {
-    const file = input.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = e => {
-        const previewImg = document.getElementById('cartPreviewImg');
-        if(!previewImg) return;
-        previewImg.src = e.target.result;
-        previewImg.style.display = 'block';
-        previewImg.style.opacity = '0.4';
-        previewImg.style.filter = 'blur(2px)';
-        const existing = document.getElementById('cartSpinnerOverlay');
-        if (existing) existing.remove();
-        const spinner = document.createElement('div');
-        spinner.id = 'cartSpinnerOverlay';
-        spinner.className = 'spinner-overlay';
-        spinner.innerHTML = '<i class="fas fa-spinner"></i>';
-        previewImg.parentElement.style.position = 'relative';
-        previewImg.parentElement.appendChild(spinner);
-    };
-    reader.readAsDataURL(file);
-    
-    const label = document.getElementById('cartLabelBukti');
-    if (label) label.innerText = ' Mengupload...';
-
-    const { uploadGambar } = await import('./firebase.js');
-    uploadedCartBuktiURL = await uploadGambar(file, 'bukti');
-
-    const previewImg = document.getElementById('cartPreviewImg');
-    const spinner = document.getElementById('cartSpinnerOverlay');
-    if (spinner) spinner.remove();
-
-    if (uploadedCartBuktiURL) {
-        if(previewImg) { previewImg.style.opacity = '1'; previewImg.style.filter = 'none'; }
-        if (label) label.innerText = ' Upload berhasil!';
-    } else {
-        if(previewImg) previewImg.style.display = 'none';
-        if (label) label.innerText = ' Gagal upload, coba lagi';
-        uploadedCartBuktiURL = null;
-    }
-}
-
 // --- BAGIAN UPLOAD BUKTI KERANJANG ---
 let uploadedCartBuktiURL = null;
 async function previewCartBukti(input) {
@@ -302,16 +258,16 @@ async function previewCartBukti(input) {
         const previewImg = document.getElementById('cartPreviewImg');
         const fileChip = document.getElementById('cartFileChip');
         const fileName = document.getElementById('cartFileName');
-        
+
         if(previewImg) previewImg.src = e.target.result;
         if(fileName) fileName.innerText = file.name;
         if(fileChip) {
             fileChip.style.display = 'flex';
-            fileChip.style.opacity = '0.5'; // Efek loading transparan
+            fileChip.style.opacity = '0.5'; 
         }
     };
     reader.readAsDataURL(file);
-    
+
     const label = document.getElementById('cartLabelBukti');
     if (label) label.innerText = ' Mengupload...';
 
@@ -340,16 +296,16 @@ async function previewBukti(input) {
         const previewImg = document.getElementById('previewImg');
         const fileChip = document.getElementById('fileChip');
         const fileName = document.getElementById('fileName');
-        
+
         if(previewImg) previewImg.src = e.target.result;
         if(fileName) fileName.innerText = file.name;
         if(fileChip) {
             fileChip.style.display = 'flex';
-            fileChip.style.opacity = '0.5'; // Efek loading transparan
+            fileChip.style.opacity = '0.5'; 
         }
     };
     reader.readAsDataURL(file);
-    
+
     const label = document.getElementById('labelBukti');
     if(label) label.innerText = ' Mengupload...';
 
@@ -374,7 +330,7 @@ function hapusBukti(inputId, chipId, imgId, labelId) {
     document.getElementById(chipId).style.display = 'none';
     document.getElementById(imgId).src = '';
     document.getElementById(labelId).innerText = 'Tap untuk upload foto bukti';
-    
+
     if (inputId === 'inputBukti') {
         uploadedBuktiURL = null;
     } else {
@@ -412,7 +368,7 @@ window.onload = async () => {
 
             const path = window.location.pathname.replace(/^\//, '').toLowerCase();
             const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) || path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) || path.match(/^([^\/]+)\/summary$/);
-            
+
             if (orderMatch) {
                 const productSlug = orderMatch[1];
                 let pageId = 'detail';
@@ -446,7 +402,6 @@ window.onload = async () => {
     } catch (error) {
         console.error("Initialization Error:", error);
     } finally {
-        // FAIL-SAFE LOADING SCREEN REMOVER
         setTimeout(() => {
             const loader = document.getElementById('loader');
             if (loader) loader.classList.add('hide');
@@ -571,7 +526,6 @@ function toggleSidebar() {
     if(sidebar) sidebar.classList.toggle('open');
     if(overlay) overlay.classList.toggle('show');
 }
-
 function navTo(pageId) { 
     toggleSidebar(); 
     showPage(pageId); 
@@ -601,7 +555,7 @@ function showPage(id) {
         if (id === 'summary') url = `/${productSlug}/summary`;
         history.pushState({ page: id, product: productSlug }, '', url);
     }
-    
+
     if (orderPages.includes(id)) {
         if(menuBtn) menuBtn.style.display = 'none';
     } else {
@@ -636,7 +590,7 @@ function goDetail(id) {
 
     const elName = document.getElementById('detName');
     if(elName) elName.innerText = p.name;
-    
+
     const elPrice = document.getElementById('detPrice');
     if(elPrice) elPrice.innerText = formatRupiah(p.price);
 
@@ -698,16 +652,16 @@ function validateForm() {
     vibrate(40);
     const n = document.getElementById('inName').value, p = document.getElementById('inPhone').value, a = document.getElementById('inAddress').value;
     if(!n || !p || !a) return triggerAlert("LENGKAPI DATA!");
-    
+
     const sumP = document.getElementById('sumProd');
     if(sumP) sumP.innerText = cart.prod.name;
-    
+
     const sumV = document.getElementById('sumVar');
     if(sumV) sumV.innerText = `${cart.color} | ${cart.size}`;
-    
+
     const sumPr = document.getElementById('sumPrice');
     if(sumPr) sumPr.innerText = formatRupiah(cart.prod.price);
-    
+
     const sumC = document.getElementById('sumCust');
     if(sumC) sumC.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
 
@@ -720,7 +674,7 @@ function validateForm() {
             dpNote.innerHTML = '<p style="font-size:13px; color:#000; font-weight:700; margin:0; text-align:center; padding:15px; border:1px solid #eaeaea; border-radius:12px; background:#f9f9f9;"><i class="fas fa-info-circle" style="margin-right:5px;"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
         }
     }
-    
+
     showPage('summary');
 }
 
@@ -731,7 +685,7 @@ async function sendWA() {
     const a = document.getElementById('inAddress').value;
     const inputB = document.getElementById('inputBukti');
     const buktiFile = inputB ? inputB.files[0] : null;
-    
+
     if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
 
     const btn = document.querySelector('#summary button[onclick="sendWA()"]');
@@ -789,7 +743,7 @@ function closeQRIS() { const m=document.getElementById('qrisModal'); if(m) m.sty
 function goDetailSilent(p) {
     const elName = document.getElementById('detName');
     if(elName) elName.innerText = p.name;
-    
+
     const elPrice = document.getElementById('detPrice');
     if(elPrice) elPrice.innerText = formatRupiah(p.price);
 
