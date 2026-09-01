@@ -488,8 +488,12 @@ function closeImage() {
 function injectFooters() {
     const footerHTML = `
         <footer>
-            <div class="footer-logo">FVCKTHERULES</div>
-            <div class="footer-slogan">BORN TO DISOBEY</div>
+            <!-- BAGIAN LOGO GAMBAR -->
+            <div class="footer-logo" style="margin-bottom: 15px;">
+                <img src="logo.png" alt="Logo" style="max-width: 150px; height: auto; display: block; margin: 0 auto;">
+            </div>
+            
+            <div class="footer-slogan">MAKE STAND WITH PRIDE</div>
             <div class="footer-socials">
                 <a href="https://www.instagram.com/fvcktherules____?igsh=d2Z5dTFiMHdxMHgy" target="_blank" onclick="vibrate(30)"><i class="fab fa-instagram"></i></a>
                 <a href="https://wa.me/6285725706337" target="_blank" onclick="vibrate(30)"><i class="fab fa-whatsapp"></i></a>
@@ -501,7 +505,7 @@ function injectFooters() {
                 WhatsApp : <a href="https://wa.me/6285725706337">085725706337</a><br>
                 Email : <a href="mailto:fvcktherulesmakestand@gmail.com">fvcktherulesmakestand@gmail.com</a>
             </div>
-            <p class="copyright">© 2026 FvcktheRules Store. All rights reserved.</p>
+            <p class="copyright">© 2026 LOVO. All rights reserved.</p>
         </footer>`;
 
     ['home', 'pre', 'kat', 'ars', 'about', 'galeri'].forEach(id => {
@@ -509,6 +513,7 @@ function injectFooters() {
         if(el) el.innerHTML = footerHTML;
     });
 }
+
 
 function toggleSidebar() {
     vibrate(20);
