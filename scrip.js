@@ -40,40 +40,241 @@ function slugify(text) {
 }
 
 function formatRupiah(value) {
-
-    return 'Rp' + Number(
-        String(value).replace(/\D/g,'')
-    ).toLocaleString('id-ID');
-
+    return 'Rp' + Number(String(value).replace(/\D/g,'')).toLocaleString('id-ID');
 }
 
-let galleryImages = []; // Untuk menyimpan link dari kolom Q
+let galleryImages = [];
 
-import {
-    listenProduk,
-    listenGaleri
-} from './firebase.js';
+import { listenProduk, listenGaleri, listenBanners } from './firebase.js';
 let products = [];
 let cart = { prod: null, size: '', color: '' };
-let lastPage = 'home'; // Default ke home
+let lastPage = 'home';
+let cartItems = [];
 
-let tipeBayar = 'lunas'; // default lunas
+// ── CART FUNCTIONS ──────────────────────────────────────────
+function addToCart() {
+    if (!cart.color) return triggerAlert("PILIH WARNA DULU!");
+    if (!cart.size) return triggerAlert("PILIH UKURAN DULU!");
 
-function pilihBayar(tipe) {
-    tipeBayar = tipe;
-    if (tipe === 'lunas') {
-        document.getElementById('btnLunas').style.cssText = 'padding:16px; border:1.5px solid #fff; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#fff; color:#000;';
-        document.getElementById('btnDP').style.cssText = 'padding:16px; border:1.5px solid #1a1a1a; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#050505; color:#fff;';
-        document.getElementById('dpArea').style.display = 'none';
+    cartItems.push({
+        id: Date.now(),
+        prod: cart.prod,
+        size: cart.size,
+        color: cart.color
+    });
+
+    vibrate([30, 30, 30]);
+    updateCartBadge();
+    showCartToast();
+}
+
+function updateCartBadge() {
+    const badge = document.getElementById('cartBadge');
+    if (!badge) return;
+    badge.innerText = cartItems.length;
+    badge.style.display = cartItems.length > 0 ? 'flex' : 'none';
+    const btn = document.getElementById('floatingCartBtn');
+    if (btn) btn.style.display = cartItems.length > 0 ? 'flex' : 'none';
+}
+
+function showCartToast() {
+    const toast = document.getElementById('cartToast');
+    if (!toast) return;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function removeCartItem(id) {
+    vibrate(20);
+    cartItems = cartItems.filter(i => i.id !== id);
+    updateCartBadge();
+    renderCartPage();
+
+    if (cartItems.length === 0) {
+        const floatingBtn = document.getElementById('floatingCartBtn');
+        if (floatingBtn) floatingBtn.style.display = 'none';
+        if (document.getElementById('cartPage').classList.contains('active')) {
+            showPage(lastPage || 'home');
+        }
+    }
+}
+
+function renderCartPage() {
+    const container = document.getElementById('cartList');
+    if (!container) return;
+
+    if (cartItems.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:60px 20px; color:#444;">
+                <i class="fas fa-shopping-bag" style="font-size:48px; margin-bottom:20px; display:block;"></i>
+                <p style="font-weight:700; font-size:14px; letter-spacing:1px;">KERANJANG KOSONG</p>
+                <p style="font-size:12px; margin-top:8px; color:#333;">Tambahkan produk dulu yuk!</p>
+            </div>`;
+        document.getElementById('cartCheckoutBtn').style.display = 'none';
+        return;
+    }
+
+    const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+
+    container.innerHTML = cartItems.map(item => `
+        <div style="background:#ffffff; border:1px solid #eaeaea; border-radius:15px; padding:16px; margin-bottom:12px; display:flex; gap:14px; align-items:center;">
+            <img src="${item.prod.thumbnail}" style="width:70px; height:70px; object-fit:cover; border-radius:10px; flex-shrink:0;">
+            <div style="flex:1; min-width:0;">
+                <p style="font-weight:700; font-size:13px; margin:0 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#000;">${item.prod.name}</p>
+                <p style="font-size:11px; color:#888; margin:0 0 6px;">${item.color} | ${item.size}</p>
+                <p style="font-size:13px; color:#000000; font-weight:700; margin:0;">${formatRupiah(item.prod.price)}</p>
+            </div>
+            <button onclick="removeCartItem(${item.id})" style="background:#f9f9f9; border:1px solid #eaeaea; color:#000000; border-radius:8px; width:32px; height:32px; cursor:pointer; font-size:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+    `).join('');
+
+    document.getElementById('cartTotal').innerText = formatRupiah(total);
+    document.getElementById('cartCheckoutBtn').style.display = 'block';
+}
+
+function goToCartCheckout() {
+    vibrate(40);
+    showPage('cartForm');
+}
+
+function validateCartForm() {
+    vibrate(40);
+    const n = document.getElementById('cartInName').value;
+    const p = document.getElementById('cartInPhone').value;
+    const a = document.getElementById('cartInAddress').value;
+    if (!n || !p || !a) return triggerAlert("LENGKAPI DATA!");
+
+    const adaProdukTanpaDP = cartItems.some(item => item.prod.dpAllowed === 'no');
+    const cartDpNote = document.getElementById('cartDpNoteArea');
+
+    if (adaProdukTanpaDP) {
+        if (cartDpNote) cartDpNote.style.display = 'none';
     } else {
-        document.getElementById('btnDP').style.cssText = 'padding:16px; border:1.5px solid #fff; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#fff; color:#000;';
-        document.getElementById('btnLunas').style.cssText = 'padding:16px; border:1.5px solid #1a1a1a; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#050505; color:#fff;';
-        document.getElementById('dpArea').style.display = 'block';
+        if (cartDpNote) {
+            cartDpNote.style.display = 'block';
+            cartDpNote.innerHTML = '<p style="font-size:13px; color:#000; font-weight:700; margin:0; text-align:center; padding:15px; border:1px solid #eaeaea; border-radius:12px; background:#f9f9f9;"><i class="fas fa-info-circle" style="margin-right:5px;"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
+        }
+    }
+
+    const itemsHTML = cartItems.map(item => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eaeaea;">
+            <div>
+                <p style="font-size:13px; font-weight:700; margin:0 0 3px; color:#000;">${item.prod.name}</p>
+                <p style="font-size:11px; color:#888; margin:0;">${item.color} | ${item.size}</p>
+            </div>
+            <p style="font-size:13px; color:#000000; font-weight:700; margin:0; flex-shrink:0; margin-left:10px;">${formatRupiah(item.prod.price)}</p>
+        </div>
+    `).join('');
+
+    const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+
+    document.getElementById('cartSumItems').innerHTML = itemsHTML;
+    document.getElementById('cartSumTotal').innerText = formatRupiah(total);
+    document.getElementById('cartSumCust').innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
+    showPage('cartSummary');
+}
+
+async function sendCartWA() {
+    vibrate(40);
+    const n = document.getElementById('cartInName').value;
+    const p = document.getElementById('cartInPhone').value;
+    const a = document.getElementById('cartInAddress').value;
+    const buktiFile = document.getElementById('cartInputBukti').files[0];
+    
+    if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
+
+    const btn = document.querySelector('#cartSummary button[onclick="sendCartWA()"]');
+    if(btn) { btn.innerText = 'UPLOADING...'; btn.disabled = true; }
+
+    try {
+        const { saveOrder } = await import('./firebase.js');
+        const buktiURL = uploadedCartBuktiURL;
+        if (!buktiURL) throw new Error("Gagal upload bukti");
+
+        const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+        const produkList = cartItems.map(i => `- ${i.prod.name} (${i.color} | ${i.size}) — ${formatRupiah(i.prod.price)},`).join('\n');
+
+        const orderData = {
+            nama: n,
+            wa: p,
+            alamat: a,
+            produk: cartItems.map(i => ({
+                nama: i.prod.name,
+                warna: i.color,
+                size: i.size,
+                harga: i.prod.price
+            })),
+            produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
+            harga: total,
+            tipeBayar: 'Cek Bukti Bayar',
+            dp: '',
+            buktiURL
+        };
+
+        await saveOrder(orderData);
+
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwT4_P20_b0UsbL4absLW6G7nNpK_PGfQv97VVjyJpcm622JzjAAAf6dzSKs-97jyfZvw/exec';
+        fetch(SCRIPT_URL, { method:"POST", mode:"no-cors", cache:"no-cache", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(orderData) }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
+
+        const text = `*FVCKTHERULES ORDER (KERANJANG)*\n\n*Produk:*\n${produkList}\n\n*Total:* ${formatRupiah(total)}\n\n*Data Pengiriman*\n*Nama:* ${n}\n*WhatsApp:* ${p}\n*Alamat:* ${a}\n\n*Bukti Bayar:*\n${buktiURL}`;
+        window.open(`https://wa.me/6285725706337?text=${encodeURIComponent(text)}`);
+
+        cartItems = [];
+        updateCartBadge();
+        uploadedCartBuktiURL = null;
+    } catch(err) {
+        console.error(err);
+        triggerAlert("GAGAL! COBA LAGI.");
+    } finally {
+        if(btn) { btn.innerText = 'CHECKOUT (WA)'; btn.disabled = false; }
+    }
+}
+
+let uploadedCartBuktiURL = null;
+async function previewCartBukti(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        const previewImg = document.getElementById('cartPreviewImg');
+        previewImg.src = e.target.result;
+        previewImg.style.display = 'block';
+        previewImg.style.opacity = '0.4';
+        previewImg.style.filter = 'blur(2px)';
+        const existing = document.getElementById('cartSpinnerOverlay');
+        if (existing) existing.remove();
+        const spinner = document.createElement('div');
+        spinner.id = 'cartSpinnerOverlay';
+        spinner.className = 'spinner-overlay';
+        spinner.innerHTML = '<i class="fas fa-spinner"></i>';
+        previewImg.parentElement.style.position = 'relative';
+        previewImg.parentElement.appendChild(spinner);
+    };
+    reader.readAsDataURL(file);
+    document.getElementById('cartLabelBukti').innerText = ' Mengupload...';
+
+    const { uploadGambar } = await import('./firebase.js');
+    uploadedCartBuktiURL = await uploadGambar(file, 'bukti');
+
+    const previewImg = document.getElementById('cartPreviewImg');
+    const spinner = document.getElementById('cartSpinnerOverlay');
+    if (spinner) spinner.remove();
+
+    if (uploadedCartBuktiURL) {
+        previewImg.style.opacity = '1';
+        previewImg.style.filter = 'none';
+        document.getElementById('cartLabelBukti').innerText = ' Upload berhasil!';
+    } else {
+        previewImg.style.display = 'none';
+        document.getElementById('cartLabelBukti').innerText = ' Gagal upload, coba lagi';
+        uploadedCartBuktiURL = null;
     }
 }
 
 let uploadedBuktiURL = null;
-
 async function previewBukti(input) {
     const file = input.files[0];
     if (!file) return;
@@ -85,8 +286,6 @@ async function previewBukti(input) {
         previewImg.style.display = 'block';
         previewImg.style.opacity = '0.4';
         previewImg.style.filter = 'blur(2px)';
-
-        // Tambah spinner di atas gambar
         const existing = document.getElementById('spinnerOverlay');
         if (existing) existing.remove();
         const spinner = document.createElement('div');
@@ -97,7 +296,6 @@ async function previewBukti(input) {
         previewImg.parentElement.appendChild(spinner);
     };
     reader.readAsDataURL(file);
-
     document.getElementById('labelBukti').innerText = '⏳ Mengupload...';
 
     const { uploadGambar } = await import('./firebase.js');
@@ -113,129 +311,74 @@ async function previewBukti(input) {
         document.getElementById('labelBukti').innerText = '✓ Upload berhasil!';
     } else {
         previewImg.style.display = 'none';
-        previewImg.style.opacity = '1';
-        previewImg.style.filter = 'none';
         document.getElementById('labelBukti').innerText = '✗ Gagal upload, coba lagi';
         uploadedBuktiURL = null;
     }
 }
-window.onload = async () => {
 
-    history.replaceState(
-        { page: 'home' },
-        '',
-        window.location.pathname
-    );
+window.onload = async () => {
+    history.replaceState({ page: 'home' }, '', window.location.pathname);
+    listenBanners((firestoreBanners) => {
+        renderBannerSlider(firestoreBanners);
+    });
 
     listenProduk((firestoreProducts) => {
+        products = firestoreProducts.map(p => ({
+            id: p.id,
+            name: p.nama,
+            price: p.harga,
+            badge: p.badge?.toLowerCase() || '',
+            status: p.status || '',
+            colors: p.warna ? p.warna.split('/').map(c => c.trim()) : [],
+            stock: p.stok ? p.stok.split('/').map(s => s.trim()) : [],
+            thumbnail: p.thumbnail || '',
+            details: p.details || [],
+            specs: p.specs || '',
+            showcase: p.showcase || 'no',
+            dpAllowed: p.dpAllowed || 'yes',
+            order: p.order || 0
+        }));
 
-    products = firestoreProducts.map(p => ({
-        id: p.id,
-        name: p.nama,
-        price: p.harga,
-        badge: p.badge?.toLowerCase() || '',
-        status: p.status || '',
-        colors: p.warna ? p.warna.split('/').map(c => c.trim()) : [],
-        stock: p.stok ? p.stok.split('/').map(s => s.trim()) : [],
-        thumbnail: p.thumbnail || '',
-        details: p.details || [],
-        specs: p.specs || '',
-        showcase: p.showcase || 'no',
-        dpAllowed: p.dpAllowed || 'yes',
-        order: p.order || 0
-    }));
+        products.sort((a, b) => (b.order || 0) - (a.order || 0));
+        renderAllSections();
 
-    products.sort(
-        (a, b) => (b.order || 0) - (a.order || 0)
-    );
+        const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+        const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) || path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) || path.match(/^([^\/]+)\/summary$/);
+        
+        if (orderMatch) {
+            const productSlug = orderMatch[1];
+            let pageId = 'detail';
+            if (path.endsWith('/form')) pageId = 'form';
+            if (path.endsWith('/summary')) pageId = 'summary';
 
-    renderAllSections();
+            const found = products.find(p => slugify(p.name) === productSlug);
 
-    const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-
-    // Cek apakah path adalah order page
-    const orderMatch =
-    path.match(/^([^\/]+)$/)
-    ||
-    path.match(/^([^\/]+)\/$/)
-    ||
-    path.match(/^([^\/]+)\/detail$/)
-    ||
-    path.match(/^([^\/]+)\/form$/)
-    ||
-    path.match(/^([^\/]+)\/summary$/);
-    if (orderMatch) {
-        const productSlug = orderMatch[1]; // contoh: soccer-madness
-        let pageId = 'detail'; // detail, form, atau summary
-
-if (path.endsWith('/form')) {
-    pageId = 'form';
-}
-
-if (path.endsWith('/summary')) {
-    pageId = 'summary';
-}      
-
-        // Cari produk berdasarkan slug
-        const found = products.find(p => slugify(p.name) === productSlug);
-
-        if (found) {
-            // Set cart dari data produk
-            cart = { 
-                prod: found, 
-                size: '', 
-                color: found.colors.length === 1 ? found.colors[0] : '' 
-            };
-            // Render ulang detail produk
-            goDetailSilent(found);
-            // Tampilkan halaman yang sesuai
-            showPageSilent(pageId);
-            if (!document.referrer.includes(window.location.hostname)) {
-
-    history.replaceState(
-        { page: 'home' },
-        '',
-        '/'
-    );
-
-    history.pushState(
-        {
-            page: 'detail',
-            product: productSlug
-        },
-        '',
-        `/${productSlug}`
-    );
-}
+            if (found) {
+                cart = { prod: found, size: '', color: found.colors.length === 1 ? found.colors[0] : '' };
+                goDetailSilent(found);
+                showPageSilent(pageId);
+                if (!document.referrer.includes(window.location.hostname)) {
+                    history.replaceState({ page: 'home' }, '', '/');
+                    history.pushState({ page: 'detail', product: productSlug }, '', `/${productSlug}`);
+                }
+            } else {
+                history.replaceState({ page: 'home' }, '', '/');
+                showPage('home');
+            }
         } else {
-            // Produk tidak ditemukan, redirect home
-            history.replaceState({ page: 'home' }, '', '/');
-            showPage('home');
+            const targetPage = SLUG_TO_PAGE[path] || 'home';
+            if (targetPage !== 'home') showPage(targetPage);
         }
-    } else {
-        const targetPage = SLUG_TO_PAGE[path] || 'home';
-        if (targetPage !== 'home') {
-            showPage(targetPage);
-        }
-    }
-});
+    });
 
     listenGaleri((firestoreGaleri) => {
-
-        galleryImages =
-            firestoreGaleri.map(g => g.url);
-
+        galleryImages = firestoreGaleri.map(g => g.url);
         renderGallery();
     });
 
-    setTimeout(() =>
-        document.getElementById('loader').classList.add('hide'),
-        1000
-    );
+    setTimeout(() => document.getElementById('loader').classList.add('hide'), 1000);
 
-    
-
-    const orderPages = ['detail', 'form', 'summary'];
+    const orderPages = ['detail', 'form', 'summary', 'cartPage', 'cartForm', 'cartSummary'];
     window.addEventListener('popstate', (e) => {
         const page = e.state?.page || 'home';
         const menuBtn = document.querySelector('.menu-btn');
@@ -244,33 +387,30 @@ if (path.endsWith('/summary')) {
             history.replaceState({ page: 'home' }, '', '/');
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById('home').classList.add('active');
-            menuBtn.style.display = 'flex';
+            if(menuBtn) menuBtn.style.display = 'flex';
             return;
         }
 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(page).classList.add('active');
-        document.getElementById(page).scrollTop = 0;
+        if(document.getElementById(page)) {
+            document.getElementById(page).classList.add('active');
+            document.getElementById(page).scrollTop = 0;
+        }
 
         if (orderPages.includes(page)) {
-            menuBtn.style.display = 'none';
+            if(menuBtn) menuBtn.style.display = 'none';
         } else {
-            menuBtn.style.display = 'flex';
+            if(menuBtn) menuBtn.style.display = 'flex';
             lastPage = page;
         }
     });
 };
 
-
 function renderAllSections() { 
-    // Beranda: Hanya produk yang kolom Showcase-nya diisi 'yes'
     renderList(products.filter(p => p.showcase === 'yes'), 'list-home');
-
-    // Halaman lain tetap berdasarkan Badge
     renderList(products.filter(p => p.badge === 'pre'), 'list-preorder');
     renderList(products.filter(p => p.badge === 'ready'), 'list-katalog');
     renderList(products.filter(p => p.badge === 'sold'), 'list-arsip');
-
     injectFooters();
 }
 
@@ -283,21 +423,13 @@ function renderList(items, containerId) {
         container.innerHTML += `
             <div class="card ${isSold ? 'sold-out-display' : ''}">
                 <div class="badge ${p.badge}">${p.status}</div>
-                <img src="${p.thumbnail}"> <div style="padding:25px">
+                <img src="${p.thumbnail}"> 
+                <div style="padding:25px">
                     <h3>${p.name}</h3>
                     <p style="opacity:0.5; font-weight:600;">${isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
-                    <button onclick="
-    sessionStorage.setItem(
-        'lastPage',
-        document.querySelector('.page.active').id
-    );
-    vibrate(40);
-    goDetail('${p.id}');
-" ${isSold ? 'disabled' : ''}>
-
-    ${isSold ? 'SOLD' : 'SELECT'}
-
-</button>
+                    <button onclick="sessionStorage.setItem('lastPage', document.querySelector('.page.active').id); vibrate(40); goDetail('${p.id}');" ${isSold ? 'disabled' : ''}>
+                        ${isSold ? 'SOLD' : 'SELECT'}
+                    </button>
                 </div>
             </div>`;
     });
@@ -306,26 +438,23 @@ function renderList(items, containerId) {
 function renderGallery() {
     const container = document.getElementById('gallery-container');
     if (!container) return;
-    
     container.innerHTML = '';
     galleryImages.forEach(img => {
-        // Kita tambahkan onclick="openImage('${img}')" agar saat diklik gambar membesar
         container.innerHTML += `<img src="${img}" loading="lazy" onclick="vibrate(20); openImage('${img}')">`;
     });
 }
 
-// Fungsi untuk membuka modal
 function openImage(src) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImg');
-    modalImg.src = src;
-    modal.style.display = 'flex'; // Mengubah display menjadi flex agar muncul
+    if(modalImg) modalImg.src = src;
+    if(modal) modal.style.display = 'flex';
     vibrate(20);
 }
 
-// Fungsi untuk menutup modal (dipanggil saat klik area gelap)
 function closeImage() {
-    document.getElementById('imageModal').style.display = 'none';
+    const modal = document.getElementById('imageModal');
+    if(modal) modal.style.display = 'none';
 }
 
 function injectFooters() {
@@ -335,19 +464,18 @@ function injectFooters() {
             <div class="footer-slogan">MAKE STAND WITH PRIDE</div>
             <div class="footer-socials">
                 <a href="https://www.instagram.com/fvcktherules____?igsh=d2Z5dTFiMHdxMHgy" target="_blank" onclick="vibrate(30)"><i class="fab fa-instagram"></i></a>
-                <a href="https://wa.me/6283898588562" target="_blank" onclick="vibrate(30)"><i class="fab fa-whatsapp"></i></a>
+                <a href="https://wa.me/6285725706337" target="_blank" onclick="vibrate(30)"><i class="fab fa-whatsapp"></i></a>
                 <a href="https://shopee.co.id/fvcktherules__" target="_blank" onclick="vibrate(30)"><i class="fas fa-shopping-bag"></i></a>
             </div>
             <div class="footer-contact-title">KONTAK KAMI :</div>
             <div class="footer-contact-info">
                 Saluran WhatsApp : <a href="https://whatsapp.com/channel/0029Vb7jjbj8vd1GK8ZiTz0y" target="_blank"><i class="fab fa-whatsapp"></i> Klik Disini</a><br>
-                WhatsApp : <a href="https://wa.me/6283898588562">083898588562</a><br>
+                WhatsApp : <a href="https://wa.me/6285725706337">085725706337</a><br>
                 Email : <a href="mailto:fvcktherulesmakestand@gmail.com">fvcktherulesmakestand@gmail.com</a>
             </div>
             <p class="copyright">© 2026 FvcktheRules Store. All rights reserved.</p>
         </footer>`;
 
-    // Daftar ID footer yang ada di HTML kamu
     ['home', 'pre', 'kat', 'ars', 'about', 'galeri'].forEach(id => {
         const el = document.getElementById(`footer-${id}`);
         if(el) el.innerHTML = footerHTML;
@@ -356,17 +484,22 @@ function injectFooters() {
 
 function toggleSidebar() {
     vibrate(20);
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebarOverlay').classList.toggle('show');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if(sidebar) sidebar.classList.toggle('open');
+    if(overlay) overlay.classList.toggle('show');
 }
 
-function navTo(pageId) { toggleSidebar(); showPage(pageId); }
+function navTo(pageId) { 
+    toggleSidebar(); 
+    showPage(pageId); 
+}
 
 function showPage(id) {
     if (META[id]) updateMeta(META[id].title, META[id].desc);
     const menuBtn = document.querySelector('.menu-btn');
     const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang'];
-    const orderPages = ['detail', 'form', 'summary'];
+    const orderPages = ['detail', 'form', 'summary', 'cartPage', 'cartForm', 'cartSummary'];
 
     if (orderPages.includes(id) && !cart.prod) {
         history.pushState({ page: 'home' }, '', '/');
@@ -379,48 +512,33 @@ function showPage(id) {
         history.pushState({ page: id }, '', slug);
     }
 
-    // URL dinamis untuk order pages
-    // URL dinamis untuk order pages
-if (orderPages.includes(id) && cart.prod) {
-    const productSlug = slugify(cart.prod.name);
-
-    let url = `/${productSlug}`;
-
-    if (id === 'form') {
-        url = `/${productSlug}/form`;
+    if (orderPages.includes(id) && cart.prod) {
+        const productSlug = slugify(cart.prod.name);
+        let url = `/${productSlug}`;
+        if (id === 'form') url = `/${productSlug}/form`;
+        if (id === 'summary') url = `/${productSlug}/summary`;
+        history.pushState({ page: id, product: productSlug }, '', url);
     }
-
-    if (id === 'summary') {
-        url = `/${productSlug}/summary`;
-    }
-
-    history.pushState(
-        { page: id, product: productSlug },
-        '',
-        url
-    );
-}
+    
     if (orderPages.includes(id)) {
-        menuBtn.style.display = 'none';
+        if(menuBtn) menuBtn.style.display = 'none';
     } else {
-        menuBtn.style.display = 'flex';
+        if(menuBtn) menuBtn.style.display = 'flex';
     }
 
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    document.getElementById(id).scrollTop = 0;
+    if(document.getElementById(id)) {
+        document.getElementById(id).classList.add('active');
+        document.getElementById(id).scrollTop = 0;
+    }
 }
 
 function navBack() {
     vibrate(30);
-
-    // kalau ada history sebelumnya
     if (window.history.length > 1) {
         history.back();
         return;
     }
-
-    // fallback kalau buka direct link
     showPage(lastPage || 'home');
 }
 
@@ -428,37 +546,29 @@ function goDetail(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
 
-    if (document.getElementById('sidebar').classList.contains('open')) {
+    if (document.getElementById('sidebar')?.classList.contains('open')) {
         toggleSidebar();
     }
-    
+
     cart = { prod: p, size: '', color: p.colors.length === 1 ? p.colors[0] : '' };
 
     document.getElementById('detName').innerText = p.name;
-    document.getElementById('detPrice').innerText =
-    formatRupiah(p.price);
+    document.getElementById('detPrice').innerText = formatRupiah(p.price);
 
     const slider = document.getElementById('detImgs');
-
-    // Cek apakah ada gambar detail (I-M)
     if (p.details && p.details.length > 0) {
-        // Hanya tampilkan gambar detail 1-5
         slider.innerHTML = p.details.map(i => `<img src="${i}">`).join('');
     } else {
-        // Kalau detail kosong, thumbnail baru muncul sebagai cadangan
         slider.innerHTML = `<img src="${p.thumbnail}">`;
     }
-
     slider.scrollLeft = 0; 
 
-    // Render Warna
     let cHTML = `<div class="section-label">PILIH WARNA</div><div class="option-box">`;
     p.colors.forEach(c => {
         cHTML += `<div class="${cart.color === c ? 'active' : ''}" onclick="selOpt('color','${c}',this)">${c}</div>`;
     });
     document.getElementById('colorArea').innerHTML = cHTML + `</div>`;
 
-    // Render Ukuran
     let sHTML = `<div class="section-label">PILIH UKURAN</div><div class="option-box">`;
     ["S", "M", "L", "XL", "XXL", "XXXL"].forEach(s => {
         const isAvail = p.stock.includes(s);
@@ -466,34 +576,25 @@ function goDetail(id) {
     });
     document.getElementById('sizeArea').innerHTML = sHTML + `</div>`;
 
-const dpBtn = document.getElementById('btnDP');
-
-if (p.dpAllowed === 'no') {
-    dpBtn.style.display = 'none';
-
-    // paksa kembali lunas
-    pilihBayar('lunas');
-
-} else {
-    dpBtn.style.display = 'block';
-}
-
-    // Pindah halaman
     showPage('detail');
 }
 
-function selOpt(type, val, el) { vibrate(20); cart[type] = val; el.parentElement.querySelectorAll('div').forEach(d => d.classList.remove('active')); el.classList.add('active'); }
+function selOpt(type, val, el) { 
+    vibrate(20); 
+    cart[type] = val; 
+    el.parentElement.querySelectorAll('div').forEach(d => d.classList.remove('active')); 
+    el.classList.add('active'); 
+}
+
 function triggerAlert(msg) {
-    // Getar: 50ms, diam 50ms, getar 50ms (pola error)
     vibrate([50, 50, 50]); 
     const toast = document.getElementById('toast');
-    toast.innerText = msg;
-    toast.classList.add('show', 'shake');
-
-    // Hapus efek goyang setelah 0.4 detik
-    setTimeout(() => toast.classList.remove('shake'), 400);
-    // Mengubah durasi toast
-    setTimeout(() => toast.classList.remove('show'), 2500);
+    if(toast) {
+        toast.innerText = msg;
+        toast.classList.add('show', 'shake');
+        setTimeout(() => toast.classList.remove('shake'), 400);
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
 }
 
 function validateDetail() {
@@ -504,56 +605,46 @@ function validateDetail() {
     showPage('form');
 }
 
-function validateForm() { vibrate(40);
+function validateForm() { 
+    vibrate(40);
     const n = document.getElementById('inName').value, p = document.getElementById('inPhone').value, a = document.getElementById('inAddress').value;
     if(!n || !p || !a) return triggerAlert("LENGKAPI DATA!");
+    
     document.getElementById('sumProd').innerText = cart.prod.name;
     document.getElementById('sumVar').innerText = `${cart.color} | ${cart.size}`;
-    document.getElementById('sumPrice').innerText =
-    formatRupiah(cart.prod.price);
+    document.getElementById('sumPrice').innerText = formatRupiah(cart.prod.price);
     document.getElementById('sumCust').innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
 
-if (cart.prod.dpAllowed === 'no') {
-
-    document.getElementById('paymentTypeArea').style.display = 'none';
-    document.getElementById('dpArea').style.display = 'none';
-    tipeBayar = 'lunas';
-
-} else {
-
-    document.getElementById('paymentTypeArea').style.display = 'block';
-
-}
-
+    const dpNote = document.getElementById('dpNoteArea');
+    if (cart.prod.dpAllowed === 'no') {
+        if (dpNote) dpNote.style.display = 'none';
+    } else {
+        if (dpNote) {
+            dpNote.style.display = 'block';
+            dpNote.innerHTML = '<p style="font-size:13px; color:#000; font-weight:700; margin:0; text-align:center; padding:15px; border:1px solid #eaeaea; border-radius:12px; background:#f9f9f9;"><i class="fas fa-info-circle" style="margin-right:5px;"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
+        }
+    }
+    
     showPage('summary');
 }
 
 async function sendWA() { 
     vibrate(40);
-
     const n = document.getElementById('inName').value;
     const p = document.getElementById('inPhone').value;
     const a = document.getElementById('inAddress').value;
     const buktiFile = document.getElementById('inputBukti').files[0];
-    const dp = tipeBayar === 'dp' ? document.getElementById('inDP').value : '';
-
-    // Validasi bukti
+    
     if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
-if (tipeBayar === 'dp' && !dp) return triggerAlert("ISI NOMINAL DP!");
-if (tipeBayar === 'dp' && parseInt(dp) < 60000) return triggerAlert("DP MINIMAL Rp60.000!");
 
-    // Tampilkan loading
     const btn = document.querySelector('#summary button[onclick="sendWA()"]');
-    btn.innerText = 'UPLOADING...';
-    btn.disabled = true;
+    if(btn) { btn.innerText = 'UPLOADING...'; btn.disabled = true; }
 
     try {
-        // 1. Upload bukti ke Cloudinary
         const { saveOrder } = await import('./firebase.js');
-const buktiURL = uploadedBuktiURL;
-if (!buktiURL) throw new Error("Gagal upload bukti");
+        const buktiURL = uploadedBuktiURL;
+        if (!buktiURL) throw new Error("Gagal upload bukti");
 
-        // 2. Data order
         const orderData = {
             nama: n,
             wa: p,
@@ -562,65 +653,46 @@ if (!buktiURL) throw new Error("Gagal upload bukti");
             warna: cart.color,
             size: cart.size,
             harga: cart.prod.price,
-            tipeBayar: tipeBayar,
-            dp: dp,
+            tipeBayar: 'Cek Bukti Bayar',
+            dp: '',
             buktiURL: buktiURL
         };
 
-        // 3. Simpan ke Firebase
         await saveOrder(orderData);
 
-        // 4. Kirim ke Google Sheets
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwezvCW3_8uBhPEY9GrU_3Ue6MzAv1_GNhXauBZSI9Bj5QRAeeVitzLBtH5twBkSULVfA/exec';
         fetch(SCRIPT_URL, {
-            method: "POST",
-            mode: "no-cors",
-            cache: "no-cache",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({...orderData, buktiURL})
+            method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({...orderData, buktiURL})
         }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
 
-        // 5. Arahkan ke WhatsApp
-        const infoBayar = tipeBayar === 'lunas' 
-    ? 'LUNAS' 
-    : `DP ${formatRupiah(dp)} dari ${formatRupiah(cart.prod.price)}`;
-
-const text = `*FVCKTHERULES ORDER*\n\n*Produk:* ${cart.prod.name}\n*Warna:* ${cart.color}\n*Size:* ${cart.size}\n*Harga:* ${formatRupiah(cart.prod.price)}\n*Pembayaran:* ${infoBayar}\n\n*Data Pengiriman*\n*Nama:* ${n}\n*WhatsApp:* ${p}\n*Alamat:* ${a}\n\n*Bukti Bayar:*\n${buktiURL}`;
-        window.open(`https://wa.me/6283898588562?text=${encodeURIComponent(text)}`);
+        const text = `*FVCKTHERULES ORDER*\n\n*Produk:* ${cart.prod.name}\n*Warna:* ${cart.color}\n*Size:* ${cart.size}\n*Harga:* ${formatRupiah(cart.prod.price)}\n\n*Data Pengiriman*\n*Nama:* ${n}\n*WhatsApp:* ${p}\n*Alamat:* ${a}\n\n*Bukti Bayar:*\n${buktiURL}`;
+        window.open(`https://wa.me/6285725706337?text=${encodeURIComponent(text)}`);
 
     } catch (err) {
         console.error(err);
         triggerAlert("GAGAL! COBA LAGI.");
     } finally {
-        btn.innerText = 'CHECKOUT (WA)';
-        btn.disabled = false;
+        if(btn) { btn.innerText = 'CHECKOUT (WA)'; btn.disabled = false; }
     }
 }
 
-function openSize() { document.getElementById('sizeModal').style.display='flex'; }
-function closeSize() { document.getElementById('sizeModal').style.display='none'; }
+
+function openSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='flex'; }
+function closeSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='none'; }
 function openSpecs() { 
     const text = cart.prod.specs ? cart.prod.specs.replace(/\\n/g, '<br>') : "Spesifikasi belum tersedia.";
-    document.getElementById('specContent').innerHTML = text;
-    document.getElementById('specsModal').style.display = 'flex'; 
+    const el = document.getElementById('specContent');
+    const m = document.getElementById('specsModal');
+    if(el) el.innerHTML = text;
+    if(m) m.style.display = 'flex'; 
 }
-function closeSpecs() { document.getElementById('specsModal').style.display = 'none'; }
-
-// Fungsi untuk membuka modal QRIS
-function openQRIS() { 
-    vibrate(30); 
-    document.getElementById('qrisModal').style.display = 'flex'; 
-}
-
-// Fungsi untuk menutup modal QRIS
-function closeQRIS() { 
-    document.getElementById('qrisModal').style.display = 'none'; 
-}
+function closeSpecs() { const m=document.getElementById('specsModal'); if(m) m.style.display = 'none'; }
+function openQRIS() { vibrate(30); const m=document.getElementById('qrisModal'); if(m) m.style.display = 'flex'; }
+function closeQRIS() { const m=document.getElementById('qrisModal'); if(m) m.style.display = 'none'; }
 
 function goDetailSilent(p) {
     document.getElementById('detName').innerText = p.name;
-    document.getElementById('detPrice').innerText =
-    formatRupiah(p.price);
+    document.getElementById('detPrice').innerText = formatRupiah(p.price);
 
     const slider = document.getElementById('detImgs');
     if (p.details && p.details.length > 0) {
@@ -642,28 +714,17 @@ function goDetailSilent(p) {
         sHTML += `<div class="${isAvail ? '' : 'disabled'}" onclick="${isAvail ? `selOpt('size','${s}',this)` : ''}">${s}</div>`;
     });
     document.getElementById('sizeArea').innerHTML = sHTML + `</div>`;
-
-const dpBtn = document.getElementById('btnDP');
-
-if (p.dpAllowed === 'no') {
-    dpBtn.style.display = 'none';
-    pilihBayar('lunas');
-} else {
-    dpBtn.style.display = 'block';
-}
 }
 
 function showPageSilent(id) {
-    const orderPages = ['detail', 'form', 'summary'];
+    const orderPages = ['detail', 'form', 'summary', 'cartPage', 'cartForm', 'cartSummary'];
     const menuBtn = document.querySelector('.menu-btn');
-    if (orderPages.includes(id)) menuBtn.style.display = 'none';
+    if (orderPages.includes(id) && menuBtn) menuBtn.style.display = 'none';
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+    if(document.getElementById(id)) document.getElementById(id).classList.add('active');
 }
 
-function vibrate(ms) {
-    if (navigator.vibrate) navigator.vibrate(ms);
-}
+function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 
 window.toggleSidebar = toggleSidebar;
 window.navTo = navTo;
@@ -679,9 +740,65 @@ window.openSpecs = openSpecs;
 window.closeSpecs = closeSpecs;
 window.openQRIS = openQRIS;
 window.closeQRIS = closeQRIS;
-window.pilihBayar = pilihBayar;
 window.previewBukti = previewBukti;
 window.openImage = openImage;
 window.closeImage = closeImage;
 window.vibrate = vibrate;
 window.navBack = navBack;
+window.addToCart = addToCart;
+window.removeCartItem = removeCartItem;
+window.goToCartCheckout = goToCartCheckout;
+window.validateCartForm = validateCartForm;
+window.sendCartWA = sendCartWA;
+window.previewCartBukti = previewCartBukti;
+window.openCart = openCart;
+
+function openCart() {
+    vibrate(20);
+    renderCartPage();
+    showPage('cartPage');
+}
+
+function renderBannerSlider(banners) {
+    const track = document.getElementById('bannerTrack');
+    const dots = document.getElementById('bannerDots');
+    const sliderContainer = document.querySelector('.banner-slider');
+    if(!track || !dots || !sliderContainer) return;
+
+    if (banners.length === 0) {
+        sliderContainer.style.display = 'none';
+        return;
+    }
+    sliderContainer.style.display = 'block';
+
+    track.innerHTML = banners.map(b => `
+        <div class="banner-slide">
+            <img src="${b.image}">
+            <div class="banner-content">
+                ${b.title ? `<h3>${b.title}</h3>` : ''}
+                ${b.subtitle ? `<p>${b.subtitle}</p>` : ''}
+                ${b.link ? `<a onclick="navTo('${b.link}')" style="cursor:pointer;">READ MORE</a>` : ''}
+            </div>
+        </div>
+    `).join('');
+
+    dots.innerHTML = banners.map((b, i) => `
+        <span class="dot ${i===0?'active':''}" onclick="goToSlide(${i})"></span>
+    `).join('');
+}
+
+window.goToSlide = function(index) {
+    const track = document.getElementById('bannerTrack');
+    if(track) track.scrollTo({ left: index * track.clientWidth, behavior: 'smooth' });
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const track = document.getElementById('bannerTrack');
+    const dots = document.querySelectorAll('#bannerDots .dot');
+    if(track && dots.length > 0) {
+        track.addEventListener('scroll', () => {
+            let index = Math.round(track.scrollLeft / track.clientWidth);
+            dots.forEach(d => d.classList.remove('active'));
+            if(dots[index]) dots[index].classList.add('active');
+        });
+    }
