@@ -490,7 +490,7 @@ function injectFooters() {
         <footer>
             <!-- BAGIAN LOGO GAMBAR -->
             <div class="footer-logo" style="margin-bottom: 15px;">
-                <img src="logo.png" alt="Logo" style="max-width: 150px; height: auto; display: block; margin: 0 auto;">
+                <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="max-width: 150px; height: auto; display: block; margin: 0 auto;">
             </div>
             
             <div class="footer-slogan">MAKE STAND WITH PRIDE</div>
