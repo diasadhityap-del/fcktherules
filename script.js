@@ -190,62 +190,117 @@ function validateCartForm() {
     showPage('cartSummary');
 }
 
-async function sendCartWA() {
+// ── SISTEM CHECKOUT BARU (TANPA WHATSAPP) ──
+let currentCheckoutType = '';
+
+function confirmCheckout(type) {
+    vibrate(30);
+    if (type === 'single') {
+        const inputB = document.getElementById('inputBukti');
+        if (!inputB || !inputB.files[0]) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
+        if (!uploadedBuktiURL) return triggerAlert("TUNGGU UPLOAD SELESAI!");
+    } else {
+        const inputB = document.getElementById('cartInputBukti');
+        if (!inputB || !inputB.files[0]) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
+        if (!uploadedCartBuktiURL) return triggerAlert("TUNGGU UPLOAD SELESAI!");
+    }
+
+    currentCheckoutType = type;
+    const m = document.getElementById('confirmModal');
+    if(m) m.style.display = 'flex';
+}
+
+function closeConfirm() {
+    vibrate(20);
+    const m = document.getElementById('confirmModal');
+    if(m) m.style.display = 'none';
+}
+
+async function executeCheckout() {
     vibrate(40);
-    const n = document.getElementById('cartInName').value;
-    const p = document.getElementById('cartInPhone').value;
-    const a = document.getElementById('cartInAddress').value;
-    const inputB = document.getElementById('cartInputBukti');
-    const buktiFile = inputB ? inputB.files[0] : null;
-
-    if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
-
-    const btn = document.querySelector('#cartSummary button[onclick="sendCartWA()"]');
-    if(btn) { btn.innerText = 'UPLOADING...'; btn.disabled = true; }
+    closeConfirm();
+    
+    // Tampilkan layar loading agar pembeli tidak spam klik
+    const loader = document.getElementById('loader');
+    if(loader) loader.classList.remove('hide');
 
     try {
         const { saveOrder } = await import('./firebase.js');
-        const buktiURL = uploadedCartBuktiURL;
-        if (!buktiURL) throw new Error("Gagal upload bukti");
 
-        const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
-        const produkList = cartItems.map(i => `- ${i.prod.name} (${i.color} | ${i.size}) — ${formatRupiah(i.prod.price)},`).join('\n');
+        if (currentCheckoutType === 'single') {
+            const n = document.getElementById('inName').value;
+            const p = document.getElementById('inPhone').value;
+            const a = document.getElementById('inAddress').value;
+            const buktiURL = uploadedBuktiURL;
 
-        const orderData = {
-            nama: n,
-            wa: p,
-            alamat: a,
-            produk: cartItems.map(i => ({
-                nama: i.prod.name,
-                warna: i.color,
-                size: i.size,
-                harga: i.prod.price
-            })),
-            produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
-            harga: total,
-            tipeBayar: 'Cek Bukti Bayar',
-            dp: '',
-            buktiURL
-        };
+            const orderData = {
+                nama: n, wa: p, alamat: a,
+                produk: cart.prod.name, warna: cart.color, size: cart.size,
+                harga: cart.prod.price, tipeBayar: 'Cek Bukti Bayar', dp: '',
+                buktiURL: buktiURL
+            };
 
-        await saveOrder(orderData);
+            // 1. Simpan ke Firebase
+            await saveOrder(orderData);
 
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwT4_P20_b0UsbL4absLW6G7nNpK_PGfQv97VVjyJpcm622JzjAAAf6dzSKs-97jyfZvw/exec';
-        fetch(SCRIPT_URL, { method:"POST", mode:"no-cors", cache:"no-cache", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(orderData) }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
+            // 2. Kirim ke Google Script
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwezvCW3_8uBhPEY9GrU_3Ue6MzAv1_GNhXauBZSI9Bj5QRAeeVitzLBtH5twBkSULVfA/exec';
+            fetch(SCRIPT_URL, {
+                method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({...orderData, buktiURL})
+            }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
 
-        const text = `*FVCKTHERULES ORDER (KERANJANG)*\n\n*Produk:*\n${produkList}\n\n*Total:* ${formatRupiah(total)}\n\n*Data Pengiriman*\n*Nama:* ${n}\n*WhatsApp:* ${p}\n*Alamat:* ${a}\n\n*Bukti Bayar:*\n${buktiURL}`;
-        window.open(`https://wa.me/6285725706337?text=${encodeURIComponent(text)}`);
+            // Reset Form Single Checkout
+            hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti');
+            document.getElementById('inName').value = '';
+            document.getElementById('inPhone').value = '';
+            document.getElementById('inAddress').value = '';
+            cart = { prod: null, size: '', color: '' };
 
-        cartItems = [];
-        updateCartBadge();
-        uploadedCartBuktiURL = null;
-    } catch(err) {
+        } else if (currentCheckoutType === 'cart') {
+            const n = document.getElementById('cartInName').value;
+            const p = document.getElementById('cartInPhone').value;
+            const a = document.getElementById('cartInAddress').value;
+            const buktiURL = uploadedCartBuktiURL;
+            const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+
+            const orderData = {
+                nama: n, wa: p, alamat: a,
+                produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: i.prod.price })),
+                produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
+                harga: total, tipeBayar: 'Cek Bukti Bayar', dp: '',
+                buktiURL
+            };
+
+            // 1. Simpan ke Firebase
+            await saveOrder(orderData);
+
+            // 2. Kirim ke Google Script
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwT4_P20_b0UsbL4absLW6G7nNpK_PGfQv97VVjyJpcm622JzjAAAf6dzSKs-97jyfZvw/exec';
+            fetch(SCRIPT_URL, { method:"POST", mode:"no-cors", cache:"no-cache", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(orderData) }).catch(err => console.error(err));
+
+            // Reset Form & Keranjang Checkout
+            cartItems = [];
+            updateCartBadge();
+            hapusBukti('cartInputBukti', 'cartFileChip', 'cartPreviewImg', 'cartLabelBukti');
+            document.getElementById('cartInName').value = '';
+            document.getElementById('cartInPhone').value = '';
+            document.getElementById('cartInAddress').value = '';
+        }
+
+        // Kembali ke beranda dan trigger notif
+        showPage('home');
+        setTimeout(() => {
+            triggerAlert("PESANAN BERHASIL DITERIMA!");
+        }, 500);
+
+    } catch (err) {
         console.error(err);
-        triggerAlert("GAGAL! COBA LAGI.");
+        triggerAlert("GAGAL MENYIMPAN! COBA LAGI.");
     } finally {
-        if(btn) { btn.innerText = 'CHECKOUT (WA)'; btn.disabled = false; }
+        if(loader) loader.classList.add('hide'); 
     }
 }
+
 
 // --- BAGIAN UPLOAD BUKTI KERANJANG ---
 let uploadedCartBuktiURL = null;
@@ -327,9 +382,12 @@ async function previewBukti(input) {
 function hapusBukti(inputId, chipId, imgId, labelId) {
     vibrate(20);
     document.getElementById(inputId).value = '';
-    document.getElementById(chipId).style.display = 'none';
-    document.getElementById(imgId).src = '';
-    document.getElementById(labelId).innerText = 'Tap untuk upload foto bukti';
+    const chip = document.getElementById(chipId);
+    if(chip) chip.style.display = 'none';
+    const img = document.getElementById(imgId);
+    if(img) img.src = '';
+    const lbl = document.getElementById(labelId);
+    if(lbl) lbl.innerText = 'Tap untuk upload foto bukti';
 
     if (inputId === 'inputBukti') {
         uploadedBuktiURL = null;
@@ -678,54 +736,6 @@ function validateForm() {
     showPage('summary');
 }
 
-async function sendWA() { 
-    vibrate(40);
-    const n = document.getElementById('inName').value;
-    const p = document.getElementById('inPhone').value;
-    const a = document.getElementById('inAddress').value;
-    const inputB = document.getElementById('inputBukti');
-    const buktiFile = inputB ? inputB.files[0] : null;
-
-    if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
-
-    const btn = document.querySelector('#summary button[onclick="sendWA()"]');
-    if(btn) { btn.innerText = 'UPLOADING...'; btn.disabled = true; }
-
-    try {
-        const { saveOrder } = await import('./firebase.js');
-        const buktiURL = uploadedBuktiURL;
-        if (!buktiURL) throw new Error("Gagal upload bukti");
-
-        const orderData = {
-            nama: n,
-            wa: p,
-            alamat: a,
-            produk: cart.prod.name,
-            warna: cart.color,
-            size: cart.size,
-            harga: cart.prod.price,
-            tipeBayar: 'Cek Bukti Bayar',
-            dp: '',
-            buktiURL: buktiURL
-        };
-
-        await saveOrder(orderData);
-
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwezvCW3_8uBhPEY9GrU_3Ue6MzAv1_GNhXauBZSI9Bj5QRAeeVitzLBtH5twBkSULVfA/exec';
-        fetch(SCRIPT_URL, {
-            method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({...orderData, buktiURL})
-        }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
-
-        const text = `*FVCKTHERULES ORDER*\n\n*Produk:* ${cart.prod.name}\n*Warna:* ${cart.color}\n*Size:* ${cart.size}\n*Harga:* ${formatRupiah(cart.prod.price)}\n\n*Data Pengiriman*\n*Nama:* ${n}\n*WhatsApp:* ${p}\n*Alamat:* ${a}\n\n*Bukti Bayar:*\n${buktiURL}`;
-        window.open(`https://wa.me/6285725706337?text=${encodeURIComponent(text)}`);
-
-    } catch (err) {
-        console.error(err);
-        triggerAlert("GAGAL! COBA LAGI.");
-    } finally {
-        if(btn) { btn.innerText = 'CHECKOUT (WA)'; btn.disabled = false; }
-    }
-}
 
 function openSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='flex'; }
 function closeSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='none'; }
@@ -790,7 +800,6 @@ window.goDetail = goDetail;
 window.selOpt = selOpt;
 window.validateDetail = validateDetail;
 window.validateForm = validateForm;
-window.sendWA = sendWA;
 window.openSize = openSize;
 window.closeSize = closeSize;
 window.openSpecs = openSpecs;
@@ -806,12 +815,13 @@ window.addToCart = addToCart;
 window.removeCartItem = removeCartItem;
 window.goToCartCheckout = goToCartCheckout;
 window.validateCartForm = validateCartForm;
-window.sendCartWA = sendCartWA;
 window.previewCartBukti = previewCartBukti;
 window.openCart = openCart;
 window.goToSlide = goToSlide;
 window.hapusBukti = hapusBukti;
-
+window.confirmCheckout = confirmCheckout;
+window.closeConfirm = closeConfirm;
+window.executeCheckout = executeCheckout;
 
 function openCart() {
     vibrate(20);
