@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import {
   getFirestore,
@@ -15,12 +14,12 @@ import {
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBkssGDiofEbjyrl2ODOIak9qnFGbQTJBE",
-    authDomain: "gloriam-store.firebaseapp.com",
-    projectId: "gloriam-store",
-    storageBucket: "gloriam-store.firebasestorage.app",
-    messagingSenderId: "170877114918",
-    appId: "1:170877114918:web:561cc1a634a83a937c24e7"
+    apiKey: "AIzaSyCVL_C4opQiKC6fNG_Rw4l-519rQZICH58",
+    authDomain: "fvcktherules-store.firebaseapp.com",
+    projectId: "fvcktherules-store",
+    storageBucket: "fvcktherules-store.firebasestorage.app",
+    messagingSenderId: "382347904485",
+    appId: "1:382347904485:web:6715a7b395d44ad07a5b0c"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -29,14 +28,14 @@ export const auth = getAuth(app);
 
 // Cloudinary config
 // Cloudinary Config
-export const CLOUDINARY_BUKTI_CLOUD = "dekjgqu7q";
-export const CLOUDINARY_BUKTI_PRESET = "gloriam-bukti";
+export const CLOUDINARY_BUKTI_CLOUD = "dfbxrouwf";
+export const CLOUDINARY_BUKTI_PRESET = "underline-bukti";
 
-export const CLOUDINARY_PRODUK_CLOUD = "dpkmdjfbt";
-export const CLOUDINARY_PRODUK_PRESET = "gloriam-produk";
+export const CLOUDINARY_PRODUK_CLOUD = "dfbxrouwf";
+export const CLOUDINARY_PRODUK_PRESET = "underline-produk";
 
-export const CLOUDINARY_GALERI_CLOUD = "dpkmdjfbt";
-export const CLOUDINARY_GALERI_PRESET = "gloriam-galeri";
+export const CLOUDINARY_GALERI_CLOUD = "dfbxrouwf";
+export const CLOUDINARY_GALERI_PRESET = "underline-galeri";
 
 // Simpan order ke Firestore
 export async function saveOrder(orderData) {
