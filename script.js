@@ -574,17 +574,17 @@ function injectFooters() {
             <div class="footer-slogan" style="margin-top: 5px;">BORN TO DISOBEY</div>
             <div class="footer-socials">
 
-                <a href="https://www.instagram.com/fvcktherules____?igsh=d2Z5dTFiMHdxMHgy" target="_blank" onclick="vibrate(30)"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.instagram.com/fucktherules.exe?igsi=cDYyZDRnenR3MTY0" target="_blank" onclick="vibrate(30)"><i class="fab fa-instagram"></i></a>
                 <a href="https://wa.me/6285725706337" target="_blank" onclick="vibrate(30)"><i class="fab fa-whatsapp"></i></a>
                 <a href="https://shopee.co.id/fvcktherules__" target="_blank" onclick="vibrate(30)"><i class="fas fa-shopping-bag"></i></a>
             </div>
             <div class="footer-contact-title">KONTAK KAMI :</div>
             <div class="footer-contact-info">
-                Saluran WhatsApp : <a href="https://whatsapp.com/channel/0029Vb7jjbj8vd1GK8ZiTz0y" target="_blank"><i class="fab fa-whatsapp"></i> Klik Disini</a><br>
+                Saluran WhatsApp : <a href="https://whatsapp.com/channel/0029VbD2hZqEKyZQXCFpkD2p" target="_blank"><i class="fab fa-whatsapp"></i> Klik Disini</a><br>
                 WhatsApp : <a href="https://wa.me/6285725706337">085725706337</a><br>
-                Email : <a href="mailto:fvcktherulesmakestand@gmail.com">fvcktherulesmakestand@gmail.com</a>
+                Email : <a href="mailto:fvcktherulesmakestand@gmail.com">fucktherules34@gmail.com</a>
             </div>
-            <p class="copyright">© 2026 LOVO. All rights reserved.</p>
+            <p class="copyright">© 2026 FVCKTHERULES. All rights reserved.</p>
         </footer>`;
 
     ['home', 'pre', 'kat', 'ars', 'about', 'galeri'].forEach(id => {
