@@ -244,7 +244,7 @@ async function executeCheckout() {
             await saveOrder(orderData);
 
             // 2. Kirim ke Google Script
-            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwezvCW3_8uBhPEY9GrU_3Ue6MzAv1_GNhXauBZSI9Bj5QRAeeVitzLBtH5twBkSULVfA/exec';
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYPe_WrP95TncOpLq7qTJ2-QjuIy8YIQODC_CaPmS2Jayse3-fidmgr_ZxffTkHfEUaw/exec';
             fetch(SCRIPT_URL, {
                 method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({...orderData, buktiURL})
             }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
@@ -275,7 +275,7 @@ async function executeCheckout() {
             await saveOrder(orderData);
 
             // 2. Kirim ke Google Script
-            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwT4_P20_b0UsbL4absLW6G7nNpK_PGfQv97VVjyJpcm622JzjAAAf6dzSKs-97jyfZvw/exec';
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzYPe_WrP95TncOpLq7qTJ2-QjuIy8YIQODC_CaPmS2Jayse3-fidmgr_ZxffTkHfEUaw/exec';
             fetch(SCRIPT_URL, { method:"POST", mode:"no-cors", cache:"no-cache", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(orderData) }).catch(err => console.error(err));
 
             // Reset Form & Keranjang Checkout
