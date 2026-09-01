@@ -8,7 +8,7 @@ html, body {
 .loader {
     position: fixed; 
     inset: 0; 
-    background: #ffffff; /* Background putih */
+    background: #ffffff; 
     display: flex;
     justify-content: center; 
     align-items: center; 
@@ -37,10 +37,10 @@ html, body {
 /* TOAST & SHAKE */
 .toast {
     position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
-    background: #002456; color: #fff; padding: 14px 28px; border-radius: 50px;
+    background: #000000; color: #fff; padding: 14px 28px; border-radius: 50px;
     transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; 
     font-weight: 700; font-size: 11px; text-transform: uppercase;
-    box-shadow: 0 10px 30px rgba(0,36,86,0.3);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 .toast.show { top: 30px; }
 .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
@@ -60,7 +60,7 @@ header {
     align-items: center; 
     text-align: center;
 }
-header h1 { letter-spacing: 12px; font-size: 32px; margin: 0; color: #000; }
+header h1 { letter-spacing: 12px; font-size: 32px; margin: 0; color: #000000; }
 header .slogan { 
     font-size: 10px; 
     font-weight: 700;
@@ -68,7 +68,7 @@ header .slogan {
     margin-top: 10px; 
     letter-spacing: 2px; 
     text-transform: uppercase;
-    color: #002456;
+    color: #333333;
 }
 header .description {
     max-width: 300px;
@@ -77,7 +77,7 @@ header .description {
     line-height: 1.8;
     opacity: 0.6;
     letter-spacing: 0.5px;
-    color: #000;
+    color: #000000;
 }
 
 /* PRODUCTS */
@@ -86,20 +86,20 @@ header .description {
 .card.sold-out { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
 .card img { width: 100%; display: block; }
 .badge { position: absolute; top: 15px; left: 15px; padding: 6px 14px; font-size: 10px; font-weight: 700; border-radius: 8px; z-index: 2; color: #fff; }
-.pre { background: #002456; } /* Ubah Pre-order jadi Navy */
-.ready { background: #000000; } /* Ubah Ready Stock jadi Hitam */
-.sold { background: #ff3b3b; } /* Sold out biarkan Merah atau ganti abu-abu gelap #333333 */
-
+.pre { background: #555555; } /* Abu-abu untuk Pre-order */
+.ready { background: #000000; } /* Hitam untuk Ready Stock */
+.sold { background: #ff3b3b; } /* Sold out merah */
 
 /* FOOTER */
-footer { background: #f9f9f9; border-top: 1px solid #eaeaea; padding: 60px 20px; text-align: center; margin-top: 40px; color: #000; }
-.footer-logo { letter-spacing: 10px; font-size: 22px; font-weight: 700; margin-bottom: 5px; color: #002456; }
+footer { background: #f9f9f9; border-top: 1px solid #eaeaea; padding: 60px 20px; text-align: center; margin-top: 40px; color: #000000; }
+.footer-logo { letter-spacing: 10px; font-size: 22px; font-weight: 700; margin-bottom: 5px; color: #000000; }
 .footer-slogan { font-size: 9px; opacity: 0.5; letter-spacing: 2px; margin-bottom: 35px; text-transform: uppercase; }
 .footer-socials { display: flex; justify-content: center; gap: 25px; margin-bottom: 35px; }
-.footer-socials a { color: #002456; font-size: 20px; opacity: 0.8; text-decoration: none; }
-.footer-contact-title { font-size: 12px; font-weight: 700; color: #000; margin-bottom: 10px; }
+.footer-socials a { color: #000000; font-size: 20px; opacity: 0.8; text-decoration: none; transition: 0.3s;}
+.footer-socials a:hover { opacity: 1; }
+.footer-contact-title { font-size: 12px; font-weight: 700; color: #000000; margin-bottom: 10px; }
 .footer-contact-info { font-size: 11px; opacity: 0.7; line-height: 1.8; margin-bottom: 40px; }
-.footer-contact-info a { color: #002456; text-decoration: none; font-weight: 600; }
+.footer-contact-info a { color: #000000; text-decoration: none; font-weight: 600; }
 .copyright { font-size: 9px; opacity: 0.4; letter-spacing: 1px; margin-top: 20px; }
 
 /* PAGE SYSTEM */
@@ -107,26 +107,26 @@ footer { background: #f9f9f9; border-top: 1px solid #eaeaea; padding: 60px 20px;
 .page.active { opacity: 1; transform: translateY(0); pointer-events: auto; z-index: 10; }
 
 /* DETAIL & GRID */
-.detail-container { max-width: 500px; margin: auto; padding: 20px 24px 160px; color: #000; }
+.detail-container { max-width: 500px; margin: auto; padding: 20px 24px 160px; color: #000000; }
 .img-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 60px; }
 .img-grid img { width: 100%; border-radius: 15px; aspect-ratio: 4/5; object-fit: cover; border: 1px solid #eaeaea; }
-.section-label { margin-top: 30px; font-size: 11px; font-weight: 700; color: #555; letter-spacing: 1.5px; text-transform: uppercase; }
+.section-label { margin-top: 30px; font-size: 11px; font-weight: 700; color: #555555; letter-spacing: 1.5px; text-transform: uppercase; }
 .option-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
-.option-box div { padding: 16px; border: 1.5px solid #eaeaea; text-align: center; border-radius: 12px; cursor: pointer; background: #ffffff; font-size: 14px; font-weight: 600; color: #000; }
-.option-box div.active { background: #002456; color: #fff; border-color: #002456; }
+.option-box div { padding: 16px; border: 1.5px solid #eaeaea; text-align: center; border-radius: 12px; cursor: pointer; background: #ffffff; font-size: 14px; font-weight: 600; color: #000000; }
+.option-box div.active { background: #000000; color: #fff; border-color: #000000; }
 .option-box div.disabled { opacity: 0.3; cursor: not-allowed; border: 1px dashed #ccc; text-decoration: line-through; background: #f5f5f5; }
 
 /* INPUTS */
 .input-group { margin-bottom: 25px; }
-.input-group label { display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px; }
-input, textarea { width: 100%; padding: 18px; background: #ffffff; border: 1.5px solid #eaeaea; color: #000; border-radius: 15px; font-family: inherit; font-size: 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.02); }
-input:focus, textarea:focus { border-color: #002456; outline: none; }
+.input-group label { display: block; font-size: 11px; font-weight: 700; color: #555555; margin-bottom: 10px; }
+input, textarea { width: 100%; padding: 18px; background: #ffffff; border: 1.5px solid #eaeaea; color: #000000; border-radius: 15px; font-family: inherit; font-size: 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.02); }
+input:focus, textarea:focus { border-color: #000000; outline: none; }
 
 /* BUTTONS */
-button { background: #002456; color: #fff; border: none; padding: 20px; width: 100%; font-weight: 700; border-radius: 15px; cursor: pointer; transition: 0.2s; }
-button:hover { background: #00183b; }
+button { background: #000000; color: #fff; border: none; padding: 20px; width: 100%; font-weight: 700; border-radius: 15px; cursor: pointer; transition: 0.2s; }
+button:hover { background: #333333; } /* Berubah jadi abu-abu gelap saat disentuh */
 .btn-container { margin-top: 40px; }
-.back-btn { position: fixed; top: 25px; left: 20px; z-index: 150; font-weight: 700; font-size: 12px; cursor: pointer; opacity: 0.8; padding: 10px; background: rgba(255,255,255,0.8); border: 1px solid #eaeaea; border-radius: 10px; color: #000; }
+.back-btn { position: fixed; top: 25px; left: 20px; z-index: 150; font-weight: 700; font-size: 12px; cursor: pointer; opacity: 0.8; padding: 10px; background: rgba(255,255,255,0.8); border: 1px solid #eaeaea; border-radius: 10px; color: #000000; }
 
 /* SPESIFIKASI PRODUK */
 .specs-box {
@@ -146,7 +146,7 @@ button:hover { background: #00183b; }
     border-bottom: 1px solid #eee;
     letter-spacing: 1px;
     font-size: 18px; 
-    color: #002456; 
+    color: #000000; 
 }
 
 #specContent {
@@ -164,10 +164,11 @@ button:hover { background: #00183b; }
     font-weight: 700;
     border-radius: 10px;
     cursor: pointer;
-    background: #002456;
+    background: #000000;
     color: #fff;
     border: none;
 }
+.specs-box button:hover { background: #333333; }
 
 /* --- CSS UNTUK SIDEBAR & MENU --- */
 .menu-btn {
@@ -189,7 +190,7 @@ button:hover { background: #00183b; }
 .bar {
     width: 25px;
     height: 2px;
-    background: #000;
+    background: #000000;
     transition: 0.3s;
 }
 
@@ -214,7 +215,7 @@ button:hover { background: #00183b; }
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 4px;
-    color: #002456;
+    color: #000000;
     margin-bottom: 40px;
     text-transform: uppercase;
 }
@@ -228,7 +229,7 @@ button:hover { background: #00183b; }
 .nav-links li {
     font-size: 16px;
     font-weight: 700;
-    color: #000;
+    color: #000000;
     margin-bottom: 30px;
     cursor: pointer;
     letter-spacing: 1px;
@@ -236,7 +237,7 @@ button:hover { background: #00183b; }
 }
 
 .nav-links li:hover {
-    color: #002456;
+    color: #555555;
     padding-left: 10px;
 }
 
@@ -346,7 +347,7 @@ button:hover { background: #00183b; }
 
 .spinner-overlay i {
     font-size: 32px;
-    color: #002456;
+    color: #000000;
     animation: spin 1s linear infinite;
 }
 
@@ -367,12 +368,11 @@ button:hover { background: #00183b; }
 .banner-track {
     display: flex;
     overflow-x: auto;
-    scroll-snap-type: x mandatory; /* Membuat geseran magnet/patah-patah halus */
+    scroll-snap-type: x mandatory; 
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
 }
 
-/* Hilangkan scrollbar bawaan */
 .banner-track::-webkit-scrollbar {
     display: none;
 }
@@ -391,7 +391,6 @@ button:hover { background: #00183b; }
     display: block;
 }
 
-/* Efek gelap transparan (overlay) agar teks putih mudah dibaca */
 .banner-slide::after {
     content: '';
     position: absolute;
@@ -435,7 +434,6 @@ button:hover { background: #00183b; }
     text-transform: uppercase;
 }
 
-/* Titik-titik navigasi di kanan bawah */
 .banner-dots {
     position: absolute;
     bottom: 20px;
@@ -457,5 +455,5 @@ button:hover { background: #00183b; }
 .banner-dots .dot.active {
     background: #fff;
     width: 16px;
-    border-radius: 10px; /* Membuat dot yang aktif memanjang */
+    border-radius: 10px; 
 }
