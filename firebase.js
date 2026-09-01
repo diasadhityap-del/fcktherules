@@ -9,7 +9,8 @@ import {
   doc,
   query,
   orderBy,
-  onSnapshot
+  onSnapshot,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
@@ -27,7 +28,6 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 
 // Cloudinary config
-// Cloudinary Config
 export const CLOUDINARY_BUKTI_CLOUD = "dfbxrouwf";
 export const CLOUDINARY_BUKTI_PRESET = "underline-bukti";
 
@@ -75,23 +75,17 @@ export async function uploadGambar(file, tipe = "bukti") {
 // Ambil semua order (untuk admin)
 export async function getOrders() {
     try {
-
         const q = query(
             collection(db, "orders"),
             orderBy("createdAt", "desc")
         );
-
         const snapshot = await getDocs(q);
-
         return snapshot.docs.map(d => ({
             id: d.id,
             ...d.data()
         }));
-
     } catch (err) {
-
         console.error("Gagal ambil order:", err);
-
         return [];
     }
 }
@@ -145,13 +139,9 @@ export async function saveGaleri(url) {
             order: Date.now(),
             createdAt: new Date().toISOString()
         });
-
         return true;
-
     } catch (err) {
-
         console.error("Gagal simpan galeri:", err);
-
         return false;
     }
 }
@@ -172,53 +162,39 @@ export async function deleteGaleri(id) {
 }
 
 export async function updateGaleri(id, data) {
-
     try {
-
         await updateDoc(doc(db, "galeri", id), data);
-
         return true;
-
     } catch (err) {
-
         console.error("Gagal update galeri:", err);
-
         return false;
     }
 }
 
 export function listenProduk(callback) {
-
     const q = query(
         collection(db, "produk"),
         orderBy("order", "desc")
     );
-
     return onSnapshot(q, (snapshot) => {
-
         const data = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-
         callback(data);
     });
 }
 
 export function listenGaleri(callback) {
-
     const q = query(
         collection(db, "galeri"),
         orderBy("order", "asc")
     );
-
     return onSnapshot(q, (snapshot) => {
-
         const data = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-
         callback(data);
     });
 }
@@ -270,8 +246,6 @@ export function listenBanners(callback) {
 }
 
 // --- DATABASE UNTUK TEKS BANNER ---
-import { onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
 export function listenBannerText(callback) {
     onSnapshot(doc(db, "settings", "bannerText"), (docSnap) => {
         if (docSnap.exists()) {
@@ -285,4 +259,3 @@ export function listenBannerText(callback) {
 export async function saveBannerText(data) {
     await setDoc(doc(db, "settings", "bannerText"), data);
 }
-
