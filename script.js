@@ -6,7 +6,7 @@ const PAGE_SLUGS = {
     galeri: '/galeri',
     tentang: '/tentang'
 };
-
+ 
 const SLUG_TO_PAGE = {
     '': 'home',
     'preorder': 'preorder',
