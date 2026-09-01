@@ -1001,3 +1001,36 @@ function renderBannerSlider(banners) {
     `).join('');
 }
 
+
+// Fungsi untuk memindahkan slide saat titik di-klik
+window.goToSlide = function(index) {
+    const track = document.getElementById('bannerTrack');
+    if(track) {
+        track.scrollTo({
+            left: index * track.clientWidth,
+            behavior: 'smooth'
+        });
+    }
+};
+
+// Fungsi agar titik indikator (dots) update otomatis saat diusap (swipe)
+document.addEventListener('DOMContentLoaded', () => {
+    const track = document.getElementById('bannerTrack');
+    const dots = document.querySelectorAll('#bannerDots .dot');
+    
+    if(track && dots.length > 0) {
+        track.addEventListener('scroll', () => {
+            // Hitung slide mana yang sedang tampil berdasarkan posisi scroll
+            let index = Math.round(track.scrollLeft / track.clientWidth);
+            
+            // Hapus class active dari semua dot
+            dots.forEach(d => d.classList.remove('active'));
+            
+            // Tambahkan class active ke dot yang sesuai
+            if(dots[index]) {
+                dots[index].classList.add('active');
+            }
+        });
+    }
+});
+
