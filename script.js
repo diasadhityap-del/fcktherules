@@ -582,7 +582,7 @@ function injectFooters() {
             <div class="footer-contact-info">
                 Saluran WhatsApp : <a href="https://whatsapp.com/channel/0029VbD2hZqEKyZQXCFpkD2p" target="_blank"><i class="fab fa-whatsapp"></i> Klik Disini</a><br>
                 WhatsApp : <a href="https://wa.me/6285725706337">085725706337</a><br>
-                Email : <a href="mailto:fvcktherulesmakestand@gmail.com">fucktherules34@gmail.com</a>
+                Email : <a href="mailto:fucktherules34@gmail.com">fucktherules34@gmail.com</a>
             </div>
             <p class="copyright">© 2026 FVCKTHERULES. All rights reserved.</p>
         </footer>`;
