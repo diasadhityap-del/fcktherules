@@ -303,13 +303,14 @@ justify-content:center;
 </div>
 
 <!-- FLOATING CART BUTTON -->
-<div id="floatingCartBtn" onclick="openCart()" style="display:none; position:fixed; bottom:28px; right:20px; z-index:999; width:54px; height:54px; background:#fff; border-radius:50%; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-    <i class="fas fa-bag-shopping" style="font-size:20px; color:#000;"></i>
-    <div id="cartBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#00c853; color:#000; font-size:10px; font-weight:900; width:20px; height:20px; border-radius:50%; align-items:center; justify-content:center; font-family:inherit;">0</div>
+<div id="floatingCartBtn" onclick="openCart()" style="display:none; position:fixed; bottom:28px; right:20px; z-index:999; width:54px; height:54px; background:#ffffff; border-radius:50%; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #eaeaea;">
+    <i class="fas fa-bag-shopping" style="font-size:20px; color:#000000;"></i>
+    <div id="cartBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#000000; color:#ffffff; font-size:10px; font-weight:900; width:20px; height:20px; border-radius:50%; align-items:center; justify-content:center; font-family:inherit;">0</div>
 </div>
 
+
 <!-- CART ADDED TOAST -->
-<div id="cartToast" class="toast" style="background:#111; border:1px solid #00c853; color:#00c853;">
+<div id="cartToast" class="toast" style="background:#ffffff; border:1px solid #eaeaea; color:#000000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
     <i class="fas fa-check" style="margin-right:6px;"></i> Ditambahkan ke keranjang!
 </div>
 
@@ -319,17 +320,21 @@ justify-content:center;
     <div class="detail-container" style="padding-top:80px;">
         <h2 style="margin-bottom:24px;">KERANJANG</h2>
         <div id="cartList"></div>
-        <div id="cartTotalArea" style="margin-top:16px; padding:16px 20px; background:#0a0a0a; border:1px solid #1a1a1a; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
+        
+        <!-- BAGIAN TOTAL YANG SUDAH JADI PUTIH & HITAM -->
+        <div id="cartTotalArea" style="margin-top:16px; padding:16px 20px; background:#ffffff; border:1px solid #eaeaea; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
-            <span id="cartTotal" style="font-size:18px; font-weight:700; color:#00c853;">Rp0</span>
+            <span id="cartTotal" style="font-size:18px; font-weight:700; color:#000000;">Rp0</span>
         </div>
+        
         <div id="cartCheckoutBtn" style="display:none;">
             <div class="btn-container" style="margin-top:16px;">
-                <button onclick="goToCartCheckout()">CHECKOUT</button>
+                <button onclick="goToCartCheckout()" style="background:#000000; color:#fff;">CHECKOUT</button>
             </div>
         </div>
     </div>
 </div>
+
 
 <!-- CART FORM PAGE -->
 <div class="page" id="cartForm">
