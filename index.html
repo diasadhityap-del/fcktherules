@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <!-- Basic -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Title (SEO) -->
+    <title>FvcktheRules | Make a Stand with Pride</title>
+
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "FvcktheRules",
+  "alternateName": ["FvcktheRules Store", "FvcktheRules Indonesia"],
+  "url": "https://gloriam.id/"
+}
+</script> 
+
+    <!-- Meta Description (SEO) -->
+    <meta name="description" content="Soccer culture, street attitude. FvcktheRules is built for those who carry football into everyday life. Make a stand with pride.">
+
+    <!-- Keywords (optional, tapi boleh) -->
+    <meta name="keywords" content="fvcktherules, fvcktherules store, fvcktherules asia, fvcktherules id, fvcktherules indonesia, fvcktherules clothing, fvcktherules merch, soccer t shirt, football streetwear, streetwear, football apparel, soccer addict apparel, premium football merch">
+
+    <!-- Author -->
+    <meta name="author" content="FvcktheRules">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
+
+    <!-- Open Graph (biar bagus kalau dishare ke WA/IG) -->
+    <meta property="og:title" content="FvcktheRules | Make a Stand with Pride">
+    <meta property="og:description" content="Where football meets the streets. Built for those who live the game beyond the pitch.">
+    <meta property="og:image" content="https://res.cloudinary.com/dpkmdjfbt/image/upload/v1779516337/Tak_berjudul237_20260523130501_ppjjru.png">
+    <meta property="og:url" content="https://gloriam.id">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="FvcktheRules | Make a Stand with Pride">
+    <meta name="twitter:description" content="Where football meets the streets. Built for those who live the game beyond the pitch.">
+    <meta name="twitter:image" content="https://69c19e4422589ee00d527177.imgix.net/logo/Tak%20berjudul225_20260324103447.jpg?w=1280&h=1280&ar=1280%3A1280&fm=jpg">
+
+    <!-- Theme Color (buat mobile browser) -->
+    <meta name="theme-color" content="#000000">
+
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="menu-btn" onclick="toggleSidebar()">
+    <div class="bar"></div>
+    <div class="bar"></div>
+    <div class="bar"></div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">FVCKTHERULES MENU</div>
+    <ul class="nav-links">
+        <li onclick="navTo('home')">BERANDA</li>
+        <li onclick="navTo('preorder')">PRE ORDER</li>
+        <li onclick="navTo('katalog')">KATALOG</li>
+        <li onclick="navTo('arsip')">ARSIP</li>
+        <li onclick="navTo('galeri')">GALERI</li>
+        <li onclick="navTo('tentang')">TENTANG KAMI</li>
+    </ul>
+</nav>
+
+    <div class="loader" id="loader">
+    <img src="https://res.cloudinary.com/dpkmdjfbt/image/upload/v1779516337/Tak_berjudul237_20260523130501_ppjjru.png" alt="Logo FvcktheRules">
+</div>
+
+    <div id="toast" class="toast">LENGKAPI DATA!</div>
+
+    <div class="page active" id="home">
+    <header>
+        <img src="https://res.cloudinary.com/dpkmdjfbt/image/upload/v1779516337/Tak_berjudul237_20260523130501_ppjjru.png" alt="FvcktheRules" style="width:280px; height:auto; margin-bottom:-40px; margin-top:-30px;">
+        <p class="slogan">MAKE STAND WITH PRIDE</p>
+        <p class="description">
+            Soccer culture, street attitude. FvcktheRules is built for those who carry football into everyday life. Make a stand with pride.
+        </p>
+    </header>
+
+    <div class="products" id="list-home"></div> 
+
+    <div id="footer-home"></div>
+</div>
+
+    <div class="page" id="detail">
+        <div class="back-btn" onclick="navBack()">← BACK</div>
+        <div class="detail-container">
+            <div class="img-slider" id="detImgs"></div>
+            <h2 id="detName" style="margin-top:25px; font-size:24px;">Product</h2>
+            <p id="detPrice" style="color:#00c853; font-weight:700; font-size:18px;"></p>
+            <div id="colorArea"></div>
+            <div id="sizeArea"></div>
+            <p onclick="openSize()" style="color:#00c853; font-size:12px; font-weight:700; margin-top:20px; text-decoration:underline; cursor:pointer;">Size Guide (Sizing Information)</p>
+
+<p onclick="openSpecs()" style="color:#00c853; font-size:12px; font-weight:700; margin-top:10px; text-decoration:underline; cursor:pointer;">Product Specifications (Bahan & Detail)</p>
+
+            <div class="btn-container" style="display:flex; gap:10px;">
+                <button onclick="addToCart()" style="
+width:60px;
+min-width:60px;
+height:54px;
+background:#0a0a0a;
+border:1.5px solid #1a1a1a;
+color:#fff;
+border-radius:12px;
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
+">
+    <i class="fas fa-bag-shopping"></i>
+</button>
+                <button onclick="validateDetail()" style="flex:1;">NEXT</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="page" id="form">
+        <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+        <div class="detail-container" style="padding-top:80px;">
+            <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
+            <div class="input-group">
+                <label>FULL NAME</label>
+                <input type="text" id="inName" placeholder="Nama Lengkap...">
+            </div>
+            <div class="input-group">
+                <label>WHATSAPP</label>
+                <input type="number" id="inPhone" placeholder="08xxx">
+            </div>
+            <div class="input-group">
+                <label>ADDRESS</label>
+                <textarea id="inAddress" rows="4" placeholder="Alamat Lengkap..."></textarea>
+                <p style="font-size: 10px; color: #555; margin-top: 8px;">*Mohon diisi lengkap untuk memudahkan pengiriman.</p>
+            </div>
+            <div class="btn-container"><button onclick="validateForm()">CONTINUE</button></div>
+        </div>
+    </div>
+
+    <div class="page" id="summary">
+        <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+        <div class="detail-container" style="padding-top:80px;">
+            <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
+            <div style="background:#0a0a0a; padding:20px; border-radius:15px; border:1px solid #1a1a1a;">
+                <h3 id="sumProd" style="margin:0; font-size:18px;">-</h3>
+                <p id="sumVar" style="font-size:13px; color:#888; margin:8px 0;">-</p>
+                <h3 id="sumPrice" style="color:#00c853; margin:15px 0 0;">-</h3>
+                <hr style="border:0; border-top:1px solid #1a1a1a; margin:20px 0;">
+                <p id="sumCust" style="font-size:13px; line-height:1.8; margin:0;"></p>
+            </div>
+
+<!-- QRIS PEMBAYARAN -->
+<div style="background:#0a0a0a; border:1px solid #1a1a1a; padding:20px; border-radius:15px; margin-top:20px;">
+    <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">
+        QRIS PEMBAYARAN
+    </span>
+
+    <div style="background:#fff; padding:10px; border-radius:10px; margin-top:15px;">
+        <img 
+            src="/qris.jpg" 
+            alt="QRIS FvcktheRules" 
+            style="width:100%; display:block; border-radius:5px;"
+        >
+    </div>
+
+    <p style="font-size:11px; color:#666; margin-top:12px; line-height:1.5; text-align:center;">
+        Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
+    </p>
+
+    <p style="font-size:11px; color:#666; margin-top:8px; line-height:1.5; text-align:center;">
+        Setelah pembayaran, upload bukti pembayaran di bawah.
+    </p>
+</div>
+
+<!-- TIPE PEMBAYARAN -->
+<div id="paymentTypeArea" style="margin-top:20px;">
+    <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">TIPE PEMBAYARAN</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div id="sumBtnLunas" onclick="pilihBayar('lunas')" style="padding:16px; border:1.5px solid #fff; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#fff; color:#000;">LUNAS</div>
+        <div id="sumBtnDP" onclick="pilihBayar('dp')" style="padding:16px; border:1.5px solid #1a1a1a; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#050505; color:#fff;">DP</div>
+    </div>
+</div>
+
+<!-- INPUT DP -->
+<div id="sumDpArea" style="display:none; margin-top:15px;">
+    <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:10px;">NOMINAL DP</div>
+    <input type="number" id="inDP" placeholder="Rp..." style="width:100%; padding:18px; background:#0a0a0a; border:1.5px solid #1a1a1a; color:#fff; border-radius:15px; font-family:inherit; font-size:15px;">
+    <p style="font-size:10px; color:#555; margin-top:8px;">*Minimal DP Rp60.000</p>
+</div>
+
+<!-- UPLOAD BUKTI (selalu tampil) -->
+<div style="margin-top:20px;">
+    <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
+    <label for="inputBukti" style="display:block; padding:20px; border:1.5px dashed #1a1a1a; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px;">
+        <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+        <span id="labelBukti">Tap untuk upload foto bukti</span>
+    </label>
+    <input type="file" id="inputBukti" accept="image/*" style="display:none;" onchange="previewBukti(this)">
+    <img id="previewImg" src="" style="display:none; width:100%; border-radius:12px; margin-top:12px; border:1px solid #1a1a1a;">
+</div>
+
+<p style="font-size: 10px; color: #555; text-align: center; margin-top: 25px; line-height: 1.5;">
+    Tekan checkout dan anda akan diarahkan otomatis ke<br>WhatsApp admin.
+</p>
+
+<div class="btn-container" style="margin-top: 15px;">
+    <button onclick="sendWA()" style="background:#00c853; color:#fff;">CHECKOUT (WA)</button>
+</div>
+
+        </div>
+    </div>
+</div>
+
+<!-- HALAMAN LAIN -->
+<div class="page" id="preorder">
+    <header><h2>PRE ORDER</h2></header>
+    <div class="products" id="list-preorder"></div>
+    <div id="footer-pre"></div>
+</div>
+
+<div class="page" id="katalog">
+    <header><h2>KATALOG</h2></header>
+    <div class="products" id="list-katalog"></div>
+    <div id="footer-kat"></div>
+</div>
+
+<div class="page" id="arsip">
+    <header><h2>ARSIP</h2></header>
+    <div class="products" id="list-arsip"></div>
+    <div id="footer-ars"></div>
+</div>
+
+<div class="page" id="galeri">
+    <header>
+        <h2>GALLERY</h2>
+        <p class="slogan">FVCKTHERULES MAKE A STAND</p>
+    </header>
+    <div class="gallery-grid" id="gallery-container"></div>
+    <div id="footer-galeri"></div>
+</div>
+
+<div class="page" id="tentang">
+    <div class="detail-container" style="padding-top:100px; text-align:center;">
+        <h2>TENTANG KAMI</h2>
+        <p style="opacity:0.6; line-height:2; font-size:13px;">
+            Soccer culture, street attitude.<br>
+            FvcktheRules is built for those who carry football into everyday life — not just as a game, but as an identity.<br><br>Founded in 2024, FvcktheRules represents passion, loyalty, and pride. Every piece is designed to reflect the spirit of the streets and the energy of the game.<br><br>We stand for those who live football beyond the pitch. Make a stand with pride.
+        </p>
+    </div>
+    <div id="footer-about" style="margin-top:-130px;"></div>
+</div>
+
+<!-- SEMUA MODAL DI LUAR PAGE -->
+<div id="sizeModal" class="modal-overlay" onclick="closeSize()">
+    <div style="max-width:500px; width:100%;">
+        <img src="/size.jpg" style="width:100%; border-radius:15px;">
+    </div>
+</div>
+
+<div id="specsModal" class="modal-overlay" onclick="closeSpecs()">
+    <div class="specs-box" onclick="event.stopPropagation()">
+        <h3>SPESIFIKASI PRODUK</h3>
+        <p id="specContent"></p>
+        <button onclick="closeSpecs()">CLOSE</button>
+    </div>
+</div>
+
+<div id="qrisModal" class="modal-overlay" onclick="closeQRIS()">
+    <div class="specs-box" onclick="event.stopPropagation()">
+        <h3 style="margin:0 0 15px 0; border-bottom:1px solid #222; padding-bottom:10px; font-size:16px; letter-spacing:1px;">QRIS PEMBAYARAN</h3>
+        <div style="background:#fff; padding:10px; border-radius:10px; margin-bottom:15px;">
+            <img src="/qris.jpg" alt="QRIS FvcktheRules" style="width:100%; display:block; border-radius:5px;">
+        </div>
+        <p style="font-size:12px; line-height:1.6; color:#bbb; margin:0; text-align:center;">
+            Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
+        </p>
+        <button onclick="closeQRIS()" style="margin-top:25px; padding:15px; font-size:12px; background:#111; color:#fff; border:1px solid #222;">TUTUP</button>
+    </div>
+</div>
+
+<div id="imageModal" class="modal-overlay" onclick="closeImage()">
+    <img id="modalImg" src="" alt="Zoomed Image">
+</div>
+
+<!-- FLOATING CART BUTTON -->
+<div id="floatingCartBtn" onclick="openCart()" style="display:none; position:fixed; bottom:28px; right:20px; z-index:999; width:54px; height:54px; background:#fff; border-radius:50%; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+    <i class="fas fa-bag-shopping" style="font-size:20px; color:#000;"></i>
+    <div id="cartBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#00c853; color:#000; font-size:10px; font-weight:900; width:20px; height:20px; border-radius:50%; align-items:center; justify-content:center; font-family:inherit;">0</div>
+</div>
+
+<!-- CART ADDED TOAST -->
+<div id="cartToast" class="toast" style="background:#111; border:1px solid #00c853; color:#00c853;">
+    <i class="fas fa-check" style="margin-right:6px;"></i> Ditambahkan ke keranjang!
+</div>
+
+<!-- CART PAGE -->
+<div class="page" id="cartPage">
+    <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+    <div class="detail-container" style="padding-top:80px;">
+        <h2 style="margin-bottom:24px;">KERANJANG</h2>
+        <div id="cartList"></div>
+        <div id="cartTotalArea" style="margin-top:16px; padding:16px 20px; background:#0a0a0a; border:1px solid #1a1a1a; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
+            <span id="cartTotal" style="font-size:18px; font-weight:700; color:#00c853;">Rp0</span>
+        </div>
+        <div id="cartCheckoutBtn" style="display:none;">
+            <div class="btn-container" style="margin-top:16px;">
+                <button onclick="goToCartCheckout()">CHECKOUT</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CART FORM PAGE -->
+<div class="page" id="cartForm">
+    <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+    <div class="detail-container" style="padding-top:80px;">
+        <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
+        <div class="input-group">
+            <label>FULL NAME</label>
+            <input type="text" id="cartInName" placeholder="Nama Lengkap...">
+        </div>
+        <div class="input-group">
+            <label>WHATSAPP</label>
+            <input type="number" id="cartInPhone" placeholder="08xxx">
+        </div>
+        <div class="input-group">
+            <label>ADDRESS</label>
+            <textarea id="cartInAddress" rows="4" placeholder="Alamat Lengkap..."></textarea>
+            <p style="font-size: 10px; color: #555; margin-top: 8px;">*Mohon diisi lengkap untuk memudahkan pengiriman.</p>
+        </div>
+        <div class="btn-container"><button onclick="validateCartForm()">CONTINUE</button></div>
+    </div>
+</div>
+
+<!-- CART SUMMARY PAGE -->
+<div class="page" id="cartSummary">
+    <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+    <div class="detail-container" style="padding-top:80px;">
+        <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
+
+        <!-- Items -->
+        <div style="background:#0a0a0a; padding:20px; border-radius:15px; border:1px solid #1a1a1a;">
+            <div id="cartSumItems"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #1a1a1a;">
+                <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
+                <span id="cartSumTotal" style="font-size:16px; font-weight:700; color:#00c853;"></span>
+            </div>
+        </div>
+
+        <!-- Customer -->
+        <div style="background:#0a0a0a; padding:20px; border-radius:15px; border:1px solid #1a1a1a; margin-top:16px;">
+            <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">DATA PENGIRIMAN</span>
+            <p id="cartSumCust" style="font-size:13px; line-height:1.8; margin:12px 0 0;"></p>
+        </div>
+
+        <!-- Rekening -->
+        <!-- QRIS PEMBAYARAN -->
+<div style="background:#0a0a0a; border:1px solid #1a1a1a; padding:20px; border-radius:15px; margin-top:16px;">
+    <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">
+        QRIS PEMBAYARAN
+    </span>
+
+    <div style="background:#fff; padding:10px; border-radius:10px; margin-top:15px;">
+        <img 
+            src="/qris.jpg" 
+            alt="QRIS FvcktheRules" 
+            style="width:100%; display:block; border-radius:5px;"
+        >
+    </div>
+
+    <p style="font-size:11px; color:#666; margin-top:12px; line-height:1.5; text-align:center;">
+        Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
+    </p>
+
+    <p style="font-size:11px; color:#666; margin-top:8px; line-height:1.5; text-align:center;">
+        Setelah pembayaran, upload bukti pembayaran di bawah.
+    </p>
+</div>
+
+        <!-- Tipe Bayar -->
+        <div id="cartPaymentTypeArea" style="margin-top:20px;">
+            <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">TIPE PEMBAYARAN</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div id="btnLunas" onclick="pilihBayar('lunas')" style="padding:16px; border:1.5px solid #fff; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#fff; color:#000;">LUNAS</div>
+                <div id="btnDP" onclick="pilihBayar('dp')" style="padding:16px; border:1.5px solid #1a1a1a; border-radius:12px; text-align:center; font-weight:700; font-size:13px; cursor:pointer; background:#050505; color:#fff;">DP</div>
+            </div>
+        </div>
+        <div id="dpArea" style="display:none; margin-top:15px;">
+            <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:10px;">NOMINAL DP</div>
+            <input type="number" id="cartInDP" placeholder="Rp..." style="width:100%; padding:18px; background:#0a0a0a; border:1.5px solid #1a1a1a; color:#fff; border-radius:15px; font-family:inherit; font-size:15px;">
+            <p style="font-size:10px; color:#555; margin-top:8px;">*Minimal DP Rp60.000</p>
+        </div>
+
+        <!-- Upload Bukti -->
+        <div style="margin-top:20px;">
+            <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
+            <label for="cartInputBukti" style="display:block; padding:20px; border:1.5px dashed #1a1a1a; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px;">
+                <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+                <span id="cartLabelBukti">Tap untuk upload foto bukti</span>
+            </label>
+            <input type="file" id="cartInputBukti" accept="image/*" style="display:none;" onchange="previewCartBukti(this)">
+            <img id="cartPreviewImg" src="" style="display:none; width:100%; border-radius:12px; margin-top:12px; border:1px solid #1a1a1a;">
+        </div>
+
+        <p style="font-size:10px; color:#555; text-align:center; margin-top:25px; line-height:1.5;">
+            Tekan checkout dan anda akan diarahkan otomatis ke<br>WhatsApp admin.
+        </p>
+        <div class="btn-container" style="margin-top:15px;">
+            <button onclick="sendCartWA()" style="background:#00c853; color:#fff;">CHECKOUT (WA)</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="script.js"></script>
+</body> 
+</html>

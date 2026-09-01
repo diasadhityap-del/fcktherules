@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin | FvcktheRules</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginPage">
+    <div class="login-box">
+        <div class="login-logo">FVCKTHERULES</div>
+        <div class="login-sub">ADMIN PANEL</div>
+        <div class="login-card">
+            <div class="form-group">
+                <label>EMAIL</label>
+                <input type="email" id="adminEmail" placeholder="admin@gloriam.id">
+            </div>
+            <div class="form-group">
+                <label>PASSWORD</label>
+                <input type="password" id="adminPass" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
+            </div>
+            <button class="btn-primary" id="loginBtn" onclick="doLogin()">MASUK</button>
+            <div class="login-err" id="loginErr">Email atau password salah.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== ADMIN ===== -->
+<div id="adminPage">
+
+    <!-- SIDEBAR (desktop) -->
+    <div class="sidebar">
+        <div class="sidebar-logo">FVCKTHERULES</div>
+        <div class="sidebar-sub">ADMIN PANEL</div>
+
+        <div class="nav-item active" id="nav-order" onclick="switchTab('order')">
+            <i class="fas fa-box"></i> ORDER
+        </div>
+        <div class="nav-item" id="nav-produk" onclick="switchTab('produk')">
+            <i class="fas fa-tshirt"></i> PRODUK
+        </div>
+        <div class="nav-item" id="nav-galeri" onclick="switchTab('galeri')">
+            <i class="fas fa-images"></i> GALERI
+        </div>
+
+        <div class="sidebar-bottom">
+            <div class="logout-btn" onclick="doLogout()">
+                <i class="fas fa-sign-out-alt"></i> LOGOUT
+            </div>
+        </div>
+    </div>
+
+    <!-- MOBILE HEADER -->
+    <div class="mobile-header">
+        <div class="mobile-header-logo">FVCKTHERULES</div>
+        <div style="font-size:10px; color:var(--muted); font-weight:700; letter-spacing:2px;">ADMIN</div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <!-- TAB ORDER -->
+<div class="tab-content active" id="tab-order">
+
+    <div class="page-header">
+        <div class="page-title">ORDER</div>
+        <div class="page-desc">
+            Kelola dan approve pesanan masuk
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <button class="filter-btn active"
+            onclick="filterOrder('semua',this)">
+            SEMUA
+        </button>
+
+        <button class="filter-btn"
+            onclick="filterOrder('pending',this)">
+            PENDING
+        </button>
+
+        <button class="filter-btn"
+            onclick="filterOrder('approved',this)">
+            APPROVED
+        </button>
+
+        <button class="filter-btn"
+            onclick="filterOrder('rejected',this)">
+            DITOLAK
+        </button>
+    </div>
+
+    <div style="
+        display:flex;
+        gap:10px;
+        margin-top:14px;
+        margin-bottom:18px;
+        flex-wrap:wrap;
+    ">
+
+        <select id="filterProduk"
+            onchange="filterProdukOrder(this.value)"
+            style="
+                background:#111;
+                color:#fff;
+                border:1px solid #333;
+                padding:12px 14px;
+                border-radius:10px;
+                font-size:13px;
+                font-weight:600;
+            ">
+
+            <option value="semua">
+                Semua Produk
+            </option>
+
+        </select>
+
+        <button onclick="hapusProdukOrder()"
+            style="
+                background:#c62828;
+                color:#fff;
+                border:none;
+                padding:12px 16px;
+                border-radius:10px;
+                font-weight:700;
+                cursor:pointer;
+            ">
+
+            Hapus Semua Order
+
+        </button>
+
+    </div>
+
+    <div id="orderList">
+        <div class="loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            Memuat...
+        </div>
+    </div>
+
+</div>
+
+        <!-- TAB PRODUK -->
+        <div class="tab-content" id="tab-produk">
+            <div class="header-row">
+                <div>
+                    <div class="page-title">PRODUK</div>
+                    <div class="page-desc">Kelola katalog produk FvcktheRules</div>
+                </div>
+                <button class="add-btn" onclick="openModalProduk()">
+                    <i class="fas fa-plus"></i> TAMBAH
+                </button>
+            </div>
+            <div id="produkList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
+        </div>
+
+        <!-- TAB GALERI -->
+        <div class="tab-content" id="tab-galeri">
+            <div class="header-row">
+                <div>
+                    <div class="page-title">GALERI</div>
+                    <div class="page-desc">Upload foto untuk halaman galeri</div>
+                </div>
+            </div>
+            <div class="upload-area" onclick="document.getElementById('inputGaleri').click()">
+                <i class="fas fa-camera"></i>
+                Tap untuk upload foto galeri
+                <input type="file" id="inputGaleri" accept="image/*" multiple style="display:none" onchange="uploadGaleriFoto(this)">
+            </div>
+            <div class="galeri-grid" id="galeriGrid"></div>
+        </div>
+
+    </div>
+
+    <!-- MOBILE NAV -->
+    <div class="mobile-nav">
+        <div class="mob-nav-item active" id="mob-order" onclick="switchTab('order')">
+            <i class="fas fa-box"></i> ORDER
+        </div>
+        <div class="mob-nav-item" id="mob-produk" onclick="switchTab('produk')">
+            <i class="fas fa-tshirt"></i> PRODUK
+        </div>
+        <div class="mob-nav-item" id="mob-galeri" onclick="switchTab('galeri')">
+            <i class="fas fa-images"></i> GALERI
+        </div>
+        <div class="mob-nav-item" onclick="doLogout()" style="color:var(--red)">
+            <i class="fas fa-sign-out-alt"></i> LOGOUT
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL PRODUK -->
+<div class="modal-bg" id="modalProduk">
+    <div class="modal-box">
+        <div class="modal-title" id="modalProdukTitle">TAMBAH PRODUK</div>
+
+        <div class="form-group">
+            <label>NAMA PRODUK</label>
+            <input type="text" id="pNama" placeholder="Soccer Madness...">
+        </div>
+        <div class="form-group">
+            <label>HARGA (tanpa titik)</label>
+            <input type="number" id="pHarga" placeholder="150000">
+        </div>
+        <div class="form-group">
+            <label>STATUS BADGE</label>
+            <select id="pBadge">
+                <option value="pre">PRE ORDER</option>
+                <option value="ready">READY</option>
+                <option value="sold">SOLD OUT</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>LABEL STATUS (teks di badge)</label>
+            <input type="text" id="pStatus" placeholder="PRE ORDER / READY / SOLD OUT">
+        </div>
+        <div class="form-group">
+            <label>WARNA (pisah dengan /)</label>
+            <input type="text" id="pWarna" placeholder="Hitam / Putih / Navy">
+        </div>
+        <div class="form-group">
+            <label>STOK UKURAN TERSEDIA (pisah dengan /)</label>
+            <input type="text" id="pStok" placeholder="S / M / L / XL">
+        </div>
+        <div class="form-group">
+            <label>SPESIFIKASI PRODUK</label>
+            <textarea id="pSpecs" rows="3" placeholder="Bahan: Polyester 100%&#10;Berat: 200gsm..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>TAMPILKAN DI BERANDA?</label>
+            <select id="pShowcase">
+                <option value="yes">Ya</option>
+                <option value="no">Tidak</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+    <label>BISA DP?</label>
+    <select id="pDP">
+        <option value="yes">Bisa DP</option>
+        <option value="no">Tidak Bisa DP</option>
+    </select>
+</div>
+
+        <!-- FOTO THUMBNAIL -->
+        <div class="form-group">
+            <label>FOTO THUMBNAIL</label>
+            <div class="img-slot" onclick="document.getElementById('inputThumb').click()" style="width:120px; height:120px;">
+                <i class="fas fa-plus"></i>
+                <img id="prevThumb" src="" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
+                <input type="file" id="inputThumb" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevThumb')">
+            </div>
+        </div>
+
+        <!-- FOTO DETAIL (maks 5) -->
+        <div class="form-group">
+            <label>FOTO DETAIL (maks 5)</label>
+            <div class="img-upload-grid">
+                <div class="img-slot" onclick="document.getElementById('inputDet0').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevDet0" src="">
+                    <input type="file" id="inputDet0" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevDet0')">
+                </div>
+                <div class="img-slot" onclick="document.getElementById('inputDet1').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevDet1" src="">
+                    <input type="file" id="inputDet1" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevDet1')">
+                </div>
+                <div class="img-slot" onclick="document.getElementById('inputDet2').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevDet2" src="">
+                    <input type="file" id="inputDet2" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevDet2')">
+                </div>
+                <div class="img-slot" onclick="document.getElementById('inputDet3').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevDet3" src="">
+                    <input type="file" id="inputDet3" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevDet3')">
+                </div>
+                <div class="img-slot" onclick="document.getElementById('inputDet4').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevDet4" src="">
+                    <input type="file" id="inputDet4" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevDet4')">
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModalProduk()">BATAL</button>
+            <button class="btn-save" id="btnSaveProduk" onclick="saveProdukData()">SIMPAN</button>
+        </div>
+    </div>
+</div>
+<div id="uploadOverlay" style="
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.85);
+    z-index:99999;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:18px;
+">
+
+    <i class="fas fa-spinner fa-spin"
+       style="font-size:42px;color:#00c853;"></i>
+
+    <div id="uploadText"
+         style="
+            font-size:13px;
+            font-weight:700;
+            letter-spacing:1px;
+         ">
+         MENGUPLOAD...
+    </div>
+
+</div>
+<script type="module" src="/admin.js"></script>
+</body>
+</html>
