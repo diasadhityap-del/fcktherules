@@ -488,13 +488,14 @@ function closeImage() {
 function injectFooters() {
     const footerHTML = `
         <footer>
-            <!-- BAGIAN LOGO GAMBAR -->
-            <div class="footer-logo" style="margin-bottom: 15px;">
-                <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="max-width: 150px; height: auto; display: block; margin: 0 auto;">
+            <!-- BAGIAN LOGO GAMBAR DIPERBESAR & DIMEPETKAN -->
+            <div class="footer-logo" style="margin-bottom: 0px;">
+                <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="width: 220px; max-width: 100%; height: auto; display: block; margin: 0 auto;">
             </div>
             
-            <div class="footer-slogan">MAKE STAND WITH PRIDE</div>
+            <div class="footer-slogan" style="margin-top: 5px;">BORN TO DISOBEY</div>
             <div class="footer-socials">
+
                 <a href="https://www.instagram.com/fvcktherules____?igsh=d2Z5dTFiMHdxMHgy" target="_blank" onclick="vibrate(30)"><i class="fab fa-instagram"></i></a>
                 <a href="https://wa.me/6285725706337" target="_blank" onclick="vibrate(30)"><i class="fab fa-whatsapp"></i></a>
                 <a href="https://shopee.co.id/fvcktherules__" target="_blank" onclick="vibrate(30)"><i class="fas fa-shopping-bag"></i></a>
