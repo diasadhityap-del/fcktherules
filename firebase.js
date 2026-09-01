@@ -238,3 +238,33 @@ export async function loginAdmin(email, password) {
 export async function logoutAdmin() {
     await signOut(auth);
 }
+
+// ===== BANNER =====
+export async function saveBanner(data) {
+    try {
+        await addDoc(collection(db, "banners"), { ...data, createdAt: new Date().toISOString() });
+        return true;
+    } catch (err) { console.error("Gagal simpan banner:", err); return false; }
+}
+
+export async function updateBanner(id, data) {
+    try {
+        await updateDoc(doc(db, "banners", id), data);
+        return true;
+    } catch (err) { console.error("Gagal update banner:", err); return false; }
+}
+
+export async function deleteBanner(id) {
+    try {
+        await deleteDoc(doc(db, "banners", id));
+        return true;
+    } catch (err) { console.error("Gagal hapus banner:", err); return false; }
+}
+
+export function listenBanners(callback) {
+    const q = query(collection(db, "banners"), orderBy("order", "asc"));
+    return onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(data);
+    });
+}
