@@ -16,6 +16,9 @@ const SLUG_TO_PAGE = {
     'tentang': 'tentang'
 };
 
+import { listenProduk, listenGaleri, listenBanners } from './firebase.js';
+
+
 function updateMeta(title, description) {
     document.title = title;
     document.querySelector('meta[name="description"]').content = description;
@@ -395,6 +398,11 @@ window.onload = async () => {
         '',
         window.location.pathname
     );
+
+   listenBanners((firestoreBanners) => {
+    renderBannerSlider(firestoreBanners);
+});
+
 
     listenProduk((firestoreProducts) => {
 
@@ -964,3 +972,32 @@ function openCart() {
     renderCartPage();
     showPage('cartPage');
 }
+
+function renderBannerSlider(banners) {
+    const track = document.getElementById('bannerTrack');
+    const dots = document.getElementById('bannerDots');
+    if(!track || !dots) return;
+
+    if (banners.length === 0) {
+        document.querySelector('.banner-slider').style.display = 'none';
+        return;
+    }
+    
+    document.querySelector('.banner-slider').style.display = 'block';
+
+    track.innerHTML = banners.map(b => `
+        <div class="banner-slide">
+            <img src="${b.image}">
+            <div class="banner-content">
+                ${b.title ? `<h3>${b.title}</h3>` : ''}
+                ${b.subtitle ? `<p>${b.subtitle}</p>` : ''}
+                ${b.link ? `<a href="#" onclick="navTo('${b.link}')">READ MORE</a>` : ''}
+            </div>
+        </div>
+    `).join('');
+
+    dots.innerHTML = banners.map((b, i) => `
+        <span class="dot ${i===0?'active':''}" onclick="goToSlide(${i})"></span>
+    `).join('');
+}
+
