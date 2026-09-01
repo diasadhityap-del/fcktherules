@@ -489,8 +489,8 @@ function injectFooters() {
     const footerHTML = `
         <footer>
             <!-- BAGIAN LOGO GAMBAR DIPERBESAR & DIMEPETKAN -->
-            <div class="footer-logo" style="margin-bottom: 0px;">
-                <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="width: 220px; max-width: 100%; height: auto; display: block; margin: 0 auto;">
+            <div class="footer-logo" style="margin-bottom: -40px;">
+                <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="width: 270px; max-width: 100%; height: auto; display: block; margin: 0 auto;">
             </div>
             
             <div class="footer-slogan" style="margin-top: 5px;">BORN TO DISOBEY</div>
