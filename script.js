@@ -291,6 +291,45 @@ async function previewCartBukti(input) {
     }
 }
 
+// --- BAGIAN UPLOAD BUKTI KERANJANG ---
+let uploadedCartBuktiURL = null;
+async function previewCartBukti(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        const previewImg = document.getElementById('cartPreviewImg');
+        const fileChip = document.getElementById('cartFileChip');
+        const fileName = document.getElementById('cartFileName');
+        
+        if(previewImg) previewImg.src = e.target.result;
+        if(fileName) fileName.innerText = file.name;
+        if(fileChip) {
+            fileChip.style.display = 'flex';
+            fileChip.style.opacity = '0.5'; // Efek loading transparan
+        }
+    };
+    reader.readAsDataURL(file);
+    
+    const label = document.getElementById('cartLabelBukti');
+    if (label) label.innerText = ' Mengupload...';
+
+    const { uploadGambar } = await import('./firebase.js');
+    uploadedCartBuktiURL = await uploadGambar(file, 'bukti');
+
+    const fileChip = document.getElementById('cartFileChip');
+    if (uploadedCartBuktiURL) {
+        if(fileChip) fileChip.style.opacity = '1';
+        if (label) label.innerText = ' ✓ Upload berhasil!';
+    } else {
+        if(fileChip) fileChip.style.display = 'none';
+        if (label) label.innerText = ' ✗ Gagal upload, coba lagi';
+        uploadedCartBuktiURL = null;
+    }
+}
+
+// --- BAGIAN UPLOAD BUKTI CHECKOUT LANGSUNG ---
 let uploadedBuktiURL = null;
 async function previewBukti(input) {
     const file = input.files[0];
@@ -299,41 +338,50 @@ async function previewBukti(input) {
     const reader = new FileReader();
     reader.onload = e => {
         const previewImg = document.getElementById('previewImg');
-        if(!previewImg) return;
-        previewImg.src = e.target.result;
-        previewImg.style.display = 'block';
-        previewImg.style.opacity = '0.4';
-        previewImg.style.filter = 'blur(2px)';
-        const existing = document.getElementById('spinnerOverlay');
-        if (existing) existing.remove();
-        const spinner = document.createElement('div');
-        spinner.id = 'spinnerOverlay';
-        spinner.className = 'spinner-overlay';
-        spinner.innerHTML = '<i class="fas fa-spinner"></i>';
-        previewImg.parentElement.style.position = 'relative';
-        previewImg.parentElement.appendChild(spinner);
+        const fileChip = document.getElementById('fileChip');
+        const fileName = document.getElementById('fileName');
+        
+        if(previewImg) previewImg.src = e.target.result;
+        if(fileName) fileName.innerText = file.name;
+        if(fileChip) {
+            fileChip.style.display = 'flex';
+            fileChip.style.opacity = '0.5'; // Efek loading transparan
+        }
     };
     reader.readAsDataURL(file);
     
     const label = document.getElementById('labelBukti');
-    if(label) label.innerText = '⏳ Mengupload...';
+    if(label) label.innerText = ' Mengupload...';
 
     const { uploadGambar } = await import('./firebase.js');
     uploadedBuktiURL = await uploadGambar(file, 'bukti');
 
-    const previewImg = document.getElementById('previewImg');
-    const spinner = document.getElementById('spinnerOverlay');
-    if (spinner) spinner.remove();
-
+    const fileChip = document.getElementById('fileChip');
     if (uploadedBuktiURL) {
-        if (previewImg) { previewImg.style.opacity = '1'; previewImg.style.filter = 'none'; }
+        if (fileChip) fileChip.style.opacity = '1';
         if (label) label.innerText = '✓ Upload berhasil!';
     } else {
-        if (previewImg) previewImg.style.display = 'none';
+        if (fileChip) fileChip.style.display = 'none';
         if (label) label.innerText = '✗ Gagal upload, coba lagi';
         uploadedBuktiURL = null;
     }
 }
+
+// --- FUNGSI HAPUS BUKTI (X) ---
+function hapusBukti(inputId, chipId, imgId, labelId) {
+    vibrate(20);
+    document.getElementById(inputId).value = '';
+    document.getElementById(chipId).style.display = 'none';
+    document.getElementById(imgId).src = '';
+    document.getElementById(labelId).innerText = 'Tap untuk upload foto bukti';
+    
+    if (inputId === 'inputBukti') {
+        uploadedBuktiURL = null;
+    } else {
+        uploadedCartBuktiURL = null;
+    }
+}
+
 
 window.onload = async () => {
     try {
@@ -808,6 +856,8 @@ window.sendCartWA = sendCartWA;
 window.previewCartBukti = previewCartBukti;
 window.openCart = openCart;
 window.goToSlide = goToSlide;
+window.hapusBukti = hapusBukti;
+
 
 function openCart() {
     vibrate(20);
