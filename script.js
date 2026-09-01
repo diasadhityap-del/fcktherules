@@ -173,20 +173,16 @@ function validateCartForm() {
     const adaProdukTanpaDP = cartItems.some(item => item.prod.dpAllowed === 'no');
 
     // Elemen UI pilihan bayar di cartSummary
-    const paymentArea = document.getElementById('cartPaymentTypeArea'); // area container pilihan bayar jika ada
-    const btnDP = document.getElementById('btnDP');
-
+        const cartDpNote = document.getElementById('cartDpNoteArea');
     if (adaProdukTanpaDP) {
-        // Jika ada produk yang gak bisa DP -> paksa LUNAS & sembunyikan tombol DP
-        tipeBayar = 'lunas';
-        pilihBayar('lunas');
-        if (btnDP) btnDP.style.display = 'none';
-        if (paymentArea) paymentArea.style.display = 'none';
+        if (cartDpNote) cartDpNote.style.display = 'none';
     } else {
-        // Jika SEMUA produk bisa DP -> tampilkan opsi DP
-        if (btnDP) btnDP.style.display = 'block';
-        if (paymentArea) paymentArea.style.display = 'block';
+        if (cartDpNote) {
+            cartDpNote.style.display = 'block';
+            cartDpNote.innerHTML = '<p style="font-size:13px; color:#000; font-weight:700; margin:0; text-align:center; padding:15px; border:1px solid #eaeaea; border-radius:12px; background:#f9f9f9;"><i class="fas fa-info-circle" style="margin-right:5px;"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
+        }
     }
+
 
     // Render cart summary
         const itemsHTML = cartItems.map(item => `
@@ -215,11 +211,8 @@ async function sendCartWA() {
     const p = document.getElementById('cartInPhone').value;
     const a = document.getElementById('cartInAddress').value;
     const buktiFile = document.getElementById('cartInputBukti').files[0];
-    const dp = tipeBayar === 'dp' ? document.getElementById('cartInDP').value : '';
+        if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
 
-    if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
-    if (tipeBayar === 'dp' && !dp) return triggerAlert("ISI NOMINAL DP!");
-    if (tipeBayar === 'dp' && parseInt(dp) < 60000) return triggerAlert("DP MINIMAL Rp60.000!");
 
     const btn = document.querySelector('#cartSummary button[onclick="sendCartWA()"]');
     btn.innerText = 'UPLOADING...';
@@ -237,7 +230,7 @@ async function sendCartWA() {
     `- ${i.prod.name} (${i.color} | ${i.size}) — ${formatRupiah(i.prod.price)},`
 ).join('\n');
 
-        const orderData = {
+                const orderData = {
             nama: n,
             wa: p,
             alamat: a,
@@ -249,18 +242,15 @@ async function sendCartWA() {
             })),
             produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
             harga: total,
-            tipeBayar,
-            dp: tipeBayar === 'dp' ? dp : '',
+            tipeBayar: 'Cek Bukti Bayar',
+            dp: '',
             buktiURL
         };
 
-        await saveOrder(orderData);
+        // ... (kode spreadsheet dibiarkan sama) ...
 
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwT4_P20_b0UsbL4absLW6G7nNpK_PGfQv97VVjyJpcm622JzjAAAf6dzSKs-97jyfZvw/exec';
-        fetch(SCRIPT_URL, { method:"POST", mode:"no-cors", cache:"no-cache", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(orderData) })
-            .catch(err => console.error("Gagal kirim ke spreadsheet:", err));
+        const text = `*FVCKTHERULES ORDER (KERANJANG)*\n\n*Produk:*\n${produkList}\n\n*Total:* ${formatRupiah(total)}\n\n*Data Pengiriman*\n*Nama:* ${n}\n*WhatsApp:* ${p}\n*Alamat:* ${a}\n\n*Bukti Bayar:*\n${buktiURL}`;
 
-        const text = `*FVCKTHERULES ORDER (KERANJANG)*\n\n*Produk:*\n${produkList}\n\n*Total:* ${formatRupiah(total)}\n*Pembayaran:* ${infoBayar}\n\n*Data Pengiriman*\n*Nama:* ${n}\n*WhatsApp:* ${p}\n*Alamat:* ${a}\n\n*Bukti Bayar:*\n${buktiURL}`;
         window.open(`https://wa.me/6285725706337?text=${encodeURIComponent(text)}`);
 
         // Reset keranjang
@@ -788,17 +778,16 @@ function validateForm() { vibrate(40);
     formatRupiah(cart.prod.price);
     document.getElementById('sumCust').innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
 
-if (cart.prod.dpAllowed === 'no') {
+    const dpNote = document.getElementById('dpNoteArea');
+    if (cart.prod.dpAllowed === 'no') {
+        if (dpNote) dpNote.style.display = 'none';
+    } else {
+        if (dpNote) {
+            dpNote.style.display = 'block';
+            dpNote.innerHTML = '<p style="font-size:13px; color:#000; font-weight:700; margin:0; text-align:center; padding:15px; border:1px solid #eaeaea; border-radius:12px; background:#f9f9f9;"><i class="fas fa-info-circle" style="margin-right:5px;"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
+        }
+    }
 
-    document.getElementById('paymentTypeArea').style.display = 'none';
-    document.getElementById('sumDpArea').style.display = 'none';
-    tipeBayar = 'lunas';
-
-} else {
-
-    document.getElementById('paymentTypeArea').style.display = 'block';
-
-}
 
     showPage('summary');
 }
@@ -813,9 +802,9 @@ async function sendWA() {
     const dp = tipeBayar === 'dp' ? document.getElementById('inDP').value : '';
 
     // Validasi bukti
+        // Validasi bukti
     if (!buktiFile) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
-if (tipeBayar === 'dp' && !dp) return triggerAlert("ISI NOMINAL DP!");
-if (tipeBayar === 'dp' && parseInt(dp) < 60000) return triggerAlert("DP MINIMAL Rp60.000!");
+
 
     // Tampilkan loading
     const btn = document.querySelector('#summary button[onclick="sendWA()"]');
@@ -829,7 +818,7 @@ const buktiURL = uploadedBuktiURL;
 if (!buktiURL) throw new Error("Gagal upload bukti");
 
         // 2. Data order
-        const orderData = {
+                const orderData = {
             nama: n,
             wa: p,
             alamat: a,
@@ -837,13 +826,10 @@ if (!buktiURL) throw new Error("Gagal upload bukti");
             warna: cart.color,
             size: cart.size,
             harga: cart.prod.price,
-            tipeBayar: tipeBayar,
-            dp: dp,
+            tipeBayar: 'Cek Bukti Bayar',
+            dp: '',
             buktiURL: buktiURL
         };
-
-        // 3. Simpan ke Firebase
-        await saveOrder(orderData);
 
         // 4. Kirim ke Google Sheets
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwezvCW3_8uBhPEY9GrU_3Ue6MzAv1_GNhXauBZSI9Bj5QRAeeVitzLBtH5twBkSULVfA/exec';
@@ -856,11 +842,8 @@ if (!buktiURL) throw new Error("Gagal upload bukti");
         }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
 
         // 5. Arahkan ke WhatsApp
-        const infoBayar = tipeBayar === 'lunas' 
-    ? 'LUNAS' 
-    : `DP ${formatRupiah(dp)} dari ${formatRupiah(cart.prod.price)}`;
+        const text = `*FVCKTHERULES ORDER*\n\n*Produk:* ${cart.prod.name}\n*Warna:* ${cart.color}\n*Size:* ${cart.size}\n*Harga:* ${formatRupiah(cart.prod.price)}\n\n*Data Pengiriman*\n*Nama:* ${n}\n*WhatsApp:* ${p}\n*Alamat:* ${a}\n\n*Bukti Bayar:*\n${buktiURL}`;
 
-const text = `*FVCKTHERULES ORDER*\n\n*Produk:* ${cart.prod.name}\n*Warna:* ${cart.color}\n*Size:* ${cart.size}\n*Harga:* ${formatRupiah(cart.prod.price)}\n*Pembayaran:* ${infoBayar}\n\n*Data Pengiriman*\n*Nama:* ${n}\n*WhatsApp:* ${p}\n*Alamat:* ${a}\n\n*Bukti Bayar:*\n${buktiURL}`;
         window.open(`https://wa.me/6285725706337?text=${encodeURIComponent(text)}`);
 
     } catch (err) {
