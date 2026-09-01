@@ -976,14 +976,17 @@ function openCart() {
 function renderBannerSlider(banners) {
     const track = document.getElementById('bannerTrack');
     const dots = document.getElementById('bannerDots');
-    if(!track || !dots) return;
+    const sliderContainer = document.querySelector('.banner-slider');
+
+    // Pengecekan aman: Jika elemen tidak ada di HTML, jangan lanjutkan
+    if(!track || !dots || !sliderContainer) return;
 
     if (banners.length === 0) {
-        document.querySelector('.banner-slider').style.display = 'none';
+        sliderContainer.style.display = 'none';
         return;
     }
-    
-    document.querySelector('.banner-slider').style.display = 'block';
+
+    sliderContainer.style.display = 'block';
 
     track.innerHTML = banners.map(b => `
         <div class="banner-slide">
@@ -991,7 +994,7 @@ function renderBannerSlider(banners) {
             <div class="banner-content">
                 ${b.title ? `<h3>${b.title}</h3>` : ''}
                 ${b.subtitle ? `<p>${b.subtitle}</p>` : ''}
-                ${b.link ? `<a href="#" onclick="navTo('${b.link}')">READ MORE</a>` : ''}
+                ${b.link ? `<a onclick="navTo('${b.link}')" style="cursor:pointer;">READ MORE</a>` : ''}
             </div>
         </div>
     `).join('');
