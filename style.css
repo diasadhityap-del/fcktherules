@@ -3,7 +3,7 @@ html, body {
     margin: 0; font-family: 'Montserrat', sans-serif;
     background: #ffffff; color: #000000; overflow-x: hidden;
 }
-
+ 
 /* LOADER */
 .loader {
     position: fixed; 
