@@ -268,3 +268,21 @@ export function listenBanners(callback) {
         callback(data);
     });
 }
+
+// --- DATABASE UNTUK TEKS BANNER ---
+import { onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+export function listenBannerText(callback) {
+    onSnapshot(doc(db, "settings", "bannerText"), (docSnap) => {
+        if (docSnap.exists()) {
+            callback(docSnap.data());
+        } else {
+            callback({ topText: "", bottomText: "" });
+        }
+    });
+}
+
+export async function saveBannerText(data) {
+    await setDoc(doc(db, "settings", "bannerText"), data);
+}
+
