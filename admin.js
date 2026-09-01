@@ -32,7 +32,7 @@ import {
         if (user) {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('adminPage').style.display = 'block';
-            await Promise.all([loadOrders(), loadProduk(), loadGaleri()]);
+            await Promise.all([loadOrders(), loadProduk(), loadGaleri(), loadBanners()]);
         } else {
             document.getElementById('loginPage').style.display = 'flex';
             document.getElementById('adminPage').style.display = 'none';
