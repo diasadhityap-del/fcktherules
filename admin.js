@@ -148,27 +148,18 @@ window.filterProdukOrder = (produk) => {
     renderOrders();
 };
 
-    function renderOrders() {
+        function renderOrders() {
         const list = document.getElementById('orderList');
-        let filtered = currentFilter === 'semua'
-    ? allOrders
-    : allOrders.filter(
-        o => o.status === currentFilter
-    );
+        let filtered = currentFilter === 'semua' ? allOrders : allOrders.filter(o => o.status === currentFilter);
 
-if (currentProdukFilter !== 'semua') {
-
-    filtered = filtered.filter(o => {
-
-        if (Array.isArray(o.produk)) {
-            return o.produk.some(
-                p => p.nama === currentProdukFilter
-            );
+        if (currentProdukFilter !== 'semua') {
+            filtered = filtered.filter(o => {
+                if (Array.isArray(o.produk)) {
+                    return o.produk.some(p => p.nama === currentProdukFilter);
+                }
+                return o.produk === currentProdukFilter;
+            });
         }
-
-        return o.produk === currentProdukFilter;
-    });
-}
 
         if (filtered.length === 0) {
             list.innerHTML = `<div class="empty"><i class="fas fa-box-open"></i><p>Belum ada order</p></div>`;
@@ -177,119 +168,73 @@ if (currentProdukFilter !== 'semua') {
 
         list.innerHTML = filtered.map(o => {
             const date = new Date(o.createdAt).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-            const bayar = o.tipeBayar === 'lunas'
-    ? 'LUNAS'
-    : `DP Rp${Number(String(o.dp).replace(/\D/g,'')).toLocaleString('id-ID')}`;
-            const sc = o.status === 'approved' ? 's-approved' : o.status === 'rejected' ? 's-rejected' : 's-pending';
-            const st = o.status === 'approved' ? 'APPROVED' : o.status === 'rejected' ? 'DITOLAK' : 'PENDING';
+            
+            // Atur warna lencana (badge) di sudut kanan atas
+            let sc = 's-pending';
+            if (o.status === 'lunas') sc = 's-approved';
+            if (o.status === 'dp') sc = 's-approved';
+            if (o.status === 'rejected') sc = 's-rejected';
+            
+            let st = 'PENDING';
+            if (o.status === 'lunas') st = 'LUNAS';
+            if (o.status === 'dp') st = 'DP';
+            if (o.status === 'rejected') st = 'DITOLAK';
 
             return `<div class="order-card">
                 <div class="order-top">
-
-    <div>
-        <div class="order-name">${o.nama}</div>
-        <div class="order-time">${date}</div>
-    </div>
-
-    <div style="
-        display:flex;
-        align-items:center;
-        gap:10px;
-    ">
-
-        <button onclick="hapusOrder('${o.id}')"
-    style="
-        width:38px;
-        height:38px;
-        border:1px solid rgba(255,59,59,0.15);
-        border-radius:10px;
-        background:rgba(255,59,59,0.08);
-        color:#ff4d4d;
-        cursor:pointer;
-        backdrop-filter:blur(10px);
-    ">
-
-    <i class="fas fa-trash"></i>
-
-</button>
-
-        <div class="status-badge ${sc}">
-            ${st}
-        </div>
-
-    </div>
-
-</div>
+                    <div>
+                        <div class="order-name">${o.nama}</div>
+                        <div class="order-time">${date}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button onclick="hapusOrder('${o.id}')" style="width:38px; height:38px; border:1px solid rgba(255,59,59,0.15); border-radius:10px; background:rgba(255,59,59,0.08); color:#ff4d4d; cursor:pointer; backdrop-filter:blur(10px);">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <div class="status-badge ${sc}">${st}</div>
+                    </div>
+                </div>
                 <div class="order-info">
-                    <div ${
-Array.isArray(o.produk)
-
-? o.produk.map(p => `
-<div class="info-item">
-    Produk
-    <span>${p.nama}</span>
-</div>
-
-<div class="info-item">
-    Warna / Size
-    <span>${p.warna} / ${p.size}</span>
-</div>
-`).join('')
-
-: `
-<div class="info-item">
-    Produk
-    <span>${o.produk}</span>
-</div>
-
-<div class="info-item">
-    Warna / Size
-    <span>${o.warna} / ${o.size}</span>
-</div>
-`
-}
-
-<div class="info-item">
-    Harga
-    <span>
-        Rp${Number(String(o.harga).replace(/\D/g,'')).toLocaleString('id-ID')}
-    </span>
-</div>
-                    <div class="info-item">Pembayaran <span>${bayar}</span></div>
+                    ${Array.isArray(o.produk) ? o.produk.map(p => `
+                        <div class="info-item">Produk <span>${p.nama}</span></div>
+                        <div class="info-item">Warna / Size <span>${p.warna} / ${p.size}</span></div>
+                    `).join('') : `
+                        <div class="info-item">Produk <span>${o.produk}</span></div>
+                        <div class="info-item">Warna / Size <span>${o.warna} / ${o.size}</span></div>
+                    `}
+                    <div class="info-item">Harga <span>Rp${Number(String(o.harga).replace(/\D/g,'')).toLocaleString('id-ID')}</span></div>
                     <div class="info-item">WhatsApp <span>${o.wa}</span></div>
                     <div class="info-item">Alamat <span>${o.alamat}</span></div>
                 </div>
-                <div class="order-actions">
-    <a href="${o.buktiURL}" target="_blank" class="btn-sm btn-bukti">
-        <i class="fas fa-image"></i> BUKTI
-    </a>
-
-                    ${o.status === 'pending' ? `
-                    <button class="btn-sm btn-approve" onclick="approveOrder('${o.id}')"><i class="fas fa-check"></i> APPROVE</button>
-                    <button class="btn-sm btn-reject" onclick="rejectOrder('${o.id}')"><i class="fas fa-times"></i> TOLAK</button>
-                    ` : ''}
+                
+                <!-- BAGIAN TOMBOL BAWAH (BUKTI & UBAH STATUS) -->
+                <div class="order-actions" style="display:flex; gap:10px; align-items:center; margin-top:15px; border-top:1px solid #1a1a1a; padding-top:15px;">
+                    <a href="${o.buktiURL}" target="_blank" class="btn-sm btn-bukti" style="flex:1; text-align:center;">
+                        <i class="fas fa-image"></i> BUKTI
+                    </a>
+                    
+                    <select onchange="gantiStatusOrder('${o.id}', this.value)" style="flex:1; background:#111; color:#fff; border:1px solid #333; padding:10px; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer; outline:none;">
+                        <option value="pending" ${o.status === 'pending' || !o.status ? 'selected' : ''}>⏳ PENDING</option>
+                        <option value="dp" ${o.status === 'dp' ? 'selected' : ''}>💳 DP</option>
+                        <option value="lunas" ${o.status === 'lunas' ? 'selected' : ''}>✅ LUNAS</option>
+                        <option value="rejected" ${o.status === 'rejected' ? 'selected' : ''}>❌ DITOLAK</option>
+                    </select>
                 </div>
             </div>`;
         }).join('');
     }
 
-    window.approveOrder = async (id) => {
-        const ok = await updateOrderStatus(id, 'approved');
+    // Fungsi Baru untuk Mengganti Status
+    window.gantiStatusOrder = async (id, statusBaru) => {
+        const ok = await updateOrderStatus(id, statusBaru);
         if (ok) {
-            allOrders = allOrders.map(o => o.id === id ? {...o, status: 'approved'} : o);
+            allOrders = allOrders.map(o => o.id === id ? {...o, status: statusBaru} : o);
             renderOrders();
-            showToast('ORDER DIAPPROVE ✓');
+            showToast('STATUS DIPERBARUI ✓');
+        } else {
+            showToast('GAGAL UPDATE STATUS!', true);
         }
     };
 
-    window.rejectOrder = async (id) => {
-        const ok = await updateOrderStatus(id, 'rejected');
-        if (ok) {
-            allOrders = allOrders.map(o => o.id === id ? {...o, status: 'rejected'} : o);
-            renderOrders();
-            showToast('ORDER DITOLAK', true);
-        }
-    };
 
     // ===== PRODUK =====
     async function loadProduk() {
