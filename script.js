@@ -138,19 +138,20 @@ function renderCartPage() {
 
     const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
 
-    container.innerHTML = cartItems.map(item => `
-        <div style="background:#0a0a0a; border:1px solid #1a1a1a; border-radius:15px; padding:16px; margin-bottom:12px; display:flex; gap:14px; align-items:center;">
+        container.innerHTML = cartItems.map(item => `
+        <div style="background:#ffffff; border:1px solid #eaeaea; border-radius:15px; padding:16px; margin-bottom:12px; display:flex; gap:14px; align-items:center;">
             <img src="${item.prod.thumbnail}" style="width:70px; height:70px; object-fit:cover; border-radius:10px; flex-shrink:0;">
             <div style="flex:1; min-width:0;">
-                <p style="font-weight:700; font-size:13px; margin:0 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.prod.name}</p>
+                <p style="font-weight:700; font-size:13px; margin:0 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#000;">${item.prod.name}</p>
                 <p style="font-size:11px; color:#888; margin:0 0 6px;">${item.color} | ${item.size}</p>
-                <p style="font-size:13px; color:#00c853; font-weight:700; margin:0;">${formatRupiah(item.prod.price)}</p>
+                <p style="font-size:13px; color:#000000; font-weight:700; margin:0;">${formatRupiah(item.prod.price)}</p>
             </div>
-            <button onclick="removeCartItem(${item.id})" style="background:none; border:1px solid #2a2a2a; color:#666; border-radius:8px; width:32px; height:32px; cursor:pointer; font-size:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+            <button onclick="removeCartItem(${item.id})" style="background:#f9f9f9; border:1px solid #eaeaea; color:#000000; border-radius:8px; width:32px; height:32px; cursor:pointer; font-size:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-trash-alt"></i>
             </button>
         </div>
     `).join('');
+
 
     document.getElementById('cartTotal').innerText = formatRupiah(total);
     document.getElementById('cartCheckoutBtn').style.display = 'block';
@@ -188,15 +189,16 @@ function validateCartForm() {
     }
 
     // Render cart summary
-    const itemsHTML = cartItems.map(item => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #1a1a1a;">
+        const itemsHTML = cartItems.map(item => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eaeaea;">
             <div>
-                <p style="font-size:13px; font-weight:700; margin:0 0 3px;">${item.prod.name}</p>
+                <p style="font-size:13px; font-weight:700; margin:0 0 3px; color:#000;">${item.prod.name}</p>
                 <p style="font-size:11px; color:#888; margin:0;">${item.color} | ${item.size}</p>
             </div>
-            <p style="font-size:13px; color:#00c853; font-weight:700; margin:0; flex-shrink:0; margin-left:10px;">${formatRupiah(item.prod.price)}</p>
+            <p style="font-size:13px; color:#000000; font-weight:700; margin:0; flex-shrink:0; margin-left:10px;">${formatRupiah(item.prod.price)}</p>
         </div>
     `).join('');
+
 
     const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
 
