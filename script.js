@@ -222,7 +222,7 @@ async function executeCheckout() {
     closeConfirm();
     
     // Taruh URL cukup 1x saja di paling atas fungsi:
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzWkhBODWGaPCRPkfr0wAMV5kOnzKBY9F4O1bAmuidP2bzn6vHIuSnO7h12m6NGRqjIeg/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLvncutJ9WBmjPLWW54hnJpekRJfotSlPG-x1FToAaqdaFoVd_J9LfRgv1OOObZOalVg/exec';
     
     const loader = document.getElementById('loader');
     if(loader) loader.classList.remove('hide');
