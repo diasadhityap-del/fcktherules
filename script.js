@@ -259,21 +259,19 @@ async function executeCheckout() {
 
             const buktiURL = uploadedBuktiURL;
             const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
-            const totalHargaPlusOngkir = hargaProduk + ongkirSaatIni;
+const totalAkhir = hargaProduk + ongkirSaatIni - nilaiDiskon;
 
-            const orderData = {
-                nama: n, 
-                wa: p, 
-                alamat: a,
-                produk: cart.prod.name, 
-                warna: cart.color, 
-                size: cart.size,
-                harga: totalHargaPlusOngkir,
-                ongkir: ongkirSaatIni,
-                tipeBayar: 'Cek Bukti Bayar', 
-                dp: '',
-                buktiURL: buktiURL
-            };
+const orderData = {
+    nama: n, wa: p, alamat: a,
+    produk: cart.prod.name, warna: cart.color, size: cart.size,
+    hargaKaos: hargaProduk,         // H
+    ongkir: ongkirSaatIni,          // I
+    voucherKode: appliedVoucher ? appliedVoucher.kode : "",       // J
+    voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "", // K
+    totalAkhir: totalAkhir,         // L
+    tipeBayar: 'Cek Bukti Bayar',   // M
+    dp: '', buktiURL: buktiURL      // N
+};
 
             await saveOrder(orderData);
 
@@ -300,21 +298,22 @@ async function executeCheckout() {
             const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
             const buktiURL = uploadedCartBuktiURL;
+            
             const totalProduk = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
-            const totalHargaPlusOngkir = totalProduk + ongkirSaatIni;
+const totalAkhir = totalProduk + ongkirSaatIni - nilaiDiskon;
 
-            const orderData = {
-                nama: n, 
-                wa: p, 
-                alamat: a,
-                produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: i.prod.price })),
-                produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
-                harga: totalHargaPlusOngkir,
-                ongkir: ongkirSaatIni,
-                tipeBayar: 'Cek Bukti Bayar', 
-                dp: '',
-                buktiURL
-            };
+const orderData = {
+    nama: n, wa: p, alamat: a,
+    produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: i.prod.price })),
+    produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
+    hargaKaos: totalProduk,         // H
+    ongkir: ongkirSaatIni,          // I
+    voucherKode: appliedVoucher ? appliedVoucher.kode : "",       // J
+    voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "", // K
+    totalAkhir: totalAkhir,         // L
+    tipeBayar: 'Cek Bukti Bayar',   // M
+    dp: '', buktiURL: uploadedCartBuktiURL // N
+};
 
             await saveOrder(orderData);
 
