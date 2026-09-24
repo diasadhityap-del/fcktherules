@@ -938,7 +938,11 @@ function resetOngkirArea(isCart) {
     if (kodePos) kodePos.value = '';
     if (textId) textId.innerText = 'Tunggu Ongkir Muncul...';
     ongkirSaatIni = 0;
+    
+    // Hapus voucher otomatis jika alamat berubah (karena ongkir berubah)
+    removeVoucher(isCart ? 'cart' : 'single'); 
 }
+
 
 async function onProvinsiChange(isCart) {
     const provSel = document.getElementById(isCart ? 'cartInProvinsi' : 'inProvinsi');
@@ -1181,6 +1185,84 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+let appliedVoucher = null;
+let nilaiDiskon = 0;
+
+window.removeVoucher = (type) => {
+    appliedVoucher = null;
+    nilaiDiskon = 0;
+    const msgEl = document.getElementById(type === 'single' ? 'voucherMsg' : 'cartVoucherMsg');
+    const diskonArea = document.getElementById(type === 'single' ? 'sumDiskonArea' : 'cartSumDiskonArea');
+    const totalEl = document.getElementById(type === 'single' ? 'sumTotal' : 'cartSumTotal');
+    const inEl = document.getElementById(type === 'single' ? 'inVoucher' : 'cartInVoucher');
+    
+    if(msgEl) msgEl.innerText = "";
+    if(diskonArea) diskonArea.style.display = 'none';
+    if(inEl) inEl.value = "";
+    
+    let totalProduk = type === 'single' ? Number(String(cart.prod.price).replace(/\D/g, '')) 
+        : cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+    
+    if(totalEl) totalEl.innerText = formatRupiah(totalProduk + ongkirSaatIni);
+};
+
+window.applyVoucher = async (type) => {
+    let inEl = document.getElementById(type === 'single' ? 'inVoucher' : 'cartInVoucher');
+    let msgEl = document.getElementById(type === 'single' ? 'voucherMsg' : 'cartVoucherMsg');
+    let diskonArea = document.getElementById(type === 'single' ? 'sumDiskonArea' : 'cartSumDiskonArea');
+    let diskonValEl = document.getElementById(type === 'single' ? 'sumDiskon' : 'cartSumDiskon');
+    let totalEl = document.getElementById(type === 'single' ? 'sumTotal' : 'cartSumTotal');
+    
+    let totalProduk = type === 'single' ? Number(String(cart.prod.price).replace(/\D/g, '')) 
+        : cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+
+    const kode = inEl.value.trim().toUpperCase();
+    if (!kode) return;
+
+    msgEl.style.color = '#555'; msgEl.innerText = "Mengecek voucher...";
+
+    try {
+        const { getVoucherByKode } = await import('./firebase.js');
+        const v = await getVoucherByKode(kode);
+        
+        if (!v) {
+            msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Kode voucher salah";
+            removeVoucher(type); return;
+        }
+        if (Number(v.kuota) <= 0) {
+            msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Voucher habis";
+            removeVoucher(type); return;
+        }
+
+        appliedVoucher = v;
+        if (v.tipe === 'nominal') {
+            nilaiDiskon = Number(v.nilai);
+            appliedVoucher.deskripsi = `Diskon Rp${nilaiDiskon.toLocaleString('id-ID')}`;
+        } else if (v.tipe === 'persen') {
+            nilaiDiskon = (totalProduk * Number(v.nilai)) / 100;
+            appliedVoucher.deskripsi = `Diskon ${v.nilai}%`;
+        } else if (v.tipe === 'free_ongkir') {
+            nilaiDiskon = ongkirSaatIni;
+            appliedVoucher.deskripsi = `Gratis Ongkir`;
+        }
+
+        const totalSemua = totalProduk + ongkirSaatIni;
+        if (nilaiDiskon > totalSemua) nilaiDiskon = totalSemua; // Diskon tak boleh melebihi harga total
+
+        msgEl.style.color = '#00c853';
+        msgEl.innerText = `Voucher diterapkan! (${appliedVoucher.deskripsi})`;
+
+        diskonArea.style.display = 'flex';
+        diskonValEl.innerText = "- " + formatRupiah(nilaiDiskon);
+        totalEl.innerText = formatRupiah(totalSemua - nilaiDiskon);
+        vibrate(30);
+
+    } catch (e) {
+        msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Gagal mengecek voucher.";
+    }
+};
+
 
 window.toggleSidebar = toggleSidebar;
 window.navTo = navTo;
