@@ -260,7 +260,6 @@ async function executeCheckout() {
             const buktiURL = uploadedBuktiURL;
             const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
             
-            // Hitung total akhir dengan pemotongan voucher
             const totalAkhir = hargaProduk + ongkirSaatIni - nilaiDiskon;
 
             const orderData = {
@@ -277,16 +276,17 @@ async function executeCheckout() {
 
             await saveOrder(orderData);
 
-            // Potong Kuota Voucher jika dipakai
             if (appliedVoucher) {
-                const { updateVoucherKuota } = await import('./firebase.js');
-                await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
+                try {
+                    const { updateVoucherKuota } = await import('./firebase.js');
+                    if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
+                } catch(e) { console.error(e); }
                 removeVoucher('single');
             }
 
             fetch(SCRIPT_URL, {
                 method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
-            }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
+            }).catch(err => console.error(err));
 
             hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti');
             document.getElementById('inName').value = '';
@@ -307,10 +307,8 @@ async function executeCheckout() {
             const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
             const buktiURL = uploadedCartBuktiURL;
-            
             const totalProduk = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
             
-            // Hitung total akhir dengan pemotongan voucher
             const totalAkhir = totalProduk + ongkirSaatIni - nilaiDiskon;
 
             const orderData = {
@@ -328,10 +326,11 @@ async function executeCheckout() {
 
             await saveOrder(orderData);
 
-            // Potong Kuota Voucher jika dipakai
             if (appliedVoucher) {
-                const { updateVoucherKuota } = await import('./firebase.js');
-                await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
+                try {
+                    const { updateVoucherKuota } = await import('./firebase.js');
+                    if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
+                } catch(e) { console.error(e); }
                 removeVoucher('cart');
             }
 
@@ -454,7 +453,6 @@ function hapusBukti(inputId, chipId, imgId, labelId) {
 window.onload = async () => {
     try {
         history.replaceState({ page: 'home' }, '', window.location.pathname);
-
         initProvinsiDropdown();
 
         listenBannerText((data) => {
@@ -628,7 +626,6 @@ function injectFooters() {
             <div class="footer-logo" style="margin-bottom: -40px;">
                 <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="width: 270px; max-width: 100%; height: auto; display: block; margin: 0 auto;">
             </div>
-            
             <div class="footer-slogan" style="margin-top: 5px;">BORN TO DISOBEY</div>
             <div class="footer-socials">
                 <a href="https://www.instagram.com/fucktherules.exe?igsi=cDYyZDRnenR3MTY0" target="_blank" onclick="vibrate(30)"><i class="fab fa-instagram"></i></a>
@@ -947,8 +944,6 @@ function resetOngkirArea(isCart) {
     if (kodePos) kodePos.value = '';
     if (textId) textId.innerText = 'Tunggu Ongkir Muncul...';
     ongkirSaatIni = 0;
-    
-    // Hapus voucher otomatis jika alamat berubah (karena ongkir berubah)
     removeVoucher(isCart ? 'cart' : 'single'); 
 }
 
@@ -1091,10 +1086,7 @@ async function onKelurahanChange(isCart) {
         const kec = kecSel.value.toUpperCase();
         const has = (a, s) => (a.label || '').toUpperCase().includes(s);
 
-        const match =
-            areas.find(a => has(a, kel) && has(a, kec)) ||
-            areas.find(a => has(a, kel)) ||
-            areas[0];
+        const match = areas.find(a => has(a, kel) && has(a, kec)) || areas.find(a => has(a, kel)) || areas[0];
 
         areaId.value = match.id;
         if (kodePos && !kodePos.value) kodePos.value = match.zip || postalFromData;
@@ -1127,84 +1119,6 @@ async function hitungOngkirBiteship(destId, isCart) {
         ongkirSaatIni = 0;
     }
 }
-
-// ── VOUCHER LOGIC ──────────────────────────────────────────
-let appliedVoucher = null;
-let nilaiDiskon = 0;
-
-window.removeVoucher = (type) => {
-    appliedVoucher = null;
-    nilaiDiskon = 0;
-    const msgEl = document.getElementById(type === 'single' ? 'voucherMsg' : 'cartVoucherMsg');
-    const diskonArea = document.getElementById(type === 'single' ? 'sumDiskonArea' : 'cartSumDiskonArea');
-    const totalEl = document.getElementById(type === 'single' ? 'sumTotal' : 'cartSumTotal');
-    const inEl = document.getElementById(type === 'single' ? 'inVoucher' : 'cartInVoucher');
-    
-    if(msgEl) msgEl.innerText = "";
-    if(diskonArea) diskonArea.style.display = 'none';
-    if(inEl) inEl.value = "";
-    
-    let totalProduk = type === 'single' ? Number(String(cart.prod.price).replace(/\D/g, '')) 
-        : cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
-    
-    if(totalEl) totalEl.innerText = formatRupiah(totalProduk + ongkirSaatIni);
-};
-
-window.applyVoucher = async (type) => {
-    let inEl = document.getElementById(type === 'single' ? 'inVoucher' : 'cartInVoucher');
-    let msgEl = document.getElementById(type === 'single' ? 'voucherMsg' : 'cartVoucherMsg');
-    let diskonArea = document.getElementById(type === 'single' ? 'sumDiskonArea' : 'cartSumDiskonArea');
-    let diskonValEl = document.getElementById(type === 'single' ? 'sumDiskon' : 'cartSumDiskon');
-    let totalEl = document.getElementById(type === 'single' ? 'sumTotal' : 'cartSumTotal');
-    
-    let totalProduk = type === 'single' ? Number(String(cart.prod.price).replace(/\D/g, '')) 
-        : cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
-
-    const kode = inEl.value.trim().toUpperCase();
-    if (!kode) return;
-
-    msgEl.style.color = '#555'; msgEl.innerText = "Mengecek voucher...";
-
-    try {
-        const { getVoucherByKode } = await import('./firebase.js');
-        const v = await getVoucherByKode(kode);
-        
-        if (!v) {
-            msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Kode voucher salah";
-            removeVoucher(type); return;
-        }
-        if (Number(v.kuota) <= 0) {
-            msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Voucher habis";
-            removeVoucher(type); return;
-        }
-
-        appliedVoucher = v;
-        if (v.tipe === 'nominal') {
-            nilaiDiskon = Number(v.nilai);
-            appliedVoucher.deskripsi = `Diskon Rp${nilaiDiskon.toLocaleString('id-ID')}`;
-        } else if (v.tipe === 'persen') {
-            nilaiDiskon = (totalProduk * Number(v.nilai)) / 100;
-            appliedVoucher.deskripsi = `Diskon ${v.nilai}%`;
-        } else if (v.tipe === 'free_ongkir') {
-            nilaiDiskon = ongkirSaatIni;
-            appliedVoucher.deskripsi = `Gratis Ongkir`;
-        }
-
-        const totalSemua = totalProduk + ongkirSaatIni;
-        if (nilaiDiskon > totalSemua) nilaiDiskon = totalSemua; // Diskon tak boleh melebihi harga total
-
-        msgEl.style.color = '#00c853';
-        msgEl.innerText = `Voucher diterapkan! (${appliedVoucher.deskripsi})`;
-
-        diskonArea.style.display = 'flex';
-        diskonValEl.innerText = "- " + formatRupiah(nilaiDiskon);
-        totalEl.innerText = formatRupiah(totalSemua - nilaiDiskon);
-        vibrate(30);
-
-    } catch (e) {
-        msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Gagal mengecek voucher.";
-    }
-};
 
 // ── BANNER LOGIC ──────────────────────────────────────────
 function renderBannerSlider(banners) {
@@ -1254,6 +1168,121 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// ── VOUCHER LOGIC ──────────────────────────────────────────
+let appliedVoucher = null;
+let nilaiDiskon = 0;
+
+window.openVoucherModal = (type) => {
+    vibrate(20);
+    document.getElementById('modalVoucherType').value = type;
+    document.getElementById('modalInVoucher').value = '';
+    document.getElementById('modalVoucherMsg').innerText = '';
+    document.getElementById('voucherModal').style.display = 'flex';
+};
+
+window.closeVoucherModal = () => {
+    document.getElementById('voucherModal').style.display = 'none';
+};
+
+window.removeVoucher = (type) => {
+    vibrate(20);
+    appliedVoucher = null;
+    nilaiDiskon = 0;
+    
+    const activeEl = document.getElementById('activeVoucher_' + type);
+    const btnOpenEl = document.getElementById('btnOpenVoucher_' + type);
+    const diskonArea = document.getElementById(type === 'single' ? 'sumDiskonArea' : 'cartSumDiskonArea');
+    const ongkirEl = document.getElementById(type === 'single' ? 'sumOngkir' : 'cartSumOngkir');
+    const totalEl = document.getElementById(type === 'single' ? 'sumTotal' : 'cartSumTotal');
+
+    if(activeEl) activeEl.style.display = 'none';
+    if(btnOpenEl) btnOpenEl.style.display = 'flex';
+    if(diskonArea) diskonArea.style.display = 'none';
+    if(ongkirEl) ongkirEl.innerText = formatRupiah(ongkirSaatIni);
+    
+    let totalProduk = type === 'single' ? Number(String(cart.prod.price).replace(/\D/g, '')) 
+        : cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+    
+    if(totalEl) totalEl.innerText = formatRupiah(totalProduk + ongkirSaatIni);
+};
+
+window.applyVoucherModal = async () => {
+    const type = document.getElementById('modalVoucherType').value;
+    const inEl = document.getElementById('modalInVoucher');
+    const msgEl = document.getElementById('modalVoucherMsg');
+    
+    let diskonArea = document.getElementById(type === 'single' ? 'sumDiskonArea' : 'cartSumDiskonArea');
+    let diskonValEl = document.getElementById(type === 'single' ? 'sumDiskon' : 'cartSumDiskon');
+    let totalEl = document.getElementById(type === 'single' ? 'sumTotal' : 'cartSumTotal');
+    let ongkirEl = document.getElementById(type === 'single' ? 'sumOngkir' : 'cartSumOngkir');
+    
+    let totalProduk = type === 'single' ? Number(String(cart.prod.price).replace(/\D/g, '')) 
+        : cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+
+    const kode = inEl.value.trim().toUpperCase();
+    if (!kode) {
+        msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Masukkan kode promo terlebih dahulu!";
+        return;
+    }
+
+    msgEl.style.color = '#555'; msgEl.innerText = "Mengecek voucher...";
+
+    try {
+        const { getVoucherByKode } = await import('./firebase.js');
+        const v = await getVoucherByKode(kode);
+        
+        if (!v) {
+            msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Kode voucher tidak ditemukan / salah!";
+            return;
+        }
+        if (Number(v.kuota) <= 0) {
+            msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Yahh.. Kuota voucher ini sudah habis :(";
+            return;
+        }
+
+        appliedVoucher = v;
+        if (v.tipe === 'nominal') {
+            nilaiDiskon = Number(v.nilai);
+            appliedVoucher.deskripsi = `Diskon Belanja Rp${nilaiDiskon.toLocaleString('id-ID')}`;
+        } else if (v.tipe === 'persen') {
+            nilaiDiskon = (totalProduk * Number(v.nilai)) / 100;
+            appliedVoucher.deskripsi = `Diskon Belanja ${v.nilai}%`;
+        } else if (v.tipe === 'free_ongkir') {
+            nilaiDiskon = ongkirSaatIni;
+            appliedVoucher.deskripsi = `Gratis Ongkos Kirim`;
+        }
+
+        const totalSemua = totalProduk + ongkirSaatIni;
+        if (nilaiDiskon > totalSemua) nilaiDiskon = totalSemua; 
+
+        vibrate(30);
+        
+        if (v.tipe === 'free_ongkir') {
+            ongkirEl.innerText = "Rp0 (Gratis Ongkir)";
+            diskonArea.style.display = 'none';
+            totalEl.innerText = formatRupiah(totalSemua - ongkirSaatIni);
+        } else {
+            ongkirEl.innerText = formatRupiah(ongkirSaatIni);
+            diskonArea.style.display = 'flex';
+            diskonValEl.innerText = "- " + formatRupiah(nilaiDiskon);
+            totalEl.innerText = formatRupiah(totalSemua - nilaiDiskon);
+        }
+
+        closeVoucherModal();
+        document.getElementById('activeVoucher_' + type).style.display = 'flex';
+        document.getElementById('lblVoucherKode_' + type).innerText = appliedVoucher.kode;
+        document.getElementById('lblVoucherDesc_' + type).innerText = appliedVoucher.deskripsi;
+        document.getElementById('btnOpenVoucher_' + type).style.display = 'none';
+        
+        showCartToast();
+        const toastEl = document.getElementById('cartToast');
+        if(toastEl) toastEl.innerText = "Voucher Berhasil Dipakai!";
+
+    } catch (e) {
+        msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Terjadi masalah saat mengecek voucher.";
+    }
+};
+
 window.toggleSidebar = toggleSidebar;
 window.navTo = navTo;
 window.showPage = showPage;
@@ -1282,8 +1311,8 @@ window.goToSlide = goToSlide;
 window.hapusBukti = hapusBukti;
 window.confirmCheckout = confirmCheckout;
 window.closeConfirm = closeConfirm;
+window.executeCheckout = executeCheckout;
 window.onProvinsiChange = onProvinsiChange;
 window.onKotaChange = onKotaChange;
 window.onKecamatanChange = onKecamatanChange;
 window.onKelurahanChange = onKelurahanChange;
-window.executeCheckout = executeCheckout;
