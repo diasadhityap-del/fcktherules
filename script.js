@@ -3,7 +3,7 @@ import { listenProduk, listenGaleri, listenBanners, listenBannerText } from './f
 let cartItems = [];
 const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFOzBQn9DAyiiefPuqZv--U2gV1BqNA1sIvBL0dgvenTl-l8wUAQ/exec"; 
 let ongkirSaatIni = 0;
-let timeoutCari; 
+let timeoutCari;
 
 const PAGE_SLUGS = {
     home: '/',
@@ -862,13 +862,25 @@ function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 // Setelah kecamatan dipilih, otomatis dicocokkan ke Biteship (backend ongkir
 // kamu yang sudah ada) supaya ongkir tetap terhitung seperti biasa.
 // ══════════════════════════════════════════════════════════════
-const WILAYAH_API = "https://wilayah.id/api";
+// jsDelivr = CDN yang selalu mengirim header CORS (Access-Control-Allow-Origin: *),
+// jadi dijamin bisa diakses dari domain manapun, beda dengan wilayah.id yang kadang diblokir browser.
+const WILAYAH_API = "https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@master/api";
+
+// Data emsifa formatnya ALL CAPS ("KABUPATEN ACEH SINGKIL"), dirapikan jadi Title Case.
+function titleCaseWilayah(str) {
+    const exceptions = ['DKI', 'DIY', 'NAD'];
+    return String(str).toLowerCase().split(' ').map(w => {
+        const upper = w.toUpperCase();
+        if (exceptions.includes(upper)) return upper;
+        return w.charAt(0).toUpperCase() + w.slice(1);
+    }).join(' ');
+}
 
 async function initProvinsiDropdown() {
     try {
         const res = await fetch(`${WILAYAH_API}/provinces.json`);
-        const json = await res.json();
-        const opts = (json.data || []).map(p => `<option value="${p.name}" data-code="${p.code}">${p.name}</option>`).join('');
+        const data = await res.json();
+        const opts = (data || []).map(p => `<option value="${titleCaseWilayah(p.name)}" data-code="${p.id}">${titleCaseWilayah(p.name)}</option>`).join('');
         const html = `<option value="">Pilih Provinsi...</option>${opts}`;
 
         const p1 = document.getElementById('inProvinsi');
@@ -916,9 +928,9 @@ async function onProvinsiChange(isCart) {
 
     try {
         const res = await fetch(`${WILAYAH_API}/regencies/${code}.json`);
-        const json = await res.json();
+        const data = await res.json();
         kotaSel.innerHTML = '<option value="">Pilih Kota/Kab...</option>' +
-            (json.data || []).map(k => `<option value="${k.name}" data-code="${k.code}">${k.name}</option>`).join('');
+            (data || []).map(k => `<option value="${titleCaseWilayah(k.name)}" data-code="${k.id}">${titleCaseWilayah(k.name)}</option>`).join('');
         kotaSel.disabled = false;
     } catch (e) {
         kotaSel.innerHTML = '<option value="">Gagal memuat, coba lagi</option>';
@@ -943,9 +955,9 @@ async function onKotaChange(isCart) {
 
     try {
         const res = await fetch(`${WILAYAH_API}/districts/${code}.json`);
-        const json = await res.json();
+        const data = await res.json();
         kecSel.innerHTML = '<option value="">Pilih Kecamatan...</option>' +
-            (json.data || []).map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+            (data || []).map(d => `<option value="${titleCaseWilayah(d.name)}">${titleCaseWilayah(d.name)}</option>`).join('');
         kecSel.disabled = false;
     } catch (e) {
         kecSel.innerHTML = '<option value="">Gagal memuat, coba lagi</option>';
