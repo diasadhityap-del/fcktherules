@@ -29,7 +29,7 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788243114/Tak_berjudul3_20260827124217_vi3fw0.png">
-<link rel="apple-touch-icon" href="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788243114/Tak_berjudul3_20260827124217_vi3fw0.png">
+    <link rel="apple-touch-icon" href="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788243114/Tak_berjudul3_20260827124217_vi3fw0.png">
 
     <!-- Open Graph (biar bagus kalau dishare ke WA/IG) -->
     <meta property="og:title" content="FvcktheRules">
@@ -47,7 +47,7 @@
     <!-- Theme Color (buat mobile browser) -->
     <meta name="theme-color" content="#000000">
 
-<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 
     <!-- Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -71,13 +71,10 @@
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
 <nav class="sidebar" id="sidebar">
-    <!-- Tambahan style margin-bottom untuk mepetin ke bawah, dan width diperbesar -->
     <div class="sidebar-header" style="margin-bottom: 15px;">
         <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="width: 200px; height: auto; display: block;">
     </div>
     <ul class="nav-links">
-
-
         <li onclick="navTo('home')">BERANDA</li>
         <li onclick="navTo('preorder')">PRE ORDER</li>
         <li onclick="navTo('katalog')">KATALOG</li>
@@ -87,315 +84,224 @@
     </ul>
 </nav>
 
-    <div class="loader" id="loader">
+<div class="loader" id="loader">
     <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788243114/Tak_berjudul3_20260827124217_vi3fw0.png" alt="Logo FvcktheRules">
 </div>
 
-    <div id="toast" class="toast">LENGKAPI DATA!</div>
+<div id="toast" class="toast">LENGKAPI DATA!</div>
 
-    <div class="page active" id="home">
+<div class="page active" id="home">
     <header>
         <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788257032/Tak_berjudul26_20260901170328_bi8ifc.png" alt="FvcktheRules" style="width:270px; height:auto; margin-bottom:-20px; margin-top:-30px;">
         <p class="slogan" style="margin-bottom: -20px;">BORN TO DISOBEY.</p>
-
         <p class="description">
             FvcktheRules is built for those who carry football beyond the pitch — into the streets, the stands, and everyday life. We don't follow the rules. We make our own.
         </p>
     </header>
 
-<!-- GARIS TEKS ATAS -->
-<div id="barAtas" style="display:none; background:#0a0a0a; color:#fff; padding:12px 20px; text-align:center; font-weight:800; font-size:13px; letter-spacing:3px; text-transform:uppercase; margin-top:-20px;"></div>
+    <!-- GARIS TEKS ATAS -->
+    <div id="barAtas" style="display:none; background:#0a0a0a; color:#fff; padding:12px 20px; text-align:center; font-weight:800; font-size:13px; letter-spacing:3px; text-transform:uppercase; margin-top:-20px;"></div>
 
-<!-- KODE BANNER SLIDER MULAI -->
-<div class="banner-slider">
-    <div class="banner-track" id="bannerTrack">
-        <!-- Akan diisi otomatis oleh script.js -->
+    <!-- KODE BANNER SLIDER MULAI -->
+    <div class="banner-slider">
+        <div class="banner-track" id="bannerTrack"></div>
+        <div class="banner-dots" id="bannerDots"></div>
     </div>
-    <div class="banner-dots" id="bannerDots"></div>
-</div>
 
-<!-- GARIS TEKS BAWAH -->
-<div id="barBawah" style="display:none; background:#0a0a0a; color:#fff; padding:12px 20px; text-align:center; font-weight:800; font-size:13px; letter-spacing:3px; text-transform:uppercase; margin-bottom:20px;"></div>
+    <!-- GARIS TEKS BAWAH -->
+    <div id="barBawah" style="display:none; background:#0a0a0a; color:#fff; padding:12px 20px; text-align:center; font-weight:800; font-size:13px; letter-spacing:3px; text-transform:uppercase; margin-bottom:20px;"></div>
 
-<h2 style="text-align: center; margin: 40px 0 20px; font-size: 20px; letter-spacing: 2px;">LATEST RELEASE</h2>
-<!-- KODE BANNER SLIDER SELESAI -->
-
+    <h2 style="text-align: center; margin: 40px 0 20px; font-size: 20px; letter-spacing: 2px;">LATEST RELEASE</h2>
 
     <div class="products" id="list-home"></div> 
-
     <div id="footer-home"></div>
 </div>
 
-    <div class="page" id="detail">
-        <div class="back-btn" onclick="navBack()">← BACK</div>
-        <div class="detail-container">
-            <div class="img-slider" id="detImgs"></div>
-            <h2 id="detName" style="margin-top:25px; font-size:24px;">Product</h2>
-            <p id="detPrice" style="color:#000; font-weight:700; font-size:18px;"></p>
-            <div id="colorArea"></div>
-            <div id="sizeArea"></div>
-            <p onclick="openSize()" style="color:#555; font-size:12px; font-weight:700; margin-top:20px; text-decoration:underline; cursor:pointer;">Size Guide (Sizing Information)</p>
-
-<p onclick="openSpecs()" style="color:#555; font-size:12px; font-weight:700; margin-top:10px; text-decoration:underline; cursor:pointer;">Product Specifications (Bahan & Detail)</p>
-
-            <div class="btn-container" style="display:flex; gap:10px;">
-                <button onclick="addToCart()" style="
-width:60px;
-min-width:60px;
-height:54px;
-background:#0a0a0a;
-border:1.5px solid #1a1a1a;
-color:#fff;
-border-radius:12px;
-cursor:pointer;
-display:flex;
-align-items:center;
-justify-content:center;
-">
-    <i class="fas fa-bag-shopping"></i>
-</button>
-                <button onclick="validateDetail()" style="flex:1;">NEXT</button>
-            </div>
+<div class="page" id="detail">
+    <div class="back-btn" onclick="navBack()">← BACK</div>
+    <div class="detail-container">
+        <div class="img-slider" id="detImgs"></div>
+        <h2 id="detName" style="margin-top:25px; font-size:24px;">Product</h2>
+        <p id="detPrice" style="color:#000; font-weight:700; font-size:18px;"></p>
+        <div id="colorArea"></div>
+        <div id="sizeArea"></div>
+        <p onclick="openSize()" style="color:#555; font-size:12px; font-weight:700; margin-top:20px; text-decoration:underline; cursor:pointer;">Size Guide (Sizing Information)</p>
+        <p onclick="openSpecs()" style="color:#555; font-size:12px; font-weight:700; margin-top:10px; text-decoration:underline; cursor:pointer;">Product Specifications (Bahan & Detail)</p>
+        <div class="btn-container" style="display:flex; gap:10px;">
+            <button onclick="addToCart()" style="width:60px; min-width:60px; height:54px; background:#0a0a0a; border:1.5px solid #1a1a1a; color:#fff; border-radius:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-bag-shopping"></i>
+            </button>
+            <button onclick="validateDetail()" style="flex:1;">NEXT</button>
         </div>
     </div>
+</div>
 
-        <div class="page" id="form">
-        <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
-        <div class="detail-container" style="padding-top:80px;">
-            <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
-
-            <div class="input-group">
-                <label>FULL NAME</label>
-                <input type="text" id="inName" placeholder="Nama Lengkap...">
-            </div>
-
-            <div class="input-group">
-                <label>WHATSAPP</label>
-                <input type="number" id="inPhone" placeholder="08xxx">
-            </div>
-
-            <!-- BAGIAN ALAMAT: DROPDOWN WILAYAH (ganti sistem ketik-cari) -->
-            <input type="hidden" id="inAreaId">
-
-            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
-                <div style="flex: 1;">
-                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">PROVINSI</label>
-                    <select id="inProvinsi" onchange="onProvinsiChange(false)"><option value="">Pilih Provinsi...</option></select>
-                </div>
-                <div style="flex: 1;">
-                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KOTA/KAB</label>
-                    <select id="inKota" disabled onchange="onKotaChange(false)"><option value="">Pilih Kota/Kab...</option></select>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
-                <div style="flex: 1;">
-                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KECAMATAN</label>
-                    <select id="inKecamatan" disabled onchange="onKecamatanChange(false)"><option value="">Pilih Kecamatan...</option></select>
-                </div>
-                <div style="flex: 1;">
-                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KELURAHAN</label>
-                    <select id="inKelurahan" disabled onchange="onKelurahanChange(false)"><option value="">Pilih Kelurahan...</option></select>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>KODE POS</label>
-                <input type="text" id="inKodePos" readonly placeholder="Otomatis" style="background: #f9f9f9; color: #888;">
-            </div>
-
-            <div class="input-group">
-                <label>ALAMAT DETAIL</label>
-                <textarea id="inAddress" rows="3" placeholder="Nama Jalan, RT/RW, No. Rumah..."></textarea>
-                <p style="font-size: 10px; color: #555; margin-top: 8px;">*Mohon diisi lengkap untuk memudahkan pengiriman.</p>
-            </div>
-
-            <!-- Tampilan Ongkir -->
-            <div id="tampilOngkir" style="font-size: 13px; font-weight: 700; color: #000; margin-bottom: 25px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px dashed #eaeaea; text-align: center;">Tunggu Ongkir Muncul...</div>
-
-            <div class="btn-container"><button onclick="validateForm()">CONTINUE</button></div>
+<div class="page" id="form">
+    <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+    <div class="detail-container" style="padding-top:80px;">
+        <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
+        <div class="input-group">
+            <label>FULL NAME</label>
+            <input type="text" id="inName" placeholder="Nama Lengkap...">
         </div>
+        <div class="input-group">
+            <label>WHATSAPP</label>
+            <input type="number" id="inPhone" placeholder="08xxx">
+        </div>
+        <input type="hidden" id="inAreaId">
+        <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">PROVINSI</label>
+                <select id="inProvinsi" onchange="onProvinsiChange(false)"><option value="">Pilih Provinsi...</option></select>
+            </div>
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KOTA/KAB</label>
+                <select id="inKota" disabled onchange="onKotaChange(false)"><option value="">Pilih Kota/Kab...</option></select>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KECAMATAN</label>
+                <select id="inKecamatan" disabled onchange="onKecamatanChange(false)"><option value="">Pilih Kecamatan...</option></select>
+            </div>
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KELURAHAN</label>
+                <select id="inKelurahan" disabled onchange="onKelurahanChange(false)"><option value="">Pilih Kelurahan...</option></select>
+            </div>
+        </div>
+        <div class="input-group">
+            <label>KODE POS</label>
+            <input type="text" id="inKodePos" readonly placeholder="Otomatis" style="background: #f9f9f9; color: #888;">
+        </div>
+        <div class="input-group">
+            <label>ALAMAT DETAIL</label>
+            <textarea id="inAddress" rows="3" placeholder="Nama Jalan, RT/RW, No. Rumah..."></textarea>
+            <p style="font-size: 10px; color: #555; margin-top: 8px;">*Mohon diisi lengkap untuk memudahkan pengiriman.</p>
+        </div>
+        <div id="tampilOngkir" style="font-size: 13px; font-weight: 700; color: #000; margin-bottom: 25px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px dashed #eaeaea; text-align: center;">Tunggu Ongkir Muncul...</div>
+        <div class="btn-container"><button onclick="validateForm()">CONTINUE</button></div>
     </div>
-
-
-            <div class="page" id="summary">
-        <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
-        <div class="detail-container" style="padding-top:80px;">
-            <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
-
-            <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
-                <h3 id="sumProd" style="margin:0; font-size:18px; color:#000;">-</h3>
-                <p id="sumVar" style="font-size:13px; color:#555; margin:8px 0;">-</p>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px;">
-    <span style="font-size:13px; color:#555;">Harga</span>
-    <span id="sumPrice" style="font-size:15px; font-weight:700; color:#000;">-</span>
 </div>
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-    <span style="font-size:11px; color:#999;">Ongkos Kirim (J&T)</span>
-    <span id="sumOngkir" style="font-size:11px; color:#999;">-</span>
-</div>
+<!-- ================= SUMMARY SATUAN ================= -->
+<div class="page" id="summary">
+    <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+    <div class="detail-container" style="padding-top:80px;">
+        <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #eaeaea;">
-    <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
-    <span id="sumTotal" style="font-size:24px; font-weight:800; color:#000;">-</span>
-</div>
-                <hr style="border:0; border-top:1px solid #eaeaea; margin:20px 0;">
-                <p id="sumCust" style="font-size:13px; line-height:1.8; margin:0; color:#000;"></p>
+        <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
+            <h3 id="sumProd" style="margin:0; font-size:18px; color:#000;">-</h3>
+            <p id="sumVar" style="font-size:13px; color:#555; margin:8px 0;">-</p>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px;">
+                <span style="font-size:13px; color:#555;">Harga</span>
+                <span id="sumPrice" style="font-size:15px; font-weight:700; color:#000;">-</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                <span style="font-size:11px; color:#999;">Ongkos Kirim (J&T)</span>
+                <span id="sumOngkir" style="font-size:11px; color:#999; font-weight:700;">-</span>
             </div>
 
-            <div style="background:#f9f9f9; border:1px solid #eaeaea; padding:20px; border-radius:15px; margin-top:20px;">
-                <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">REKENING PEMBAYARAN</span>
-                <div style="margin-top:15px; font-size:15px; line-height:1.8; font-weight:600; color:#000;">
-                    MANDIRI: 1370023790229<br>
-                    DANA: 081910421976<br>
-                    <span style="opacity:0.6; font-size:13px;">A.N Dias Adhitya Purnama Putra</span>
-                </div>
-                <div style="margin-top:15px; border-top: 1px solid #eaeaea; padding-top: 15px;">
-                    <p onclick="vibrate(30); openQRIS()" style="color:#000000; font-size:12px; font-weight:700; cursor:pointer; text-decoration:none; margin:0; display:flex; align-items:center;">
-                        <i class="fas fa-qrcode" style="margin-right:8px; font-size:16px;"></i> Atau lihat QRIS PEMBAYARAN (Tap di sini)
-                    </p>
-                    <p style="font-size:11px; color:#555; margin-top:12px; line-height:1.5;">
-                        Silakan transfer ke rekening di atas atau scan QRIS. Setelah pembayaran, upload bukti pembayaran di bawah.
-                    </p>
-                </div>
+            <!-- Diskon Voucher Area (Sembunyi by default) -->
+            <div id="sumDiskonArea" style="display:none; justify-content:space-between; align-items:center; margin-top:8px;">
+                <span style="font-size:11px; color:#ea4335;">Diskon Voucher</span>
+                <span id="sumDiskon" style="font-size:11px; font-weight:700; color:#ea4335;">-</span>
             </div>
 
-            <div id="dpNoteArea" style="display:none; margin-top:20px;">
-                </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #eaeaea;">
+                <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
+                <span id="sumTotal" style="font-size:24px; font-weight:800; color:#000;">-</span>
+            </div>
 
-                        <!-- UPLOAD BUKTI -->
-            <div style="margin-top:20px;">
-                <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
-                <label for="inputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
-                    <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
-                    <span id="labelBukti">Tap untuk upload foto bukti</span>
-                </label>
-                <input type="file" id="inputBukti" accept="image/*" style="display:none;" onchange="previewBukti(this)">
-
-                <!-- KOTAK FILE ALA GOOGLE FORM -->
-                <div id="fileChip" style="display:none; align-items:center; justify-content:space-between; margin-top:12px; padding:10px 15px; border:1px solid #eaeaea; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden; cursor:pointer;" onclick="vibrate(20); openImage(document.getElementById('previewImg').src)">
-                        <i class="fas fa-image" style="color:#ea4335; font-size:20px;"></i>
-                        <span id="fileName" style="font-size:13px; font-weight:600; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">nama_file.jpg</span>
+            <!-- UI VOUCHER -->
+            <div style="margin-top:15px; border-top:1px dashed #eaeaea; padding-top:15px;">
+                <!-- Muncul jika voucher aktif -->
+                <div id="activeVoucher_single" style="display:none; background:#f9f9f9; padding:12px; border-radius:10px; border:1px solid #00c853; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                    <div>
+                        <span id="lblVoucherKode_single" style="font-size:12px; font-weight:800; color:#000; display:block; text-transform:uppercase;">KODE</span>
+                        <span id="lblVoucherDesc_single" style="font-size:10px; color:#00c853; font-weight:700;">Deskripsi</span>
                     </div>
-                    <i class="fas fa-times" style="color:#555; font-size:16px; cursor:pointer; padding:5px; margin-left:10px;" onclick="hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti')"></i>
+                    <i class="fas fa-times" style="color:#ff3b3b; font-size:16px; cursor:pointer; padding:5px;" onclick="removeVoucher('single')"></i>
                 </div>
-
-                <!-- Gambar disembunyikan, datanya dipakai untuk popup (zoom) -->
-                <img id="previewImg" src="" style="display:none;">
+                <!-- Tombol Popup Voucher -->
+                <p id="btnOpenVoucher_single" onclick="openVoucherModal('single')" style="color:#000; font-size:12px; font-weight:700; cursor:pointer; margin:0; display:flex; align-items:center;">
+                    <i class="fas fa-ticket-alt" style="margin-right:8px; font-size:16px; color:#00c853;"></i> Gunakan Voucher Promo (Tap di sini)
+                </p>
             </div>
+            
+            <hr style="border:0; border-top:1px solid #eaeaea; margin:20px 0;">
+            <p id="sumCust" style="font-size:13px; line-height:1.8; margin:0; color:#000;"></p>
+        </div>
 
-
-                        <p style="font-size: 10px; color: #555; text-align: center; margin-top: 25px; line-height: 1.5;">
-                Pastikan pesanan dan bukti bayar sudah benar<br>sebelum melakukan checkout.
-            </p>
-
-            <div class="btn-container" style="margin-top: 15px;">
-                <button onclick="confirmCheckout('single')" style="background:#000; color:#fff;">CHECKOUT SEKARANG</button>
+        <div style="background:#f9f9f9; border:1px solid #eaeaea; padding:20px; border-radius:15px; margin-top:20px;">
+            <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">REKENING PEMBAYARAN</span>
+            <div style="margin-top:15px; font-size:15px; line-height:1.8; font-weight:600; color:#000;">
+                MANDIRI: 1370023790229<br>
+                DANA: 081910421976<br>
+                <span style="opacity:0.6; font-size:13px;">A.N Dias Adhitya Purnama Putra</span>
             </div>
+            <div style="margin-top:15px; border-top: 1px solid #eaeaea; padding-top: 15px;">
+                <p onclick="vibrate(30); openQRIS()" style="color:#000000; font-size:12px; font-weight:700; cursor:pointer; text-decoration:none; margin:0; display:flex; align-items:center;">
+                    <i class="fas fa-qrcode" style="margin-right:8px; font-size:16px;"></i> Atau lihat QRIS PEMBAYARAN (Tap di sini)
+                </p>
+            </div>
+        </div>
 
+        <div id="dpNoteArea" style="display:none; margin-top:20px;"></div>
+
+        <!-- UPLOAD BUKTI -->
+        <div style="margin-top:20px;">
+            <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
+            <label for="inputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
+                <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+                <span id="labelBukti">Tap untuk upload foto bukti</span>
+            </label>
+            <input type="file" id="inputBukti" accept="image/*" style="display:none;" onchange="previewBukti(this)">
+
+            <!-- KOTAK FILE -->
+            <div id="fileChip" style="display:none; align-items:center; justify-content:space-between; margin-top:12px; padding:10px 15px; border:1px solid #eaeaea; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden; cursor:pointer;" onclick="vibrate(20); openImage(document.getElementById('previewImg').src)">
+                    <i class="fas fa-image" style="color:#ea4335; font-size:20px;"></i>
+                    <span id="fileName" style="font-size:13px; font-weight:600; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">nama_file.jpg</span>
+                </div>
+                <i class="fas fa-times" style="color:#555; font-size:16px; cursor:pointer; padding:5px; margin-left:10px;" onclick="hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti')"></i>
+            </div>
+            <img id="previewImg" src="" style="display:none;">
+        </div>
+
+        <p style="font-size: 10px; color: #555; text-align: center; margin-top: 25px; line-height: 1.5;">
+            Pastikan pesanan dan bukti bayar sudah benar<br>sebelum melakukan checkout.
+        </p>
+
+        <div class="btn-container" style="margin-top: 15px;">
+            <button onclick="confirmCheckout('single')" style="background:#000; color:#fff;">CHECKOUT SEKARANG</button>
         </div>
     </div>
-
-
+</div>
 
 <!-- HALAMAN LAIN -->
-<div class="page" id="preorder">
-    <header><h2>PRE ORDER</h2></header>
-    <div class="products" id="list-preorder"></div>
-    <div id="footer-pre"></div>
-</div>
-
-<div class="page" id="katalog">
-    <header><h2>KATALOG</h2></header>
-    <div class="products" id="list-katalog"></div>
-    <div id="footer-kat"></div>
-</div>
-
-<div class="page" id="arsip">
-    <header><h2>ARSIP</h2></header>
-    <div class="products" id="list-arsip"></div>
-    <div id="footer-ars"></div>
-</div>
-
-<div class="page" id="galeri">
-    <header>
-        <h2>GALLERY</h2>
-        <p class="slogan">FVCKTHERULES MAKE A STAND</p>
-    </header>
-    <div class="gallery-grid" id="gallery-container"></div>
-    <div id="footer-galeri"></div>
-</div>
-
+<div class="page" id="preorder"><header><h2>PRE ORDER</h2></header><div class="products" id="list-preorder"></div><div id="footer-pre"></div></div>
+<div class="page" id="katalog"><header><h2>KATALOG</h2></header><div class="products" id="list-katalog"></div><div id="footer-kat"></div></div>
+<div class="page" id="arsip"><header><h2>ARSIP</h2></header><div class="products" id="list-arsip"></div><div id="footer-ars"></div></div>
+<div class="page" id="galeri"><header><h2>GALLERY</h2><p class="slogan">FVCKTHERULES MAKE A STAND</p></header><div class="gallery-grid" id="gallery-container"></div><div id="footer-galeri"></div></div>
 <div class="page" id="tentang">
     <div class="detail-container" style="padding-top:100px; text-align:center;">
         <h2>TENTANG KAMI</h2>
-        <p style="opacity:0.6; line-height:2; font-size:13px;">
-            Soccer culture, street attitude.<br>
-            FvcktheRules is built for those who carry football into everyday life — not just as a game, but as an identity.<br><br>Founded in 2024, FvcktheRules represents passion, loyalty, and pride. Every piece is designed to reflect the spirit of the streets and the energy of the game.<br><br>We stand for those who live football beyond the pitch. Make a stand with pride.
-        </p>
+        <p style="opacity:0.6; line-height:2; font-size:13px;">Soccer culture, street attitude.<br>FvcktheRules is built for those who carry football into everyday life — not just as a game, but as an identity.<br><br>Founded in 2024, FvcktheRules represents passion, loyalty, and pride. Every piece is designed to reflect the spirit of the streets and the energy of the game.<br><br>We stand for those who live football beyond the pitch. Make a stand with pride.</p>
     </div>
     <div id="footer-about" style="margin-top:-130px;"></div>
 </div>
 
-<!-- SEMUA MODAL DI LUAR PAGE -->
-<div id="sizeModal" class="modal-overlay" onclick="closeSize()">
-    <div style="max-width:500px; width:100%;">
-        <img src="/size.jpg" style="width:100%; border-radius:15px;">
-    </div>
-</div>
-
-<div id="specsModal" class="modal-overlay" onclick="closeSpecs()">
-    <div class="specs-box" onclick="event.stopPropagation()">
-        <h3>SPESIFIKASI PRODUK</h3>
-        <p id="specContent"></p>
-        <button onclick="closeSpecs()">CLOSE</button>
-    </div>
-</div>
-
-<div id="qrisModal" class="modal-overlay" onclick="closeQRIS()">
-    <div class="specs-box" onclick="event.stopPropagation()">
-        <h3 style="margin:0 0 15px 0; border-bottom:1px solid #222; padding-bottom:10px; font-size:16px; letter-spacing:1px;">QRIS PEMBAYARAN</h3>
-        <div style="background:#fff; padding:10px; border-radius:10px; margin-bottom:15px;">
-            <img src="/qris.jpg" alt="QRIS FvcktheRules" style="width:100%; display:block; border-radius:5px;">
-        </div>
-        <p style="font-size:12px; line-height:1.6; color:#bbb; margin:0; text-align:center;">
-            Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.
-        </p>
-        <button onclick="closeQRIS()" style="margin-top:25px; padding:15px; font-size:12px; background:#111; color:#fff; border:1px solid #222;">TUTUP</button>
-    </div>
-</div>
-
-<div id="imageModal" class="modal-overlay" onclick="closeImage()">
-    <img id="modalImg" src="" alt="Zoomed Image">
-</div>
-
-<!-- FLOATING CART BUTTON -->
-<div id="floatingCartBtn" onclick="openCart()" style="display:none; position:fixed; bottom:28px; right:20px; z-index:999; width:54px; height:54px; background:#ffffff; border-radius:50%; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #eaeaea;">
-    <i class="fas fa-bag-shopping" style="font-size:20px; color:#000000;"></i>
-    <div id="cartBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#000000; color:#ffffff; font-size:10px; font-weight:900; width:20px; height:20px; border-radius:50%; align-items:center; justify-content:center; font-family:inherit;">0</div>
-</div>
-
-
-<!-- CART ADDED TOAST -->
-<div id="cartToast" class="toast" style="background:#ffffff; border:1px solid #eaeaea; color:#000000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-    <i class="fas fa-check" style="margin-right:6px;"></i> Ditambahkan ke keranjang!
-</div>
-
-<!-- CART PAGE -->
+<!-- ================= CART PAGE ================= -->
 <div class="page" id="cartPage">
     <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
     <div class="detail-container" style="padding-top:80px;">
         <h2 style="margin-bottom:24px;">KERANJANG</h2>
         <div id="cartList"></div>
-
-        <!-- BAGIAN TOTAL YANG SUDAH JADI PUTIH & HITAM -->
         <div id="cartTotalArea" style="margin-top:16px; padding:16px 20px; background:#ffffff; border:1px solid #eaeaea; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
             <span id="cartTotal" style="font-size:18px; font-weight:700; color:#000000;">Rp0</span>
         </div>
-
         <div id="cartCheckoutBtn" style="display:none;">
             <div class="btn-container" style="margin-top:16px;">
                 <button onclick="goToCartCheckout()" style="background:#000000; color:#fff;">CHECKOUT</button>
@@ -404,152 +310,197 @@ justify-content:center;
     </div>
 </div>
 
-
 <!-- CART FORM PAGE -->
-    <div class="page" id="cartForm">
-        <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
-        <div class="detail-container" style="padding-top:80px;">
-            <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
-
-            <div class="input-group">
-                <label>FULL NAME</label>
-                <input type="text" id="cartInName" placeholder="Nama Lengkap...">
-            </div>
-
-            <div class="input-group">
-                <label>WHATSAPP</label>
-                <input type="number" id="cartInPhone" placeholder="08xxx">
-            </div>
-
-            <!-- BAGIAN ALAMAT: DROPDOWN WILAYAH (ganti sistem ketik-cari) -->
-            <input type="hidden" id="cartInAreaId">
-
-            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
-                <div style="flex: 1;">
-                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">PROVINSI</label>
-                    <select id="cartInProvinsi" onchange="onProvinsiChange(true)"><option value="">Pilih Provinsi...</option></select>
-                </div>
-                <div style="flex: 1;">
-                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KOTA/KAB</label>
-                    <select id="cartInKota" disabled onchange="onKotaChange(true)"><option value="">Pilih Kota/Kab...</option></select>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
-                <div style="flex: 1;">
-                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KECAMATAN</label>
-                    <select id="cartInKecamatan" disabled onchange="onKecamatanChange(true)"><option value="">Pilih Kecamatan...</option></select>
-                </div>
-                <div style="flex: 1;">
-                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KELURAHAN</label>
-                    <select id="cartInKelurahan" disabled onchange="onKelurahanChange(true)"><option value="">Pilih Kelurahan...</option></select>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>KODE POS</label>
-                <input type="text" id="cartInKodePos" readonly placeholder="Otomatis" style="background: #f9f9f9; color: #888;">
-            </div>
-
-            <div class="input-group">
-                <label>ALAMAT DETAIL</label>
-                <textarea id="cartInAddress" rows="3" placeholder="Nama Jalan, RT/RW, No. Rumah..."></textarea>
-                <p style="font-size: 10px; color: #555; margin-top: 8px;">*Mohon diisi lengkap untuk memudahkan pengiriman.</p>
-            </div>
-
-            <!-- Tampilan Ongkir -->
-            <div id="cartTampilOngkir" style="font-size: 13px; font-weight: 700; color: #000; margin-bottom: 25px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px dashed #eaeaea; text-align: center;">Tunggu Ongkir Muncul...</div>
-
-            <div class="btn-container"><button onclick="validateCartForm()">CONTINUE</button></div>
+<div class="page" id="cartForm">
+    <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+    <div class="detail-container" style="padding-top:80px;">
+        <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
+        <div class="input-group">
+            <label>FULL NAME</label>
+            <input type="text" id="cartInName" placeholder="Nama Lengkap...">
         </div>
+        <div class="input-group">
+            <label>WHATSAPP</label>
+            <input type="number" id="cartInPhone" placeholder="08xxx">
+        </div>
+        <input type="hidden" id="cartInAreaId">
+        <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">PROVINSI</label>
+                <select id="cartInProvinsi" onchange="onProvinsiChange(true)"><option value="">Pilih Provinsi...</option></select>
+            </div>
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KOTA/KAB</label>
+                <select id="cartInKota" disabled onchange="onKotaChange(true)"><option value="">Pilih Kota/Kab...</option></select>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KECAMATAN</label>
+                <select id="cartInKecamatan" disabled onchange="onKecamatanChange(true)"><option value="">Pilih Kecamatan...</option></select>
+            </div>
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KELURAHAN</label>
+                <select id="cartInKelurahan" disabled onchange="onKelurahanChange(true)"><option value="">Pilih Kelurahan...</option></select>
+            </div>
+        </div>
+        <div class="input-group">
+            <label>KODE POS</label>
+            <input type="text" id="cartInKodePos" readonly placeholder="Otomatis" style="background: #f9f9f9; color: #888;">
+        </div>
+        <div class="input-group">
+            <label>ALAMAT DETAIL</label>
+            <textarea id="cartInAddress" rows="3" placeholder="Nama Jalan, RT/RW, No. Rumah..."></textarea>
+            <p style="font-size: 10px; color: #555; margin-top: 8px;">*Mohon diisi lengkap untuk memudahkan pengiriman.</p>
+        </div>
+        <div id="cartTampilOngkir" style="font-size: 13px; font-weight: 700; color: #000; margin-bottom: 25px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px dashed #eaeaea; text-align: center;">Tunggu Ongkir Muncul...</div>
+        <div class="btn-container"><button onclick="validateCartForm()">CONTINUE</button></div>
     </div>
-
-
-<!-- CART SUMMARY PAGE -->
-        <div class="page" id="cartSummary">
-        <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
-        <div class="detail-container" style="padding-top:80px;">
-            <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
-
-            <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
-                <div id="cartSumItems"></div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
-    <span style="font-size:11px; color:#999;">Ongkos Kirim (J&T)</span>
-    <span id="cartSumOngkir" style="font-size:11px; color:#999;"></span>
 </div>
 
-<div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #eaeaea;">
-    <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
-    <span id="cartSumTotal" style="font-size:24px; font-weight:800; color:#000;"></span>
-</div>
+<!-- ================= CART SUMMARY ================= -->
+<div class="page" id="cartSummary">
+    <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+    <div class="detail-container" style="padding-top:80px;">
+        <h2 style="margin-bottom:20px;">ORDER SUMMARY</h2>
+
+        <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
+            <div id="cartSumItems"></div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+                <span style="font-size:11px; color:#999;">Ongkos Kirim (J&T)</span>
+                <span id="cartSumOngkir" style="font-size:11px; color:#999; font-weight:700;"></span>
             </div>
 
-            <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea; margin-top:16px;">
-                <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">DATA PENGIRIMAN</span>
-                <p id="cartSumCust" style="font-size:13px; line-height:1.8; margin:12px 0 0; color:#000;"></p>
+            <!-- Diskon Voucher Area (Sembunyi by default) -->
+            <div id="cartSumDiskonArea" style="display:none; justify-content:space-between; align-items:center; margin-top:8px;">
+                <span style="font-size:11px; color:#ea4335;">Diskon Voucher</span>
+                <span id="cartSumDiskon" style="font-size:11px; font-weight:700; color:#ea4335;">-</span>
             </div>
 
-            <div style="background:#f9f9f9; border:1px solid #eaeaea; padding:20px; border-radius:15px; margin-top:16px;">
-                <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">REKENING PEMBAYARAN</span>
-                <div style="margin-top:15px; font-size:15px; line-height:1.8; font-weight:600; color:#000;">
-                    MANDIRI: 1370023790229<br>
-                    DANA: 081910421976<br>
-                    <span style="opacity:0.6; font-size:13px;">A.N Dias Adhitya Purnama Putra</span>
-                </div>
-                <div style="margin-top:15px; border-top: 1px solid #eaeaea; padding-top: 15px;">
-                    <p onclick="vibrate(30); openQRIS()" style="color:#000000; font-size:12px; font-weight:700; cursor:pointer; text-decoration:none; margin:0; display:flex; align-items:center;">
-                        <i class="fas fa-qrcode" style="margin-right:8px; font-size:16px;"></i> Atau lihat QRIS PEMBAYARAN (Tap di sini)
-                    </p>
-                    <p style="font-size:11px; color:#555; margin-top:12px; line-height:1.5;">
-                        Silakan transfer ke rekening di atas atau scan QRIS. Setelah pembayaran, upload bukti pembayaran di bawah.
-                    </p>
-                </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #eaeaea;">
+                <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
+                <span id="cartSumTotal" style="font-size:24px; font-weight:800; color:#000;"></span>
             </div>
 
-            <div id="cartDpNoteArea" style="display:none; margin-top:20px;">
-                </div>
-
-                        <!-- Upload Bukti -->
-            <div style="margin-top:20px;">
-                <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
-                <label for="cartInputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
-                    <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
-                    <span id="cartLabelBukti">Tap untuk upload foto bukti</span>
-                </label>
-                <input type="file" id="cartInputBukti" accept="image/*" style="display:none;" onchange="previewCartBukti(this)">
-
-                <!-- KOTAK FILE ALA GOOGLE FORM -->
-                <div id="cartFileChip" style="display:none; align-items:center; justify-content:space-between; margin-top:12px; padding:10px 15px; border:1px solid #eaeaea; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                    <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden; cursor:pointer;" onclick="vibrate(20); openImage(document.getElementById('cartPreviewImg').src)">
-                        <i class="fas fa-image" style="color:#ea4335; font-size:20px;"></i>
-                        <span id="cartFileName" style="font-size:13px; font-weight:600; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">nama_file.jpg</span>
+            <!-- UI VOUCHER -->
+            <div style="margin-top:15px; border-top:1px dashed #eaeaea; padding-top:15px;">
+                <div id="activeVoucher_cart" style="display:none; background:#f9f9f9; padding:12px; border-radius:10px; border:1px solid #00c853; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                    <div>
+                        <span id="lblVoucherKode_cart" style="font-size:12px; font-weight:800; color:#000; display:block; text-transform:uppercase;">KODE</span>
+                        <span id="lblVoucherDesc_cart" style="font-size:10px; color:#00c853; font-weight:700;">Deskripsi</span>
                     </div>
-                    <i class="fas fa-times" style="color:#555; font-size:16px; cursor:pointer; padding:5px; margin-left:10px;" onclick="hapusBukti('cartInputBukti', 'cartFileChip', 'cartPreviewImg', 'cartLabelBukti')"></i>
+                    <i class="fas fa-times" style="color:#ff3b3b; font-size:16px; cursor:pointer; padding:5px;" onclick="removeVoucher('cart')"></i>
                 </div>
-
-                <img id="cartPreviewImg" src="" style="display:none;">
+                <p id="btnOpenVoucher_cart" onclick="openVoucherModal('cart')" style="color:#000; font-size:12px; font-weight:700; cursor:pointer; margin:0; display:flex; align-items:center;">
+                    <i class="fas fa-ticket-alt" style="margin-right:8px; font-size:16px; color:#00c853;"></i> Gunakan Voucher Promo (Tap di sini)
+                </p>
             </div>
+        </div>
 
+        <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea; margin-top:16px;">
+            <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">DATA PENGIRIMAN</span>
+            <p id="cartSumCust" style="font-size:13px; line-height:1.8; margin:12px 0 0; color:#000;"></p>
+        </div>
 
-                        <p style="font-size:10px; color:#555; text-align:center; margin-top:25px; line-height:1.5;">
-                Pastikan pesanan dan bukti bayar sudah benar<br>sebelum melakukan checkout.
-            </p>
-            <div class="btn-container" style="margin-top:15px;">
-                <button onclick="confirmCheckout('cart')" style="background:#000000; color:#fff;">CHECKOUT SEKARANG</button>
+        <div style="background:#f9f9f9; border:1px solid #eaeaea; padding:20px; border-radius:15px; margin-top:16px;">
+            <span style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px;">REKENING PEMBAYARAN</span>
+            <div style="margin-top:15px; font-size:15px; line-height:1.8; font-weight:600; color:#000;">
+                MANDIRI: 1370023790229<br>
+                DANA: 081910421976<br>
+                <span style="opacity:0.6; font-size:13px;">A.N Dias Adhitya Purnama Putra</span>
             </div>
+            <div style="margin-top:15px; border-top: 1px solid #eaeaea; padding-top: 15px;">
+                <p onclick="vibrate(30); openQRIS()" style="color:#000000; font-size:12px; font-weight:700; cursor:pointer; text-decoration:none; margin:0; display:flex; align-items:center;">
+                    <i class="fas fa-qrcode" style="margin-right:8px; font-size:16px;"></i> Atau lihat QRIS PEMBAYARAN (Tap di sini)
+                </p>
+            </div>
+        </div>
 
+        <div id="cartDpNoteArea" style="display:none; margin-top:20px;"></div>
+
+        <!-- Upload Bukti -->
+        <div style="margin-top:20px;">
+            <div style="font-size:11px; font-weight:700; color:#555; letter-spacing:1px; margin-bottom:12px;">UPLOAD BUKTI BAYAR</div>
+            <label for="cartInputBukti" style="display:block; padding:20px; border:1.5px dashed #eaeaea; border-radius:15px; text-align:center; cursor:pointer; color:#555; font-size:13px; background:#f9f9f9;">
+                <i class="fas fa-camera" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+                <span id="cartLabelBukti">Tap untuk upload foto bukti</span>
+            </label>
+            <input type="file" id="cartInputBukti" accept="image/*" style="display:none;" onchange="previewCartBukti(this)">
+
+            <!-- KOTAK FILE -->
+            <div id="cartFileChip" style="display:none; align-items:center; justify-content:space-between; margin-top:12px; padding:10px 15px; border:1px solid #eaeaea; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden; cursor:pointer;" onclick="vibrate(20); openImage(document.getElementById('cartPreviewImg').src)">
+                    <i class="fas fa-image" style="color:#ea4335; font-size:20px;"></i>
+                    <span id="cartFileName" style="font-size:13px; font-weight:600; color:#333; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">nama_file.jpg</span>
+                </div>
+                <i class="fas fa-times" style="color:#555; font-size:16px; cursor:pointer; padding:5px; margin-left:10px;" onclick="hapusBukti('cartInputBukti', 'cartFileChip', 'cartPreviewImg', 'cartLabelBukti')"></i>
+            </div>
+            <img id="cartPreviewImg" src="" style="display:none;">
+        </div>
+
+        <p style="font-size:10px; color:#555; text-align:center; margin-top:25px; line-height:1.5;">
+            Pastikan pesanan dan bukti bayar sudah benar<br>sebelum melakukan checkout.
+        </p>
+        <div class="btn-container" style="margin-top:15px;">
+            <button onclick="confirmCheckout('cart')" style="background:#000000; color:#fff;">CHECKOUT SEKARANG</button>
         </div>
     </div>
+</div>
 
+
+<!-- SEMUA MODAL DI LUAR PAGE -->
+
+<!-- MODAL VOUCHER (BARU) -->
+<div id="voucherModal" class="modal-overlay" onclick="closeVoucherModal()">
+    <div class="specs-box" onclick="event.stopPropagation()">
+        <h3 style="margin:0 0 15px 0; border-bottom:1px solid #eaeaea; padding-bottom:10px; font-size:16px; letter-spacing:1px; display:flex; align-items:center;">
+            <i class="fas fa-ticket-alt" style="margin-right:10px; color:#00c853;"></i> KODE VOUCHER
+        </h3>
+        <p style="font-size:11px; color:#555; margin-bottom:15px; line-height:1.5;">Masukkan kode voucher atau promo yang kamu miliki untuk mendapatkan diskon.</p>
+        
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="modalInVoucher" placeholder="Ketik kode di sini..." style="flex:1; text-transform:uppercase; padding:15px; font-size:13px; border-radius:10px; border:1.5px solid #eaeaea; background:#f9f9f9; outline:none; font-weight:600; color:#000;">
+            <button onclick="applyVoucherModal()" style="width:80px; padding:0; height:auto; border-radius:10px; font-size:12px; background:#000; color:#fff; border:none; font-weight:700; cursor:pointer;">PAKAI</button>
+        </div>
+        
+        <p id="modalVoucherMsg" style="font-size:11px; margin-top:12px; font-weight:700; text-align:center;"></p>
+        <input type="hidden" id="modalVoucherType" value="">
+        
+        <button onclick="closeVoucherModal()" style="margin-top:25px; padding:15px; width:100%; font-size:12px; background:#f9f9f9; color:#333; border:1px solid #eaeaea; border-radius:10px; font-weight:700; cursor:pointer;">KEMBALI</button>
+    </div>
+</div>
+
+<!-- Modal Size / Specs / QR / Image / Confirm di bawah sini -->
+<div id="sizeModal" class="modal-overlay" onclick="closeSize()"><div style="max-width:500px; width:100%;"><img src="/size.jpg" style="width:100%; border-radius:15px;"></div></div>
+<div id="specsModal" class="modal-overlay" onclick="closeSpecs()"><div class="specs-box" onclick="event.stopPropagation()"><h3>SPESIFIKASI PRODUK</h3><p id="specContent"></p><button onclick="closeSpecs()">CLOSE</button></div></div>
+<div id="qrisModal" class="modal-overlay" onclick="closeQRIS()">
+    <div class="specs-box" onclick="event.stopPropagation()">
+        <h3 style="margin:0 0 15px 0; border-bottom:1px solid #222; padding-bottom:10px; font-size:16px; letter-spacing:1px;">QRIS PEMBAYARAN</h3>
+        <div style="background:#fff; padding:10px; border-radius:10px; margin-bottom:15px;">
+            <img src="/qris.jpg" alt="QRIS FvcktheRules" style="width:100%; display:block; border-radius:5px;">
+        </div>
+        <p style="font-size:12px; line-height:1.6; color:#bbb; margin:0; text-align:center;">Silakan scan QRIS di atas melalui aplikasi Bank atau E-Wallet kamu.</p>
+        <button onclick="closeQRIS()" style="margin-top:25px; padding:15px; font-size:12px; background:#111; color:#fff; border:1px solid #222;">TUTUP</button>
+    </div>
+</div>
+<div id="imageModal" class="modal-overlay" onclick="closeImage()"><img id="modalImg" src="" alt="Zoomed Image"></div>
+
+<!-- FLOATING CART BUTTON -->
+<div id="floatingCartBtn" onclick="openCart()" style="display:none; position:fixed; bottom:28px; right:20px; z-index:999; width:54px; height:54px; background:#ffffff; border-radius:50%; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #eaeaea;">
+    <i class="fas fa-bag-shopping" style="font-size:20px; color:#000000;"></i>
+    <div id="cartBadge" style="display:none; position:absolute; top:-4px; right:-4px; background:#000000; color:#ffffff; font-size:10px; font-weight:900; width:20px; height:20px; border-radius:50%; align-items:center; justify-content:center; font-family:inherit;">0</div>
+</div>
+
+<!-- CART ADDED TOAST -->
+<div id="cartToast" class="toast" style="background:#ffffff; border:1px solid #eaeaea; color:#000000; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"><i class="fas fa-check" style="margin-right:6px;"></i> Ditambahkan ke keranjang!</div>
 
 <!-- MODAL DOUBLE KONFIRMASI -->
 <div id="confirmModal" class="modal-overlay" style="display:none; z-index: 9999;">
     <div class="specs-box" style="text-align: center; max-width: 320px; border-radius: 15px;">
         <i class="fas fa-question-circle" style="font-size: 45px; color: #000; margin-bottom: 15px;"></i>
         <h3 style="margin:0 0 10px 0; font-size:18px; color:#000;">Konfirmasi Pesanan</h3>
-        <p style="font-size:12px; color:#555; line-height: 1.6; margin-bottom: 25px;">
-            Apakah data diri, rincian pesanan, dan bukti transfer sudah benar? Pesanan yang diproses tidak dapat dibatalkan.
-        </p>
+        <p style="font-size:12px; color:#555; line-height: 1.6; margin-bottom: 25px;">Apakah data diri, rincian pesanan, dan bukti transfer sudah benar? Pesanan yang diproses tidak dapat dibatalkan.</p>
         <div style="display: flex; gap: 10px;">
             <button onclick="closeConfirm()" style="flex:1; background:#f9f9f9; color:#000; border:1px solid #eaeaea; padding:12px; border-radius:10px; font-weight: 700; cursor: pointer;">BATAL</button>
             <button onclick="executeCheckout()" style="flex:1; background:#000; color:#fff; border:none; padding:12px; border-radius:10px; font-weight: 700; cursor: pointer;">YA, PROSES</button>
@@ -557,18 +508,15 @@ justify-content:center;
     </div>
 </div>
 
-
-
 <script type="module" src="script.js"></script>
 <script>
-    // Pengaman darurat agar loader tidak berputar selamanya jika ada error
     setTimeout(() => {
         const loader = document.getElementById('loader');
         if (loader && !loader.classList.contains('hide')) {
             loader.classList.add('hide');
             console.warn("Loader disembunyikan secara paksa oleh sistem darurat.");
         }
-    }, 4000); // Loader akan dipaksa hilang setelah 4 detik
+    }, 4000);
 </script>
 
 </body> 
