@@ -1114,9 +1114,10 @@ async function hitungOngkirBiteship(destId, isCart) {
             ongkirSaatIni = data.pricing[0].price;
             document.getElementById(textId).innerText = `Ongkos Kirim (J&T): ${formatRupiah(ongkirSaatIni)}`;
         } else {
-            document.getElementById(textId).innerText = "Pengiriman ke area ini tidak tersedia.";
-            ongkirSaatIni = 0;
-        }
+    document.getElementById(textId).innerText =
+        "Tidak tersedia. " + (data.debug_message || data.error || "");
+    ongkirSaatIni = 0;
+}
     } catch (e) {
         document.getElementById(textId).innerText = "Gagal memuat ongkir.";
         ongkirSaatIni = 0;
