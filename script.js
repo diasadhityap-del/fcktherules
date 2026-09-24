@@ -160,8 +160,20 @@ function validateCartForm() {
     vibrate(40);
     const n = document.getElementById('cartInName').value;
     const p = document.getElementById('cartInPhone').value;
-    const a = document.getElementById('cartInAddress').value;
-    if (!n || !p || !a) return triggerAlert("LENGKAPI DATA!");
+    
+    // Tarik data yang terpisah lalu gabungkan
+    const alamatDetail = document.getElementById('cartInAddress').value;
+    const prov = document.getElementById('cartInProvinsi').value;
+    const kota = document.getElementById('cartInKota').value;
+    const kec = document.getElementById('cartInKecamatan').value;
+    const kodePos = document.getElementById('cartInKodePos').value;
+    
+    const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
+
+    if (!n || !p || !alamatDetail || !prov) return triggerAlert("LENGKAPI DATA!");
+
+    // ... (biarkan sisa kode di bawahnya tetap sama)
+
 
     const adaProdukTanpaDP = cartItems.some(item => item.prod.dpAllowed === 'no');
     const cartDpNote = document.getElementById('cartDpNoteArea');
@@ -736,8 +748,22 @@ function validateDetail() {
 
 function validateForm() { 
     vibrate(40);
-    const n = document.getElementById('inName').value, p = document.getElementById('inPhone').value, a = document.getElementById('inAddress').value;
-    if(!n || !p || !a) return triggerAlert("LENGKAPI DATA!");
+    const n = document.getElementById('inName').value;
+    const p = document.getElementById('inPhone').value;
+    
+    // Tarik data yang terpisah lalu gabungkan
+    const alamatDetail = document.getElementById('inAddress').value;
+    const prov = document.getElementById('inProvinsi').value;
+    const kota = document.getElementById('inKota').value;
+    const kec = document.getElementById('inKecamatan').value;
+    const kodePos = document.getElementById('inKodePos').value;
+    
+    const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
+
+    if(!n || !p || !alamatDetail || !prov) return triggerAlert("LENGKAPI DATA!");
+    
+    // ... (biarkan sisa kode di bawahnya tetap sama)
+
 
     const sumP = document.getElementById('sumProd');
     if(sumP) sumP.innerText = cart.prod.name;
@@ -913,27 +939,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // --- SISTEM ONGKIR BITESHIP ---
-async function cariArea(keyword, resultBoxId, inputId, hiddenId, isCart) {
+async function cariArea(keyword, resultBoxId, hiddenId, isCart) {
     if (keyword.length < 3) {
         document.getElementById(resultBoxId).style.display = "none";
         return;
     }
-    
+
     clearTimeout(timeoutCari);
     timeoutCari = setTimeout(async () => {
         document.getElementById(resultBoxId).innerHTML = "<div style='padding:10px;'>Mencari lokasi...</div>";
         document.getElementById(resultBoxId).style.display = "block";
-        
+
         try {
             let res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${keyword}`);
             let data = await res.json();
-            
+
             let html = "";
             data.areas.forEach(area => {
-                let namaLengkap = `${area.name}, ${area.administrative_division_level_2_name}`;
+                let namaTampil = `${area.name}, ${area.administrative_division_level_2_name}, ${area.administrative_division_level_1_name}`;
+                
+                // Ambil data spesifik dari Biteship
+                let prov = area.administrative_division_level_1_name || '';
+                let kota = area.administrative_division_level_2_name || '';
+                let kec = area.name || '';
+                let pos = area.postal_code || '';
+
                 html += `<div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;" 
-                          onclick="pilihArea('${area.id}', '${namaLengkap}', '${resultBoxId}', '${inputId}', '${hiddenId}', ${isCart})">
-                          ${namaLengkap}, ${area.administrative_division_level_1_name}
+                          onclick="pilihArea('${area.id}', '${prov}', '${kota}', '${kec}', '${pos}', '${resultBoxId}', '${hiddenId}', ${isCart})">
+                          ${namaTampil}
                          </div>`;
             });
             document.getElementById(resultBoxId).innerHTML = html || "<div style='padding:10px;'>Tidak ditemukan</div>";
@@ -943,32 +976,24 @@ async function cariArea(keyword, resultBoxId, inputId, hiddenId, isCart) {
     }, 600);
 }
 
-function pilihArea(id, namaLengkap, resultBoxId, inputId, hiddenId, isCart) {
-    document.getElementById(inputId).value = namaLengkap;
+function pilihArea(id, prov, kota, kec, pos, resultBoxId, hiddenId, isCart) {
     document.getElementById(hiddenId).value = id;
     document.getElementById(resultBoxId).style.display = "none";
-    hitungOngkirBiteship(id, isCart);
-}
-
-async function hitungOngkirBiteship(destId, isCart) {
-    let berat = isCart ? (cartItems.length * 250) : 250; // 250 gram per baju
-    let textId = isCart ? 'cartTampilOngkir' : 'tampilOngkir';
     
-    document.getElementById(textId).innerText = "Menghitung ongkir...";
-    
-    try {
-        let res = await fetch(`${URL_GAS_BITESHIP}?endpoint=rates&dest=${destId}&weight=${berat}`);
-        let data = await res.json();
-        
-        if (data.pricing && data.pricing.length > 0) {
-            ongkirSaatIni = data.pricing[0].price;
-            document.getElementById(textId).innerText = `Ongkos Kirim (J&T): ${formatRupiah(ongkirSaatIni)}`;
-        } else {
-            document.getElementById(textId).innerText = "Pengiriman ke area ini tidak tersedia.";
-            ongkirSaatIni = 0;
-        }
-    } catch (e) {
-        document.getElementById(textId).innerText = "Gagal memuat ongkir.";
-        ongkirSaatIni = 0;
+    // Auto-fill ke HTML
+    if (isCart) {
+        document.getElementById('cartInSearchArea').value = kec + ", " + kota;
+        document.getElementById('cartInProvinsi').value = prov;
+        document.getElementById('cartInKota').value = kota;
+        document.getElementById('cartInKecamatan').value = kec;
+        document.getElementById('cartInKodePos').value = pos;
+    } else {
+        document.getElementById('inSearchArea').value = kec + ", " + kota;
+        document.getElementById('inProvinsi').value = prov;
+        document.getElementById('inKota').value = kota;
+        document.getElementById('inKecamatan').value = kec;
+        document.getElementById('inKodePos').value = pos;
     }
+
+    hitungOngkirBiteship(id, isCart);
 }
