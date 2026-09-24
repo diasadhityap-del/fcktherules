@@ -226,7 +226,20 @@ justify-content:center;
             <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
                 <h3 id="sumProd" style="margin:0; font-size:18px; color:#000;">-</h3>
                 <p id="sumVar" style="font-size:13px; color:#555; margin:8px 0;">-</p>
-                <h3 id="sumPrice" style="color:#000; margin:15px 0 0;">-</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:18px;">
+    <span style="font-size:13px; color:#555;">Harga</span>
+    <span id="sumPrice" style="font-size:15px; font-weight:700; color:#000;">-</span>
+</div>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+    <span style="font-size:11px; color:#999;">Ongkos Kirim (J&T)</span>
+    <span id="sumOngkir" style="font-size:11px; color:#999;">-</span>
+</div>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #eaeaea;">
+    <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
+    <span id="sumTotal" style="font-size:24px; font-weight:800; color:#000;">-</span>
+</div>
                 <hr style="border:0; border-top:1px solid #eaeaea; margin:20px 0;">
                 <p id="sumCust" style="font-size:13px; line-height:1.8; margin:0; color:#000;"></p>
             </div>
@@ -460,10 +473,15 @@ justify-content:center;
 
             <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea;">
                 <div id="cartSumItems"></div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #eaeaea;">
-                    <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
-                    <span id="cartSumTotal" style="font-size:16px; font-weight:700; color:#000;"></span>
-                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+    <span style="font-size:11px; color:#999;">Ongkos Kirim (J&T)</span>
+    <span id="cartSumOngkir" style="font-size:11px; color:#999;"></span>
+</div>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:16px; border-top:1px solid #eaeaea;">
+    <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
+    <span id="cartSumTotal" style="font-size:24px; font-weight:800; color:#000;"></span>
+</div>
             </div>
 
             <div style="background:#f9f9f9; padding:20px; border-radius:15px; border:1px solid #eaeaea; margin-top:16px;">
