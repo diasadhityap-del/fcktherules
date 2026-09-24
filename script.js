@@ -3,7 +3,7 @@ import { listenProduk, listenGaleri, listenBanners, listenBannerText } from './f
 let cartItems = [];
 const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFOzBQn9DAyiiefPuqZv--U2gV1BqNA1sIvBL0dgvenTl-l8wUAQ/exec"; 
 let ongkirSaatIni = 0;
-let timeoutCari;
+let timeoutCari; 
 
 const PAGE_SLUGS = {
     home: '/',
