@@ -1,7 +1,7 @@
 import { listenProduk, listenGaleri, listenBanners, listenBannerText } from './firebase.js';
 
 let cartItems = [];
-const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyQj9IHacENtRZC1OlKB8zCbuIKLpspSlSA-cRT3P02KtyUKtkHBdfyA-n19_FC6gIZ/exec"; 
+const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbwT7vxojTkoASXX5QNrDpllXlonVRVOKgEXo0v9k_1dcBA9j-HPH3LMRRuHxIo_9L-n/exec"; 
 let ongkirSaatIni = 0;
 let timeoutCari;
 
