@@ -476,7 +476,7 @@ window.onload = async () => {
             renderAllSections();
 
             const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-            const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) \vert{}\vert{} path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) \vert{}\vert{} path.match(/^([^\/]+)\/summary$/);
+            const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) || path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) || path.match(/^([^\/]+)\/summary$/);
 
             if (orderMatch) {
                 const productSlug = orderMatch[1];
