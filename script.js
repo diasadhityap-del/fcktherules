@@ -197,8 +197,11 @@ function validateCartForm() {
     const idAreaCart = document.getElementById('cartInAreaId');
     if(!idAreaCart || !idAreaCart.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
 
-    const sumTotal = document.getElementById('cartSumTotal');
-    if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni);
+    const sumOngkirCart = document.getElementById('cartSumOngkir');
+if (sumOngkirCart) sumOngkirCart.innerText = formatRupiah(ongkirSaatIni);
+
+const sumTotal = document.getElementById('cartSumTotal');
+if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni);
 
     const sumCust = document.getElementById('cartSumCust');
     if (sumCust) sumCust.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
@@ -786,7 +789,13 @@ function validateForm() {
 
     const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
     const sumPr = document.getElementById('sumPrice');
-    if(sumPr) sumPr.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
+if(sumPr) sumPr.innerText = formatRupiah(hargaProduk);
+
+const sumOng = document.getElementById('sumOngkir');
+if(sumOng) sumOng.innerText = formatRupiah(ongkirSaatIni);
+
+const sumTot = document.getElementById('sumTotal');
+if(sumTot) sumTot.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
 
     const sumC = document.getElementById('sumCust');
     if(sumC) sumC.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
