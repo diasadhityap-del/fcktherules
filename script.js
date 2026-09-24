@@ -198,10 +198,10 @@ function validateCartForm() {
     if(!idAreaCart || !idAreaCart.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
 
     const sumOngkirCart = document.getElementById('cartSumOngkir');
-if (sumOngkirCart) sumOngkirCart.innerText = formatRupiah(ongkirSaatIni);
+    if (sumOngkirCart) sumOngkirCart.innerText = formatRupiah(ongkirSaatIni);
 
-const sumTotal = document.getElementById('cartSumTotal');
-if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni);
+    const sumTotal = document.getElementById('cartSumTotal');
+    if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni);
 
     const sumCust = document.getElementById('cartSumCust');
     if (sumCust) sumCust.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
@@ -259,21 +259,30 @@ async function executeCheckout() {
 
             const buktiURL = uploadedBuktiURL;
             const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
-const totalAkhir = hargaProduk + ongkirSaatIni - nilaiDiskon;
+            
+            // Hitung total akhir dengan pemotongan voucher
+            const totalAkhir = hargaProduk + ongkirSaatIni - nilaiDiskon;
 
-const orderData = {
-    nama: n, wa: p, alamat: a,
-    produk: cart.prod.name, warna: cart.color, size: cart.size,
-    hargaKaos: hargaProduk,         // H
-    ongkir: ongkirSaatIni,          // I
-    voucherKode: appliedVoucher ? appliedVoucher.kode : "",       // J
-    voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "", // K
-    totalAkhir: totalAkhir,         // L
-    tipeBayar: 'Cek Bukti Bayar',   // M
-    dp: '', buktiURL: buktiURL      // N
-};
+            const orderData = {
+                nama: n, wa: p, alamat: a,
+                produk: cart.prod.name, warna: cart.color, size: cart.size,
+                hargaKaos: hargaProduk,
+                ongkir: ongkirSaatIni,
+                voucherKode: appliedVoucher ? appliedVoucher.kode : "",
+                voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "",
+                totalAkhir: totalAkhir,
+                tipeBayar: 'Cek Bukti Bayar',
+                dp: '', buktiURL: buktiURL
+            };
 
             await saveOrder(orderData);
+
+            // Potong Kuota Voucher jika dipakai
+            if (appliedVoucher) {
+                const { updateVoucherKuota } = await import('./firebase.js');
+                await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
+                removeVoucher('single');
+            }
 
             fetch(SCRIPT_URL, {
                 method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
@@ -300,22 +309,31 @@ const orderData = {
             const buktiURL = uploadedCartBuktiURL;
             
             const totalProduk = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
-const totalAkhir = totalProduk + ongkirSaatIni - nilaiDiskon;
+            
+            // Hitung total akhir dengan pemotongan voucher
+            const totalAkhir = totalProduk + ongkirSaatIni - nilaiDiskon;
 
-const orderData = {
-    nama: n, wa: p, alamat: a,
-    produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: i.prod.price })),
-    produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
-    hargaKaos: totalProduk,         // H
-    ongkir: ongkirSaatIni,          // I
-    voucherKode: appliedVoucher ? appliedVoucher.kode : "",       // J
-    voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "", // K
-    totalAkhir: totalAkhir,         // L
-    tipeBayar: 'Cek Bukti Bayar',   // M
-    dp: '', buktiURL: uploadedCartBuktiURL // N
-};
+            const orderData = {
+                nama: n, wa: p, alamat: a,
+                produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: i.prod.price })),
+                produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
+                hargaKaos: totalProduk,
+                ongkir: ongkirSaatIni,
+                voucherKode: appliedVoucher ? appliedVoucher.kode : "",
+                voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "",
+                totalAkhir: totalAkhir,
+                tipeBayar: 'Cek Bukti Bayar',
+                dp: '', buktiURL: uploadedCartBuktiURL
+            };
 
             await saveOrder(orderData);
+
+            // Potong Kuota Voucher jika dipakai
+            if (appliedVoucher) {
+                const { updateVoucherKuota } = await import('./firebase.js');
+                await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
+                removeVoucher('cart');
+            }
 
             fetch(SCRIPT_URL, { 
                 method:"POST", mode:"no-cors", cache:"no-cache", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(orderData) 
@@ -483,7 +501,7 @@ window.onload = async () => {
             renderAllSections();
 
             const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-            const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) || path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) || path.match(/^([^\/]+)\/summary$/);
+            const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) \vert{}\vert{} path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) \vert{}\vert{} path.match(/^([^\/]+)\/summary$/);
 
             if (orderMatch) {
                 const productSlug = orderMatch[1];
@@ -639,6 +657,7 @@ function toggleSidebar() {
     if(sidebar) sidebar.classList.toggle('open');
     if(overlay) overlay.classList.toggle('show');
 }
+
 function navTo(pageId) { 
     toggleSidebar(); 
     showPage(pageId); 
@@ -788,13 +807,13 @@ function validateForm() {
 
     const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
     const sumPr = document.getElementById('sumPrice');
-if(sumPr) sumPr.innerText = formatRupiah(hargaProduk);
+    if(sumPr) sumPr.innerText = formatRupiah(hargaProduk);
 
-const sumOng = document.getElementById('sumOngkir');
-if(sumOng) sumOng.innerText = formatRupiah(ongkirSaatIni);
+    const sumOng = document.getElementById('sumOngkir');
+    if(sumOng) sumOng.innerText = formatRupiah(ongkirSaatIni);
 
-const sumTot = document.getElementById('sumTotal');
-if(sumTot) sumTot.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
+    const sumTot = document.getElementById('sumTotal');
+    if(sumTot) sumTot.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
 
     const sumC = document.getElementById('sumCust');
     if(sumC) sumC.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
@@ -869,18 +888,11 @@ function showPageSilent(id) {
 function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 
 // ══════════════════════════════════════════════════════════════
-// SISTEM DROPDOWN WILAYAH (ganti "ketik & cari")
-// Data provinsi/kota/kecamatan dari API Statis Wilayah Indonesia (emsifa, v2).
-// Sumber: cahyadsn/wilayah, merujuk Kepmendagri & BIG.
-// Setelah kecamatan dipilih, otomatis dicocokkan ke Biteship (backend ongkir
-// kamu yang sudah ada) supaya ongkir tetap terhitung seperti biasa.
+// SISTEM DROPDOWN WILAYAH
 // ══════════════════════════════════════════════════════════════
 const WILAYAH_API = "https://www.emsifa.com/api-wilayah-indonesia/v2";
-
-// Data v2 biasanya sudah Title Case ("Aceh", "Sumatera Utara"), tapi fungsi ini
-// dijaga sebagai pengaman kalau ada data yang masih UPPERCASE, sekaligus
-// mempertahankan singkatan umum (DKI, DIY, dst) tetap kapital semua.
 const WILAYAH_ACRONYMS = ['DKI', 'DIY', 'NAD', 'NTB', 'NTT'];
+
 function titleCaseWilayah(str) {
     if (!str) return str;
     return str
@@ -894,8 +906,6 @@ function titleCaseWilayah(str) {
         .join(' ');
 }
 
-// Helper fetch dengan 1x retry singkat (buat koneksi yang cuma putus sesaat).
-// Response API v2 dibungkus { data, meta }, jadi kita ambil .data-nya.
 async function fetchWilayah(path) {
     try {
         const res = await fetch(`${WILAYAH_API}${path}`);
@@ -941,7 +951,6 @@ function resetOngkirArea(isCart) {
     // Hapus voucher otomatis jika alamat berubah (karena ongkir berubah)
     removeVoucher(isCart ? 'cart' : 'single'); 
 }
-
 
 async function onProvinsiChange(isCart) {
     const provSel = document.getElementById(isCart ? 'cartInProvinsi' : 'inProvinsi');
@@ -1009,9 +1018,6 @@ async function onKotaChange(isCart) {
     }
 }
 
-
-// Setelah kecamatan dipilih: muat daftar kelurahan/desa dari data wilayah
-// (bukan langsung ke Biteship — itu baru dipanggil setelah kelurahan dipilih).
 async function onKecamatanChange(isCart) {
     const kecSel = document.getElementById(isCart ? 'cartInKecamatan' : 'inKecamatan');
     const kelSel = document.getElementById(isCart ? 'cartInKelurahan' : 'inKelurahan');
@@ -1043,7 +1049,6 @@ async function onKecamatanChange(isCart) {
     }
 }
 
-// Panggil Biteship search dan balikin array areas (kosong kalau gagal/nggak ketemu)
 async function cariAreaBiteship(keyword) {
     try {
         const res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${encodeURIComponent(keyword)}`);
@@ -1054,10 +1059,6 @@ async function cariAreaBiteship(keyword) {
     }
 }
 
-// Setelah kelurahan dipilih: kode pos langsung diisi dari data wilayah (kalau ada),
-// lalu dicocokkan ke Biteship untuk hitung ongkir. Pencarian dicoba 2 tahap:
-// paling spesifik (kelurahan+kecamatan+kota) dulu, baru mundur ke kecamatan+kota
-// kalau yang spesifik nggak ketemu — ini yang tadinya bikin sering "gagal".
 async function onKelurahanChange(isCart) {
     const kelSel = document.getElementById(isCart ? 'cartInKelurahan' : 'inKelurahan');
     const kecSel = document.getElementById(isCart ? 'cartInKecamatan' : 'inKecamatan');
@@ -1077,7 +1078,6 @@ async function onKelurahanChange(isCart) {
     ongkirSaatIni = 0;
 
     try {
-        // 1) cari pakai kode pos (paling akurat), 2) fallback nama kelurahan + kecamatan
         let areas = postalFromData ? await cariAreaBiteship(postalFromData) : [];
         if (!areas.length) areas = await cariAreaBiteship(`${kelSel.value} ${kecSel.value}`);
         if (!areas.length) areas = await cariAreaBiteship(kelSel.value);
@@ -1105,9 +1105,6 @@ async function onKelurahanChange(isCart) {
     }
 }
 
-
-
-
 async function hitungOngkirBiteship(destId, isCart) {
     let berat = isCart ? (cartItems.length * 250) : 250;
     let textId = isCart ? 'cartTampilOngkir' : 'tampilOngkir';
@@ -1122,69 +1119,16 @@ async function hitungOngkirBiteship(destId, isCart) {
             ongkirSaatIni = data.pricing[0].price;
             document.getElementById(textId).innerText = `Ongkos Kirim (J&T): ${formatRupiah(ongkirSaatIni)}`;
         } else {
-    document.getElementById(textId).innerText =
-        "Tidak tersedia. " + (data.debug_message || data.error || "");
-    ongkirSaatIni = 0;
-}
+            document.getElementById(textId).innerText = "Tidak tersedia. " + (data.debug_message || data.error || "");
+            ongkirSaatIni = 0;
+        }
     } catch (e) {
         document.getElementById(textId).innerText = "Gagal memuat ongkir.";
         ongkirSaatIni = 0;
     }
 }
 
-function openCart() {
-    vibrate(20);
-    renderCartPage();
-    showPage('cartPage');
-}
-
-function renderBannerSlider(banners) {
-    const track = document.getElementById('bannerTrack');
-    const dots = document.getElementById('bannerDots');
-    const sliderContainer = document.querySelector('.banner-slider');
-    if(!track || !dots || !sliderContainer) return;
-
-    if (banners.length === 0) {
-        sliderContainer.style.display = 'none';
-        return;
-    }
-    sliderContainer.style.display = 'block';
-
-    track.innerHTML = banners.map(b => `
-        <div class="banner-slide">
-            <img src="${b.image}">
-            <div class="banner-content">
-                ${b.title ? `<h3>${b.title}</h3>` : ''}
-                ${b.subtitle ? `<p>${b.subtitle}</p>` : ''}
-                ${b.link ? `<a onclick="navTo('${b.link}')" style="cursor:pointer;">READ MORE</a>` : ''}
-            </div>
-        </div>
-    `).join('');
-
-    dots.innerHTML = banners.map((b, i) => `
-        <span class="dot ${i===0?'active':''}" onclick="goToSlide(${i})"></span>
-    `).join('');
-}
-
-function goToSlide(index) {
-    const track = document.getElementById('bannerTrack');
-    if(track) track.scrollTo({ left: index * track.clientWidth, behavior: 'smooth' });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const track = document.getElementById('bannerTrack');
-    if(track) {
-        track.addEventListener('scroll', () => {
-            const dots = document.querySelectorAll('#bannerDots .dot');
-            if (dots.length > 0) {
-                let index = Math.round(track.scrollLeft / track.clientWidth);
-                dots.forEach(d => d.classList.remove('active'));
-                if(dots[index]) dots[index].classList.add('active');
-            }
-        });
-    }
-});
-
+// ── VOUCHER LOGIC ──────────────────────────────────────────
 let appliedVoucher = null;
 let nilaiDiskon = 0;
 
@@ -1262,6 +1206,53 @@ window.applyVoucher = async (type) => {
     }
 };
 
+// ── BANNER LOGIC ──────────────────────────────────────────
+function renderBannerSlider(banners) {
+    const track = document.getElementById('bannerTrack');
+    const dots = document.getElementById('bannerDots');
+    const sliderContainer = document.querySelector('.banner-slider');
+    if(!track || !dots || !sliderContainer) return;
+
+    if (banners.length === 0) {
+        sliderContainer.style.display = 'none';
+        return;
+    }
+    sliderContainer.style.display = 'block';
+
+    track.innerHTML = banners.map(b => `
+        <div class="banner-slide">
+            <img src="${b.image}">
+            <div class="banner-content">
+                ${b.title ? `<h3>${b.title}</h3>` : ''}
+                ${b.subtitle ? `<p>${b.subtitle}</p>` : ''}
+                ${b.link ? `<a onclick="navTo('${b.link}')" style="cursor:pointer;">READ MORE</a>` : ''}
+            </div>
+        </div>
+    `).join('');
+
+    dots.innerHTML = banners.map((b, i) => `
+        <span class="dot ${i===0?'active':''}" onclick="goToSlide(${i})"></span>
+    `).join('');
+}
+
+function goToSlide(index) {
+    const track = document.getElementById('bannerTrack');
+    if(track) track.scrollTo({ left: index * track.clientWidth, behavior: 'smooth' });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const track = document.getElementById('bannerTrack');
+    if(track) {
+        track.addEventListener('scroll', () => {
+            const dots = document.querySelectorAll('#bannerDots .dot');
+            if (dots.length > 0) {
+                let index = Math.round(track.scrollLeft / track.clientWidth);
+                dots.forEach(d => d.classList.remove('active'));
+                if(dots[index]) dots[index].classList.add('active');
+            }
+        });
+    }
+});
 
 window.toggleSidebar = toggleSidebar;
 window.navTo = navTo;
@@ -1291,8 +1282,8 @@ window.goToSlide = goToSlide;
 window.hapusBukti = hapusBukti;
 window.confirmCheckout = confirmCheckout;
 window.closeConfirm = closeConfirm;
-window.executeCheckout = executeCheckout;
 window.onProvinsiChange = onProvinsiChange;
 window.onKotaChange = onKotaChange;
 window.onKecamatanChange = onKecamatanChange;
 window.onKelurahanChange = onKelurahanChange;
+window.executeCheckout = executeCheckout;
