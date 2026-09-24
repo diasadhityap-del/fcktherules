@@ -10,8 +10,10 @@ import {
   query,
   orderBy,
   onSnapshot,
-  setDoc
+  setDoc,
+  where // <-- TAMBAHKAN INI
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
 import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -258,4 +260,41 @@ export function listenBannerText(callback) {
 
 export async function saveBannerText(data) {
     await setDoc(doc(db, "settings", "bannerText"), data);
+}
+
+
+// ===== VOUCHER =====
+export async function saveVoucher(data) {
+    try {
+        await addDoc(collection(db, "vouchers"), { ...data, createdAt: new Date().toISOString() });
+        return true;
+    } catch (err) { console.error(err); return false; }
+}
+
+export async function deleteVoucher(id) {
+    try {
+        await deleteDoc(doc(db, "vouchers", id));
+        return true;
+    } catch (err) { console.error(err); return false; }
+}
+
+export function listenVouchers(callback) {
+    const q = query(collection(db, "vouchers"), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(data);
+    });
+}
+
+export async function getVoucherByKode(kode) {
+    const q = query(collection(db, "vouchers"), where("kode", "==", kode.toUpperCase()));
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    return { id: snap.docs[0].id, ...snap.docs[0].data() };
+}
+
+export async function updateVoucherKuota(id, kuotaBaru) {
+    try {
+        await updateDoc(doc(db, "vouchers", id), { kuota: kuotaBaru });
+    } catch(err) { console.error(err); }
 }
