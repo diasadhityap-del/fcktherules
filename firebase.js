@@ -27,7 +27,7 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// Cloudinary config
+// Cloudinary config 
 export const CLOUDINARY_BUKTI_CLOUD = "dfbxrouwf";
 export const CLOUDINARY_BUKTI_PRESET = "underline-bukti";
 
