@@ -864,7 +864,7 @@ function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 // ══════════════════════════════════════════════════════════════
 // jsDelivr = CDN yang selalu mengirim header CORS (Access-Control-Allow-Origin: *),
 // jadi dijamin bisa diakses dari domain manapun, beda dengan wilayah.id yang kadang diblokir browser.
-const WILAYAH_API = "https://www.emsifa.com/api-wilayah-indonesia/api"; // Menggunakan domain utama langsung atau mirror lain
+const WILAYAH_API = "https://emsifa.github.io/api-wilayah-indonesia/api"; // Menggunakan domain utama langsung atau mirror lain
 
 async function initProvinsiDropdown() {
     try {
