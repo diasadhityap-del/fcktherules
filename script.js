@@ -1,3 +1,11 @@
+let cartItems = [];
+
+// PASTE URL ANDA DI BAWAH INI (di dalam tanda kutip)
+const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbxPAV4Vn10I5TbWCr3WNRFkuiZ62YixhSCeKpmMAgBfQDh8v6TIaSre6du68DO22dt6/exec"; 
+let ongkirSaatIni = 0;
+let timeoutCari;
+
+
 import { listenProduk, listenGaleri, listenBanners, listenBannerText } from './firebase.js';
 
 
@@ -182,8 +190,11 @@ function validateCartForm() {
     const sumItems = document.getElementById('cartSumItems');
     if (sumItems) sumItems.innerHTML = itemsHTML;
 
-    const sumTotal = document.getElementById('cartSumTotal');
-    if (sumTotal) sumTotal.innerText = formatRupiah(total);
+    const idAreaCart = document.getElementById('cartInAreaId');
+if(!idAreaCart || !idAreaCart.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
+
+const sumTotal = document.getElementById('cartSumTotal');
+if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni);
 
     const sumCust = document.getElementById('cartSumCust');
     if (sumCust) sumCust.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
@@ -734,8 +745,12 @@ function validateForm() {
     const sumV = document.getElementById('sumVar');
     if(sumV) sumV.innerText = `${cart.color} | ${cart.size}`;
 
-    const sumPr = document.getElementById('sumPrice');
-    if(sumPr) sumPr.innerText = formatRupiah(cart.prod.price);
+    const idArea = document.getElementById('inAreaId');
+if(!idArea || !idArea.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
+
+const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
+const sumPr = document.getElementById('sumPrice');
+if(sumPr) sumPr.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
 
     const sumC = document.getElementById('sumCust');
     if(sumC) sumC.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
@@ -839,6 +854,9 @@ window.hapusBukti = hapusBukti;
 window.confirmCheckout = confirmCheckout;
 window.closeConfirm = closeConfirm;
 window.executeCheckout = executeCheckout;
+window.cariArea = cariArea;
+window.pilihArea = pilihArea;
+
 
 function openCart() {
     vibrate(20);
@@ -892,3 +910,65 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+
+// --- SISTEM ONGKIR BITESHIP ---
+async function cariArea(keyword, resultBoxId, inputId, hiddenId, isCart) {
+    if (keyword.length < 3) {
+        document.getElementById(resultBoxId).style.display = "none";
+        return;
+    }
+    
+    clearTimeout(timeoutCari);
+    timeoutCari = setTimeout(async () => {
+        document.getElementById(resultBoxId).innerHTML = "<div style='padding:10px;'>Mencari lokasi...</div>";
+        document.getElementById(resultBoxId).style.display = "block";
+        
+        try {
+            let res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${keyword}`);
+            let data = await res.json();
+            
+            let html = "";
+            data.areas.forEach(area => {
+                let namaLengkap = `${area.name}, ${area.administrative_division_level_2_name}`;
+                html += `<div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;" 
+                          onclick="pilihArea('${area.id}', '${namaLengkap}', '${resultBoxId}', '${inputId}', '${hiddenId}', ${isCart})">
+                          ${namaLengkap}, ${area.administrative_division_level_1_name}
+                         </div>`;
+            });
+            document.getElementById(resultBoxId).innerHTML = html || "<div style='padding:10px;'>Tidak ditemukan</div>";
+        } catch (e) {
+            document.getElementById(resultBoxId).innerHTML = "<div style='padding:10px;'>Gagal memuat lokasi</div>";
+        }
+    }, 600);
+}
+
+function pilihArea(id, namaLengkap, resultBoxId, inputId, hiddenId, isCart) {
+    document.getElementById(inputId).value = namaLengkap;
+    document.getElementById(hiddenId).value = id;
+    document.getElementById(resultBoxId).style.display = "none";
+    hitungOngkirBiteship(id, isCart);
+}
+
+async function hitungOngkirBiteship(destId, isCart) {
+    let berat = isCart ? (cartItems.length * 250) : 250; // 250 gram per baju
+    let textId = isCart ? 'cartTampilOngkir' : 'tampilOngkir';
+    
+    document.getElementById(textId).innerText = "Menghitung ongkir...";
+    
+    try {
+        let res = await fetch(`${URL_GAS_BITESHIP}?endpoint=rates&dest=${destId}&weight=${berat}`);
+        let data = await res.json();
+        
+        if (data.pricing && data.pricing.length > 0) {
+            ongkirSaatIni = data.pricing[0].price;
+            document.getElementById(textId).innerText = `Ongkos Kirim (J&T): ${formatRupiah(ongkirSaatIni)}`;
+        } else {
+            document.getElementById(textId).innerText = "Pengiriman ke area ini tidak tersedia.";
+            ongkirSaatIni = 0;
+        }
+    } catch (e) {
+        document.getElementById(textId).innerText = "Gagal memuat ongkir.";
+        ongkirSaatIni = 0;
+    }
+}
