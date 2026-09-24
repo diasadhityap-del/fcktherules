@@ -163,44 +163,39 @@ justify-content:center;
         <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
         <div class="detail-container" style="padding-top:80px;">
             <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
-            
+
             <div class="input-group">
                 <label>FULL NAME</label>
                 <input type="text" id="inName" placeholder="Nama Lengkap...">
             </div>
-            
+
             <div class="input-group">
                 <label>WHATSAPP</label>
                 <input type="number" id="inPhone" placeholder="08xxx">
             </div>
 
-            <!-- BAGIAN ALAMAT BARU (TERPISAH) -->
-            <div class="input-group">
-                <label>CARI KECAMATAN / DESA</label>
-                <input type="text" id="inSearchArea" placeholder="Ketik nama kecamatan lalu pilih..." oninput="cariArea(this.value, 'hasilArea', 'inAreaId', false)" autocomplete="off">
-                <div id="hasilArea" style="background:#fff; border:1px solid #eaeaea; border-radius:10px; max-height:150px; overflow-y:auto; display:none; margin-top:5px; font-size:12px;"></div>
-                <input type="hidden" id="inAreaId">
-            </div>
+            <!-- BAGIAN ALAMAT: DROPDOWN WILAYAH (ganti sistem ketik-cari) -->
+            <input type="hidden" id="inAreaId">
 
             <div style="display: flex; gap: 10px; margin-bottom: 25px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">PROVINSI</label>
-                    <input type="text" id="inProvinsi" readonly style="background: #f9f9f9; color: #888;">
+                    <select id="inProvinsi" onchange="onProvinsiChange(false)"><option value="">Pilih Provinsi...</option></select>
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KOTA/KAB</label>
-                    <input type="text" id="inKota" readonly style="background: #f9f9f9; color: #888;">
+                    <select id="inKota" disabled onchange="onKotaChange(false)"><option value="">Pilih Kota/Kab...</option></select>
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-bottom: 25px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KECAMATAN</label>
-                    <input type="text" id="inKecamatan" readonly style="background: #f9f9f9; color: #888;">
+                    <select id="inKecamatan" disabled onchange="onKecamatanChange(false)"><option value="">Pilih Kecamatan...</option></select>
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KODE POS</label>
-                    <input type="text" id="inKodePos" readonly style="background: #f9f9f9; color: #888;">
+                    <input type="text" id="inKodePos" readonly placeholder="Otomatis" style="background: #f9f9f9; color: #888;">
                 </div>
             </div>
 
@@ -259,7 +254,7 @@ justify-content:center;
                     <span id="labelBukti">Tap untuk upload foto bukti</span>
                 </label>
                 <input type="file" id="inputBukti" accept="image/*" style="display:none;" onchange="previewBukti(this)">
-                
+
                 <!-- KOTAK FILE ALA GOOGLE FORM -->
                 <div id="fileChip" style="display:none; align-items:center; justify-content:space-between; margin-top:12px; padding:10px 15px; border:1px solid #eaeaea; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
                     <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden; cursor:pointer;" onclick="vibrate(20); openImage(document.getElementById('previewImg').src)">
@@ -268,7 +263,7 @@ justify-content:center;
                     </div>
                     <i class="fas fa-times" style="color:#555; font-size:16px; cursor:pointer; padding:5px; margin-left:10px;" onclick="hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti')"></i>
                 </div>
-                
+
                 <!-- Gambar disembunyikan, datanya dipakai untuk popup (zoom) -->
                 <img id="previewImg" src="" style="display:none;">
             </div>
@@ -376,13 +371,13 @@ justify-content:center;
     <div class="detail-container" style="padding-top:80px;">
         <h2 style="margin-bottom:24px;">KERANJANG</h2>
         <div id="cartList"></div>
-        
+
         <!-- BAGIAN TOTAL YANG SUDAH JADI PUTIH & HITAM -->
         <div id="cartTotalArea" style="margin-top:16px; padding:16px 20px; background:#ffffff; border:1px solid #eaeaea; border-radius:15px; display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:12px; font-weight:700; color:#555; letter-spacing:1px;">TOTAL</span>
             <span id="cartTotal" style="font-size:18px; font-weight:700; color:#000000;">Rp0</span>
         </div>
-        
+
         <div id="cartCheckoutBtn" style="display:none;">
             <div class="btn-container" style="margin-top:16px;">
                 <button onclick="goToCartCheckout()" style="background:#000000; color:#fff;">CHECKOUT</button>
@@ -397,44 +392,39 @@ justify-content:center;
         <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
         <div class="detail-container" style="padding-top:80px;">
             <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
-            
+
             <div class="input-group">
                 <label>FULL NAME</label>
                 <input type="text" id="cartInName" placeholder="Nama Lengkap...">
             </div>
-            
+
             <div class="input-group">
                 <label>WHATSAPP</label>
                 <input type="number" id="cartInPhone" placeholder="08xxx">
             </div>
 
-            <!-- BAGIAN ALAMAT BARU (TERPISAH) -->
-            <div class="input-group">
-                <label>CARI KECAMATAN / DESA</label>
-                <input type="text" id="cartInSearchArea" placeholder="Ketik nama kecamatan lalu pilih..." oninput="cariArea(this.value, 'cartHasilArea', 'cartInAreaId', true)" autocomplete="off">
-                <div id="cartHasilArea" style="background:#fff; border:1px solid #eaeaea; border-radius:10px; max-height:150px; overflow-y:auto; display:none; margin-top:5px; font-size:12px;"></div>
-                <input type="hidden" id="cartInAreaId">
-            </div>
+            <!-- BAGIAN ALAMAT: DROPDOWN WILAYAH (ganti sistem ketik-cari) -->
+            <input type="hidden" id="cartInAreaId">
 
             <div style="display: flex; gap: 10px; margin-bottom: 25px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">PROVINSI</label>
-                    <input type="text" id="cartInProvinsi" readonly style="background: #f9f9f9; color: #888;">
+                    <select id="cartInProvinsi" onchange="onProvinsiChange(true)"><option value="">Pilih Provinsi...</option></select>
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KOTA/KAB</label>
-                    <input type="text" id="cartInKota" readonly style="background: #f9f9f9; color: #888;">
+                    <select id="cartInKota" disabled onchange="onKotaChange(true)"><option value="">Pilih Kota/Kab...</option></select>
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-bottom: 25px;">
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KECAMATAN</label>
-                    <input type="text" id="cartInKecamatan" readonly style="background: #f9f9f9; color: #888;">
+                    <select id="cartInKecamatan" disabled onchange="onKecamatanChange(true)"><option value="">Pilih Kecamatan...</option></select>
                 </div>
                 <div style="flex: 1;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KODE POS</label>
-                    <input type="text" id="cartInKodePos" readonly style="background: #f9f9f9; color: #888;">
+                    <input type="text" id="cartInKodePos" readonly placeholder="Otomatis" style="background: #f9f9f9; color: #888;">
                 </div>
             </div>
 
@@ -499,7 +489,7 @@ justify-content:center;
                     <span id="cartLabelBukti">Tap untuk upload foto bukti</span>
                 </label>
                 <input type="file" id="cartInputBukti" accept="image/*" style="display:none;" onchange="previewCartBukti(this)">
-                
+
                 <!-- KOTAK FILE ALA GOOGLE FORM -->
                 <div id="cartFileChip" style="display:none; align-items:center; justify-content:space-between; margin-top:12px; padding:10px 15px; border:1px solid #eaeaea; border-radius:8px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
                     <div style="display:flex; align-items:center; gap:10px; flex:1; overflow:hidden; cursor:pointer;" onclick="vibrate(20); openImage(document.getElementById('cartPreviewImg').src)">
