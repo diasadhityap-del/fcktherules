@@ -1047,8 +1047,6 @@ async function cariAreaBiteship(keyword) {
 // paling spesifik (kelurahan+kecamatan+kota) dulu, baru mundur ke kecamatan+kota
 // kalau yang spesifik nggak ketemu — ini yang tadinya bikin sering "gagal".
 async function onKelurahanChange(isCart) {
-    const kotaSel = document.getElementById(isCart ? 'cartInKota' : 'inKota');
-    const kecSel = document.getElementById(isCart ? 'cartInKecamatan' : 'inKecamatan');
     const kelSel = document.getElementById(isCart ? 'cartInKelurahan' : 'inKelurahan');
     const kodePos = document.getElementById(isCart ? 'cartInKodePos' : 'inKodePos');
     const areaId = document.getElementById(isCart ? 'cartInAreaId' : 'inAreaId');
@@ -1060,34 +1058,43 @@ async function onKelurahanChange(isCart) {
         return;
     }
 
+    // Ambil kode pos langsung dari kelurahan yang dipilih
     const postalFromData = kelSel.options[kelSel.selectedIndex]?.dataset.postal || '';
     if (kodePos) kodePos.value = postalFromData;
+
+    if (!postalFromData) {
+        document.getElementById(textId).innerText = "Kode pos kelurahan tidak ditemukan.";
+        return;
+    }
 
     document.getElementById(textId).innerText = "Mencari area pengiriman...";
     areaId.value = '';
     ongkirSaatIni = 0;
 
-    // Gunakan nama kecamatan dan kota tujuan untuk dicari di API Biteship
-    let queryCari = `${kecSel.value} ${kotaSel.value}`;
-    let areas = await cariAreaBiteship(queryCari);
+    try {
+        // Cari area di Biteship menggunakan kata kunci nama kelurahan + kode pos
+        let keyword = `${kelSel.value} ${postalFromData}`;
+        let areas = await cariAreaBiteship(keyword);
 
-    // Jika gagal, cari menggunakan nama kecamatannya saja
-    if (!areas.length) {
-        areas = await cariAreaBiteship(kecSel.value);
+        // Jika tidak ketemu, cari spesifik menggunakan kode pos-nya saja
+        if (!areas.length) {
+            areas = await cariAreaBiteship(postalFromData);
+        }
+
+        if (!areas.length) {
+            document.getElementById(textId).innerText = "Pengiriman ke area ini belum tersedia.";
+            return;
+        }
+
+        // Ambil ID area valid pertama yang ditemukan oleh Biteship
+        let match = areas[0];
+        areaId.value = match.id;
+
+        // Lanjut hitung ongkir J&T menggunakan ID tersebut
+        hitungOngkirBiteship(match.id, isCart);
+    } catch (e) {
+        document.getElementById(textId).innerText = "Gagal memproses area pengiriman.";
     }
-
-    if (!areas.length) {
-        document.getElementById(textId).innerText = "Pengiriman ke area ini belum tersedia.";
-        return;
-    }
-
-    // Ambil ID area valid pertama dari Biteship
-    let match = areas[0];
-    areaId.value = match.id;
-    if (!postalFromData && match.postal_code) kodePos.value = match.postal_code;
-
-    // Lanjut hitung ongkir J&T
-    hitungOngkirBiteship(match.id, isCart);
 }
 
 
