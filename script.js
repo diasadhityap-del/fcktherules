@@ -1,9 +1,8 @@
 import { listenProduk, listenGaleri, listenBanners, listenBannerText } from './firebase.js';
 
 let cartItems = [];
-const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyDTEPvP5yndja35U02nkC4lsYRy3vQqVe2s4NTx-MxBE8MCSB9co2ztG5ZDMtJzuAO/exec"; 
+const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyDTEPvP5yndja35U02nkC4lsYRy3vQqVe2s4NTx-MxBE8MCSB9co2ztG5ZDMtJzuAO/exec";
 let ongkirSaatIni = 0;
-let timeoutCari;
 
 const PAGE_SLUGS = {
     home: '/',
@@ -21,6 +20,16 @@ const SLUG_TO_PAGE = {
     'arsip': 'arsip',
     'galeri': 'galeri',
     'tentang': 'tentang'
+};
+
+const PRODUCT_PAGES = ['detail', 'form', 'summary'];
+const CART_PAGES = ['cartPage', 'cartForm', 'cartSummary'];
+const ORDER_PAGES = [...PRODUCT_PAGES, ...CART_PAGES];
+
+const CART_SLUGS = {
+    cartPage: '/keranjang',
+    cartForm: '/keranjang/form',
+    cartSummary: '/keranjang/summary'
 };
 
 function updateMeta(title, description) {
@@ -49,16 +58,26 @@ function slugify(text) {
 }
 
 function formatRupiah(value) {
-    return 'Rp' + Number(String(value).replace(/\D/g,'')).toLocaleString('id-ID');
+    return 'Rp' + Number(String(value).replace(/\D/g, '')).toLocaleString('id-ID');
+}
+
+function hargaAngka(value) {
+    return Number(String(value).replace(/\D/g, ''));
+}
+
+function totalKeranjang() {
+    return cartItems.reduce((sum, i) => sum + hargaAngka(i.prod.price), 0);
 }
 
 let galleryImages = [];
 let products = [];
 let cart = { prod: null, size: '', color: '' };
 let lastPage = 'home';
+let routed = false; // routing awal hanya dijalankan sekali
 
 // ── CART FUNCTIONS ──────────────────────────────────────────
 function addToCart() {
+    if (!cart.prod) return triggerAlert("PRODUK TIDAK DITEMUKAN!");
     if (!cart.color) return triggerAlert("PILIH WARNA DULU!");
     if (!cart.size) return triggerAlert("PILIH UKURAN DULU!");
 
@@ -74,6 +93,12 @@ function addToCart() {
     showCartToast();
 }
 
+function openCart() {
+    vibrate(30);
+    renderCartPage();
+    showPage('cartPage');
+}
+
 function updateCartBadge() {
     const badge = document.getElementById('cartBadge');
     if (!badge) return;
@@ -83,9 +108,10 @@ function updateCartBadge() {
     if (btn) btn.style.display = cartItems.length > 0 ? 'flex' : 'none';
 }
 
-function showCartToast() {
+function showCartToast(msg) {
     const toast = document.getElementById('cartToast');
     if (!toast) return;
+    if (msg) toast.innerHTML = `<i class="fas fa-check" style="margin-right:6px;"></i> ${msg}`;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2000);
 }
@@ -120,10 +146,12 @@ function renderCartPage() {
             </div>`;
         const chkBtn = document.getElementById('cartCheckoutBtn');
         if (chkBtn) chkBtn.style.display = 'none';
+        const tEl0 = document.getElementById('cartTotal');
+        if (tEl0) tEl0.innerText = 'Rp0';
         return;
     }
 
-    const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+    const total = totalKeranjang();
 
     container.innerHTML = cartItems.map(item => `
         <div style="background:#ffffff; border:1px solid #eaeaea; border-radius:15px; padding:16px; margin-bottom:12px; display:flex; gap:14px; align-items:center;">
@@ -140,10 +168,10 @@ function renderCartPage() {
     `).join('');
 
     const tEl = document.getElementById('cartTotal');
-    if(tEl) tEl.innerText = formatRupiah(total);
+    if (tEl) tEl.innerText = formatRupiah(total);
 
     const chkBtn = document.getElementById('cartCheckoutBtn');
-    if(chkBtn) chkBtn.style.display = 'block';
+    if (chkBtn) chkBtn.style.display = 'block';
 }
 
 function goToCartCheckout() {
@@ -189,13 +217,13 @@ function validateCartForm() {
         </div>
     `).join('');
 
-    const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+    const total = totalKeranjang();
 
     const sumItems = document.getElementById('cartSumItems');
     if (sumItems) sumItems.innerHTML = itemsHTML;
 
     const idAreaCart = document.getElementById('cartInAreaId');
-    if(!idAreaCart || !idAreaCart.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
+    if (!idAreaCart || !idAreaCart.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
 
     const sumOngkirCart = document.getElementById('cartSumOngkir');
     if (sumOngkirCart) sumOngkirCart.innerText = formatRupiah(ongkirSaatIni);
@@ -225,13 +253,13 @@ function confirmCheckout(type) {
 
     currentCheckoutType = type;
     const m = document.getElementById('confirmModal');
-    if(m) m.style.display = 'flex';
+    if (m) m.style.display = 'flex';
 }
 
 function closeConfirm() {
     vibrate(20);
     const m = document.getElementById('confirmModal');
-    if(m) m.style.display = 'none';
+    if (m) m.style.display = 'none';
 }
 
 async function executeCheckout() {
@@ -240,7 +268,7 @@ async function executeCheckout() {
 
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyoVdbvq1JvCtzWFbJaZUdTO2I30DXn4N0p_XOidk98cPnj8m22j2Aa0q6k90KH4sOhUw/exec';
     const loader = document.getElementById('loader');
-    if(loader) loader.classList.remove('hide');
+    if (loader) loader.classList.remove('hide');
 
     try {
         const { saveOrder } = await import('./firebase.js');
@@ -258,8 +286,8 @@ async function executeCheckout() {
             const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
             const buktiURL = uploadedBuktiURL;
-            const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
-            
+            const hargaProduk = hargaAngka(cart.prod.price);
+
             const totalAkhir = hargaProduk + ongkirSaatIni - nilaiDiskon;
 
             const orderData = {
@@ -274,13 +302,14 @@ async function executeCheckout() {
                 dp: '', buktiURL: buktiURL
             };
 
-            await saveOrder(orderData);
+            const orderId = await saveOrder(orderData);
+            if (!orderId) throw new Error('saveOrder gagal');
 
             if (appliedVoucher) {
                 try {
                     const { updateVoucherKuota } = await import('./firebase.js');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
-                } catch(e) { console.error(e); }
+                } catch (e) { console.error(e); }
                 removeVoucher('single');
             }
 
@@ -307,8 +336,8 @@ async function executeCheckout() {
             const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
             const buktiURL = uploadedCartBuktiURL;
-            const totalProduk = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
-            
+            const totalProduk = totalKeranjang();
+
             const totalAkhir = totalProduk + ongkirSaatIni - nilaiDiskon;
 
             const orderData = {
@@ -321,21 +350,22 @@ async function executeCheckout() {
                 voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "",
                 totalAkhir: totalAkhir,
                 tipeBayar: 'Cek Bukti Bayar',
-                dp: '', buktiURL: uploadedCartBuktiURL
+                dp: '', buktiURL: buktiURL
             };
 
-            await saveOrder(orderData);
+            const orderId = await saveOrder(orderData);
+            if (!orderId) throw new Error('saveOrder gagal');
 
             if (appliedVoucher) {
                 try {
                     const { updateVoucherKuota } = await import('./firebase.js');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
-                } catch(e) { console.error(e); }
+                } catch (e) { console.error(e); }
                 removeVoucher('cart');
             }
 
-            fetch(SCRIPT_URL, { 
-                method:"POST", mode:"no-cors", cache:"no-cache", headers:{"Content-Type":"text/plain"}, body: JSON.stringify(orderData) 
+            fetch(SCRIPT_URL, {
+                method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
             }).catch(err => console.error(err));
 
             cartItems = [];
@@ -355,7 +385,7 @@ async function executeCheckout() {
         console.error(err);
         triggerAlert("GAGAL MENYIMPAN! COBA LAGI.");
     } finally {
-        if(loader) loader.classList.add('hide'); 
+        if (loader) loader.classList.add('hide');
     }
 }
 
@@ -370,11 +400,11 @@ async function previewCartBukti(input) {
         const fileChip = document.getElementById('cartFileChip');
         const fileName = document.getElementById('cartFileName');
 
-        if(previewImg) previewImg.src = e.target.result;
-        if(fileName) fileName.innerText = file.name;
-        if(fileChip) {
+        if (previewImg) previewImg.src = e.target.result;
+        if (fileName) fileName.innerText = file.name;
+        if (fileChip) {
             fileChip.style.display = 'flex';
-            fileChip.style.opacity = '0.5'; 
+            fileChip.style.opacity = '0.5';
         }
     };
     reader.readAsDataURL(file);
@@ -387,10 +417,10 @@ async function previewCartBukti(input) {
 
     const fileChip = document.getElementById('cartFileChip');
     if (uploadedCartBuktiURL) {
-        if(fileChip) fileChip.style.opacity = '1';
+        if (fileChip) fileChip.style.opacity = '1';
         if (label) label.innerText = ' ✓ Upload berhasil!';
     } else {
-        if(fileChip) fileChip.style.display = 'none';
+        if (fileChip) fileChip.style.display = 'none';
         if (label) label.innerText = ' ✗ Gagal upload, coba lagi';
         uploadedCartBuktiURL = null;
     }
@@ -407,17 +437,17 @@ async function previewBukti(input) {
         const fileChip = document.getElementById('fileChip');
         const fileName = document.getElementById('fileName');
 
-        if(previewImg) previewImg.src = e.target.result;
-        if(fileName) fileName.innerText = file.name;
-        if(fileChip) {
+        if (previewImg) previewImg.src = e.target.result;
+        if (fileName) fileName.innerText = file.name;
+        if (fileChip) {
             fileChip.style.display = 'flex';
-            fileChip.style.opacity = '0.5'; 
+            fileChip.style.opacity = '0.5';
         }
     };
     reader.readAsDataURL(file);
 
     const label = document.getElementById('labelBukti');
-    if(label) label.innerText = ' Mengupload...';
+    if (label) label.innerText = ' Mengupload...';
 
     const { uploadGambar } = await import('./firebase.js');
     uploadedBuktiURL = await uploadGambar(file, 'bukti');
@@ -435,19 +465,65 @@ async function previewBukti(input) {
 
 function hapusBukti(inputId, chipId, imgId, labelId) {
     vibrate(20);
-    document.getElementById(inputId).value = '';
+    const inp = document.getElementById(inputId);
+    if (inp) inp.value = '';
     const chip = document.getElementById(chipId);
-    if(chip) chip.style.display = 'none';
+    if (chip) chip.style.display = 'none';
     const img = document.getElementById(imgId);
-    if(img) img.src = '';
+    if (img) img.src = '';
     const lbl = document.getElementById(labelId);
-    if(lbl) lbl.innerText = 'Tap untuk upload foto bukti';
+    if (lbl) lbl.innerText = 'Tap untuk upload foto bukti';
 
     if (inputId === 'inputBukti') {
         uploadedBuktiURL = null;
     } else {
         uploadedCartBuktiURL = null;
     }
+}
+
+// ── ROUTING AWAL (dijalankan sekali) ───────────────────────
+function handleInitialRoute() {
+    if (routed) return;
+    routed = true;
+
+    const path = window.location.pathname.replace(/^\//, '').replace(/\/$/, '').toLowerCase();
+
+    // 1. Halaman biasa (/katalog, /preorder, dst.)
+    if (path === '' || SLUG_TO_PAGE[path] !== undefined) {
+        const targetPage = SLUG_TO_PAGE[path] || 'home';
+        if (targetPage !== 'home') showPage(targetPage);
+        return;
+    }
+
+    // 2. Halaman produk (/slug, /slug/detail, /slug/form, /slug/summary)
+    const orderMatch = path.match(/^([^\/]+)$/)
+        || path.match(/^([^\/]+)\/detail$/)
+        || path.match(/^([^\/]+)\/form$/)
+        || path.match(/^([^\/]+)\/summary$/);
+
+    if (orderMatch) {
+        const productSlug = orderMatch[1];
+        let pageId = 'detail';
+        if (path.endsWith('/form')) pageId = 'form';
+        if (path.endsWith('/summary')) pageId = 'summary';
+
+        const found = products.find(p => slugify(p.name) === productSlug);
+
+        if (found) {
+            cart = { prod: found, size: '', color: found.colors.length === 1 ? found.colors[0] : '' };
+            goDetailSilent(found);
+            // form/summary butuh pilihan warna & ukuran; kalau dibuka langsung, kembalikan ke detail
+            showPageSilent('detail');
+            if (!document.referrer.includes(window.location.hostname)) {
+                history.replaceState({ page: 'home' }, '', '/');
+                history.pushState({ page: 'detail', product: productSlug }, '', `/${productSlug}`);
+            }
+            return;
+        }
+    }
+
+    history.replaceState({ page: 'home' }, '', '/');
+    showPage('home');
 }
 
 window.onload = async () => {
@@ -459,18 +535,22 @@ window.onload = async () => {
             const barAtas = document.getElementById('barAtas');
             const barBawah = document.getElementById('barBawah');
 
-            if (data.topText && data.topText.trim() !== "") {
-                barAtas.innerText = data.topText;
-                barAtas.style.display = 'block';
-            } else {
-                barAtas.style.display = 'none';
+            if (barAtas) {
+                if (data.topText && data.topText.trim() !== "") {
+                    barAtas.innerText = data.topText;
+                    barAtas.style.display = 'block';
+                } else {
+                    barAtas.style.display = 'none';
+                }
             }
 
-            if (data.bottomText && data.bottomText.trim() !== "") {
-                barBawah.innerText = data.bottomText;
-                barBawah.style.display = 'block';
-            } else {
-                barBawah.style.display = 'none';
+            if (barBawah) {
+                if (data.bottomText && data.bottomText.trim() !== "") {
+                    barBawah.innerText = data.bottomText;
+                    barBawah.style.display = 'block';
+                } else {
+                    barBawah.style.display = 'none';
+                }
             }
         });
 
@@ -497,34 +577,7 @@ window.onload = async () => {
 
             products.sort((a, b) => (b.order || 0) - (a.order || 0));
             renderAllSections();
-
-            const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-            const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) \vert{}\vert{} path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) \vert{}\vert{} path.match(/^([^\/]+)\/summary$/);
-
-            if (orderMatch) {
-                const productSlug = orderMatch[1];
-                let pageId = 'detail';
-                if (path.endsWith('/form')) pageId = 'form';
-                if (path.endsWith('/summary')) pageId = 'summary';
-
-                const found = products.find(p => slugify(p.name) === productSlug);
-
-                if (found) {
-                    cart = { prod: found, size: '', color: found.colors.length === 1 ? found.colors[0] : '' };
-                    goDetailSilent(found);
-                    showPageSilent(pageId);
-                    if (!document.referrer.includes(window.location.hostname)) {
-                        history.replaceState({ page: 'home' }, '', '/');
-                        history.pushState({ page: 'detail', product: productSlug }, '', `/${productSlug}`);
-                    }
-                } else {
-                    history.replaceState({ page: 'home' }, '', '/');
-                    showPage('home');
-                }
-            } else {
-                const targetPage = SLUG_TO_PAGE[path] || 'home';
-                if (targetPage !== 'home') showPage(targetPage);
-            }
+            handleInitialRoute();
         });
 
         listenGaleri((firestoreGaleri) => {
@@ -540,36 +593,39 @@ window.onload = async () => {
         }, 1000);
     }
 
-    const orderPages = ['detail', 'form', 'summary', 'cartPage', 'cartForm', 'cartSummary'];
     window.addEventListener('popstate', (e) => {
         const page = e.state?.page || 'home';
         const menuBtn = document.querySelector('.menu-btn');
 
-        if (orderPages.includes(page) && !cart.prod) {
+        const invalidProduct = PRODUCT_PAGES.includes(page) && !cart.prod;
+        const invalidCart = CART_PAGES.includes(page) && cartItems.length === 0;
+
+        if (invalidProduct || invalidCart) {
             history.replaceState({ page: 'home' }, '', '/');
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             const pHome = document.getElementById('home');
-            if(pHome) pHome.classList.add('active');
-            if(menuBtn) menuBtn.style.display = 'flex';
+            if (pHome) pHome.classList.add('active');
+            if (menuBtn) menuBtn.style.display = 'flex';
             return;
         }
 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        if(document.getElementById(page)) {
-            document.getElementById(page).classList.add('active');
-            document.getElementById(page).scrollTop = 0;
+        const target = document.getElementById(page);
+        if (target) {
+            target.classList.add('active');
+            target.scrollTop = 0;
         }
 
-        if (orderPages.includes(page)) {
-            if(menuBtn) menuBtn.style.display = 'none';
+        if (ORDER_PAGES.includes(page)) {
+            if (menuBtn) menuBtn.style.display = 'none';
         } else {
-            if(menuBtn) menuBtn.style.display = 'flex';
+            if (menuBtn) menuBtn.style.display = 'flex';
             lastPage = page;
         }
     });
 };
 
-function renderAllSections() { 
+function renderAllSections() {
     renderList(products.filter(p => p.showcase === 'yes'), 'list-home');
     renderList(products.filter(p => p.badge === 'pre'), 'list-preorder');
     renderList(products.filter(p => p.badge === 'ready'), 'list-katalog');
@@ -586,7 +642,7 @@ function renderList(items, containerId) {
         container.innerHTML += `
             <div class="card ${isSold ? 'sold-out-display' : ''}">
                 <div class="badge ${p.badge}">${p.status}</div>
-                <img src="${p.thumbnail}"> 
+                <img src="${p.thumbnail}">
                 <div style="padding:25px">
                     <h3>${p.name}</h3>
                     <p style="opacity:0.5; font-weight:600;">${isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
@@ -610,14 +666,14 @@ function renderGallery() {
 function openImage(src) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImg');
-    if(modalImg) modalImg.src = src;
-    if(modal) modal.style.display = 'flex';
+    if (modalImg) modalImg.src = src;
+    if (modal) modal.style.display = 'flex';
     vibrate(20);
 }
 
 function closeImage() {
     const modal = document.getElementById('imageModal');
-    if(modal) modal.style.display = 'none';
+    if (modal) modal.style.display = 'none';
 }
 
 function injectFooters() {
@@ -643,7 +699,7 @@ function injectFooters() {
 
     ['home', 'pre', 'kat', 'ars', 'about', 'galeri'].forEach(id => {
         const el = document.getElementById(`footer-${id}`);
-        if(el) el.innerHTML = footerHTML;
+        if (el) el.innerHTML = footerHTML;
     });
 }
 
@@ -651,22 +707,25 @@ function toggleSidebar() {
     vibrate(20);
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
-    if(sidebar) sidebar.classList.toggle('open');
-    if(overlay) overlay.classList.toggle('show');
+    if (sidebar) sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
 }
 
-function navTo(pageId) { 
-    toggleSidebar(); 
-    showPage(pageId); 
+function navTo(pageId) {
+    toggleSidebar();
+    showPage(pageId);
 }
 
 function showPage(id) {
     if (META[id]) updateMeta(META[id].title, META[id].desc);
     const menuBtn = document.querySelector('.menu-btn');
     const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang'];
-    const orderPages = ['detail', 'form', 'summary', 'cartPage', 'cartForm', 'cartSummary'];
 
-    if (orderPages.includes(id) && !cart.prod) {
+    // Guard: halaman produk butuh produk terpilih, halaman keranjang butuh isi keranjang
+    if (PRODUCT_PAGES.includes(id) && !cart.prod) {
+        history.pushState({ page: 'home' }, '', '/');
+        id = 'home';
+    } else if (CART_PAGES.includes(id) && cartItems.length === 0) {
         history.pushState({ page: 'home' }, '', '/');
         id = 'home';
     }
@@ -677,7 +736,7 @@ function showPage(id) {
         history.pushState({ page: id }, '', slug);
     }
 
-    if (orderPages.includes(id) && cart.prod) {
+    if (PRODUCT_PAGES.includes(id) && cart.prod) {
         const productSlug = slugify(cart.prod.name);
         let url = `/${productSlug}`;
         if (id === 'form') url = `/${productSlug}/form`;
@@ -685,16 +744,17 @@ function showPage(id) {
         history.pushState({ page: id, product: productSlug }, '', url);
     }
 
-    if (orderPages.includes(id)) {
-        if(menuBtn) menuBtn.style.display = 'none';
-    } else {
-        if(menuBtn) menuBtn.style.display = 'flex';
+    if (CART_PAGES.includes(id)) {
+        history.pushState({ page: id }, '', CART_SLUGS[id]);
     }
 
+    if (menuBtn) menuBtn.style.display = ORDER_PAGES.includes(id) ? 'none' : 'flex';
+
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    if(document.getElementById(id)) {
-        document.getElementById(id).classList.add('active');
-        document.getElementById(id).scrollTop = 0;
+    const target = document.getElementById(id);
+    if (target) {
+        target.classList.add('active');
+        target.scrollTop = 0;
     }
 }
 
@@ -707,6 +767,39 @@ function navBack() {
     showPage(lastPage || 'home');
 }
 
+function renderDetailContent(p, selectedColor) {
+    const elName = document.getElementById('detName');
+    if (elName) elName.innerText = p.name;
+
+    const elPrice = document.getElementById('detPrice');
+    if (elPrice) elPrice.innerText = formatRupiah(p.price);
+
+    const slider = document.getElementById('detImgs');
+    if (slider) {
+        if (p.details && p.details.length > 0) {
+            slider.innerHTML = p.details.map(i => `<img src="${i}">`).join('');
+        } else {
+            slider.innerHTML = `<img src="${p.thumbnail}">`;
+        }
+        slider.scrollLeft = 0;
+    }
+
+    let cHTML = `<div class="section-label">PILIH WARNA</div><div class="option-box">`;
+    p.colors.forEach(c => {
+        cHTML += `<div class="${selectedColor === c ? 'active' : ''}" onclick="selOpt('color','${c}',this)">${c}</div>`;
+    });
+    const colArea = document.getElementById('colorArea');
+    if (colArea) colArea.innerHTML = cHTML + `</div>`;
+
+    let sHTML = `<div class="section-label">PILIH UKURAN</div><div class="option-box">`;
+    ["S", "M", "L", "XL", "XXL", "XXXL"].forEach(s => {
+        const isAvail = p.stock.includes(s);
+        sHTML += `<div class="${isAvail ? '' : 'disabled'}" onclick="${isAvail ? `selOpt('size','${s}',this)` : ''}">${s}</div>`;
+    });
+    const szArea = document.getElementById('sizeArea');
+    if (szArea) szArea.innerHTML = sHTML + `</div>`;
+}
+
 function goDetail(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
@@ -716,52 +809,25 @@ function goDetail(id) {
     }
 
     cart = { prod: p, size: '', color: p.colors.length === 1 ? p.colors[0] : '' };
-
-    const elName = document.getElementById('detName');
-    if(elName) elName.innerText = p.name;
-
-    const elPrice = document.getElementById('detPrice');
-    if(elPrice) elPrice.innerText = formatRupiah(p.price);
-
-    const slider = document.getElementById('detImgs');
-    if(slider) {
-        if (p.details && p.details.length > 0) {
-            slider.innerHTML = p.details.map(i => `<img src="${i}">`).join('');
-        } else {
-            slider.innerHTML = `<img src="${p.thumbnail}">`;
-        }
-        slider.scrollLeft = 0; 
-    }
-
-    let cHTML = `<div class="section-label">PILIH WARNA</div><div class="option-box">`;
-    p.colors.forEach(c => {
-        cHTML += `<div class="${cart.color === c ? 'active' : ''}" onclick="selOpt('color','${c}',this)">${c}</div>`;
-    });
-    const colArea = document.getElementById('colorArea');
-    if(colArea) colArea.innerHTML = cHTML + `</div>`;
-
-    let sHTML = `<div class="section-label">PILIH UKURAN</div><div class="option-box">`;
-    ["S", "M", "L", "XL", "XXL", "XXXL"].forEach(s => {
-        const isAvail = p.stock.includes(s);
-        sHTML += `<div class="${isAvail ? '' : 'disabled'}" onclick="${isAvail ? `selOpt('size','${s}',this)` : ''}">${s}</div>`;
-    });
-    const szArea = document.getElementById('sizeArea');
-    if(szArea) szArea.innerHTML = sHTML + `</div>`;
-
+    renderDetailContent(p, cart.color);
     showPage('detail');
 }
 
-function selOpt(type, val, el) { 
-    vibrate(20); 
-    cart[type] = val; 
-    el.parentElement.querySelectorAll('div').forEach(d => d.classList.remove('active')); 
-    el.classList.add('active'); 
+function goDetailSilent(p) {
+    renderDetailContent(p, p.colors.length === 1 ? p.colors[0] : '');
+}
+
+function selOpt(type, val, el) {
+    vibrate(20);
+    cart[type] = val;
+    el.parentElement.querySelectorAll('div').forEach(d => d.classList.remove('active'));
+    el.classList.add('active');
 }
 
 function triggerAlert(msg) {
-    vibrate([50, 50, 50]); 
+    vibrate([50, 50, 50]);
     const toast = document.getElementById('toast');
-    if(toast) {
+    if (toast) {
         toast.innerText = msg;
         toast.classList.add('show', 'shake');
         setTimeout(() => toast.classList.remove('shake'), 400);
@@ -777,7 +843,7 @@ function validateDetail() {
     showPage('form');
 }
 
-function validateForm() { 
+function validateForm() {
     vibrate(40);
     const n = document.getElementById('inName').value;
     const p = document.getElementById('inPhone').value;
@@ -791,29 +857,29 @@ function validateForm() {
 
     const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
-    if(!n || !p || !alamatDetail || !prov || !kel) return triggerAlert("LENGKAPI DATA!");
+    if (!n || !p || !alamatDetail || !prov || !kel) return triggerAlert("LENGKAPI DATA!");
 
     const sumP = document.getElementById('sumProd');
-    if(sumP) sumP.innerText = cart.prod.name;
+    if (sumP) sumP.innerText = cart.prod.name;
 
     const sumV = document.getElementById('sumVar');
-    if(sumV) sumV.innerText = `${cart.color} | ${cart.size}`;
+    if (sumV) sumV.innerText = `${cart.color} | ${cart.size}`;
 
     const idArea = document.getElementById('inAreaId');
-    if(!idArea || !idArea.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
+    if (!idArea || !idArea.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
 
-    const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
+    const hargaProduk = hargaAngka(cart.prod.price);
     const sumPr = document.getElementById('sumPrice');
-    if(sumPr) sumPr.innerText = formatRupiah(hargaProduk);
+    if (sumPr) sumPr.innerText = formatRupiah(hargaProduk);
 
     const sumOng = document.getElementById('sumOngkir');
-    if(sumOng) sumOng.innerText = formatRupiah(ongkirSaatIni);
+    if (sumOng) sumOng.innerText = formatRupiah(ongkirSaatIni);
 
     const sumTot = document.getElementById('sumTotal');
-    if(sumTot) sumTot.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
+    if (sumTot) sumTot.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
 
     const sumC = document.getElementById('sumCust');
-    if(sumC) sumC.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
+    if (sumC) sumC.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
 
     const dpNote = document.getElementById('dpNoteArea');
     if (cart.prod.dpAllowed === 'no') {
@@ -828,58 +894,25 @@ function validateForm() {
     showPage('summary');
 }
 
-function openSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='flex'; }
-function closeSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='none'; }
-function openSpecs() { 
-    const text = cart.prod.specs ? cart.prod.specs.replace(/\\n/g, '<br>') : "Spesifikasi belum tersedia.";
+function openSize() { const m = document.getElementById('sizeModal'); if (m) m.style.display = 'flex'; }
+function closeSize() { const m = document.getElementById('sizeModal'); if (m) m.style.display = 'none'; }
+function openSpecs() {
+    const text = cart.prod && cart.prod.specs ? cart.prod.specs.replace(/\\n/g, '<br>').replace(/\n/g, '<br>') : "Spesifikasi belum tersedia.";
     const el = document.getElementById('specContent');
     const m = document.getElementById('specsModal');
-    if(el) el.innerHTML = text;
-    if(m) m.style.display = 'flex'; 
+    if (el) el.innerHTML = text;
+    if (m) m.style.display = 'flex';
 }
-function closeSpecs() { const m=document.getElementById('specsModal'); if(m) m.style.display = 'none'; }
-function openQRIS() { vibrate(30); const m=document.getElementById('qrisModal'); if(m) m.style.display = 'flex'; }
-function closeQRIS() { const m=document.getElementById('qrisModal'); if(m) m.style.display = 'none'; }
-
-function goDetailSilent(p) {
-    const elName = document.getElementById('detName');
-    if(elName) elName.innerText = p.name;
-
-    const elPrice = document.getElementById('detPrice');
-    if(elPrice) elPrice.innerText = formatRupiah(p.price);
-
-    const slider = document.getElementById('detImgs');
-    if(slider) {
-        if (p.details && p.details.length > 0) {
-            slider.innerHTML = p.details.map(i => `<img src="${i}">`).join('');
-        } else {
-            slider.innerHTML = `<img src="${p.thumbnail}">`;
-        }
-        slider.scrollLeft = 0;
-    }
-
-    let cHTML = `<div class="section-label">PILIH WARNA</div><div class="option-box">`;
-    p.colors.forEach(c => {
-        cHTML += `<div class="${p.colors.length === 1 ? 'active' : ''}" onclick="selOpt('color','${c}',this)">${c}</div>`;
-    });
-    const colArea = document.getElementById('colorArea');
-    if(colArea) colArea.innerHTML = cHTML + `</div>`;
-
-    let sHTML = `<div class="section-label">PILIH UKURAN</div><div class="option-box">`;
-    ["S", "M", "L", "XL", "XXL", "XXXL"].forEach(s => {
-        const isAvail = p.stock.includes(s);
-        sHTML += `<div class="${isAvail ? '' : 'disabled'}" onclick="${isAvail ? `selOpt('size','${s}',this)` : ''}">${s}</div>`;
-    });
-    const szArea = document.getElementById('sizeArea');
-    if(szArea) szArea.innerHTML = sHTML + `</div>`;
-}
+function closeSpecs() { const m = document.getElementById('specsModal'); if (m) m.style.display = 'none'; }
+function openQRIS() { vibrate(30); const m = document.getElementById('qrisModal'); if (m) m.style.display = 'flex'; }
+function closeQRIS() { const m = document.getElementById('qrisModal'); if (m) m.style.display = 'none'; }
 
 function showPageSilent(id) {
-    const orderPages = ['detail', 'form', 'summary', 'cartPage', 'cartForm', 'cartSummary'];
     const menuBtn = document.querySelector('.menu-btn');
-    if (orderPages.includes(id) && menuBtn) menuBtn.style.display = 'none';
+    if (ORDER_PAGES.includes(id) && menuBtn) menuBtn.style.display = 'none';
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    if(document.getElementById(id)) document.getElementById(id).classList.add('active');
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
 }
 
 function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
@@ -944,7 +977,7 @@ function resetOngkirArea(isCart) {
     if (kodePos) kodePos.value = '';
     if (textId) textId.innerText = 'Tunggu Ongkir Muncul...';
     ongkirSaatIni = 0;
-    removeVoucher(isCart ? 'cart' : 'single'); 
+    removeVoucher(isCart ? 'cart' : 'single');
 }
 
 async function onProvinsiChange(isCart) {
@@ -1098,14 +1131,14 @@ async function onKelurahanChange(isCart) {
 }
 
 async function hitungOngkirBiteship(destId, isCart) {
-    let berat = isCart ? (cartItems.length * 250) : 250;
-    let textId = isCart ? 'cartTampilOngkir' : 'tampilOngkir';
+    const berat = isCart ? (cartItems.length * 250) : 250;
+    const textId = isCart ? 'cartTampilOngkir' : 'tampilOngkir';
 
     document.getElementById(textId).innerText = "Menghitung ongkir...";
 
     try {
-        let res = await fetch(`${URL_GAS_BITESHIP}?endpoint=rates&dest=${destId}&weight=${berat}`);
-        let data = await res.json();
+        const res = await fetch(`${URL_GAS_BITESHIP}?endpoint=rates&dest=${destId}&weight=${berat}`);
+        const data = await res.json();
 
         if (data.pricing && data.pricing.length > 0) {
             ongkirSaatIni = data.pricing[0].price;
@@ -1125,7 +1158,7 @@ function renderBannerSlider(banners) {
     const track = document.getElementById('bannerTrack');
     const dots = document.getElementById('bannerDots');
     const sliderContainer = document.querySelector('.banner-slider');
-    if(!track || !dots || !sliderContainer) return;
+    if (!track || !dots || !sliderContainer) return;
 
     if (banners.length === 0) {
         sliderContainer.style.display = 'none';
@@ -1145,24 +1178,24 @@ function renderBannerSlider(banners) {
     `).join('');
 
     dots.innerHTML = banners.map((b, i) => `
-        <span class="dot ${i===0?'active':''}" onclick="goToSlide(${i})"></span>
+        <span class="dot ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})"></span>
     `).join('');
 }
 
 function goToSlide(index) {
     const track = document.getElementById('bannerTrack');
-    if(track) track.scrollTo({ left: index * track.clientWidth, behavior: 'smooth' });
+    if (track) track.scrollTo({ left: index * track.clientWidth, behavior: 'smooth' });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     const track = document.getElementById('bannerTrack');
-    if(track) {
+    if (track) {
         track.addEventListener('scroll', () => {
             const dots = document.querySelectorAll('#bannerDots .dot');
             if (dots.length > 0) {
-                let index = Math.round(track.scrollLeft / track.clientWidth);
+                const index = Math.round(track.scrollLeft / track.clientWidth);
                 dots.forEach(d => d.classList.remove('active'));
-                if(dots[index]) dots[index].classList.add('active');
+                if (dots[index]) dots[index].classList.add('active');
             }
         });
     }
@@ -1171,6 +1204,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── VOUCHER LOGIC ──────────────────────────────────────────
 let appliedVoucher = null;
 let nilaiDiskon = 0;
+
+function hitungTotalProduk(type) {
+    if (type === 'single') return cart.prod ? hargaAngka(cart.prod.price) : 0;
+    return totalKeranjang();
+}
 
 window.openVoucherModal = (type) => {
     vibrate(20);
@@ -1188,36 +1226,33 @@ window.removeVoucher = (type) => {
     vibrate(20);
     appliedVoucher = null;
     nilaiDiskon = 0;
-    
+
     const activeEl = document.getElementById('activeVoucher_' + type);
     const btnOpenEl = document.getElementById('btnOpenVoucher_' + type);
     const diskonArea = document.getElementById(type === 'single' ? 'sumDiskonArea' : 'cartSumDiskonArea');
     const ongkirEl = document.getElementById(type === 'single' ? 'sumOngkir' : 'cartSumOngkir');
     const totalEl = document.getElementById(type === 'single' ? 'sumTotal' : 'cartSumTotal');
 
-    if(activeEl) activeEl.style.display = 'none';
-    if(btnOpenEl) btnOpenEl.style.display = 'flex';
-    if(diskonArea) diskonArea.style.display = 'none';
-    if(ongkirEl) ongkirEl.innerText = formatRupiah(ongkirSaatIni);
-    
-    let totalProduk = type === 'single' ? Number(String(cart.prod.price).replace(/\D/g, '')) 
-        : cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
-    
-    if(totalEl) totalEl.innerText = formatRupiah(totalProduk + ongkirSaatIni);
+    if (activeEl) activeEl.style.display = 'none';
+    if (btnOpenEl) btnOpenEl.style.display = 'flex';
+    if (diskonArea) diskonArea.style.display = 'none';
+    if (ongkirEl) ongkirEl.innerText = formatRupiah(ongkirSaatIni);
+
+    const totalProduk = hitungTotalProduk(type);
+    if (totalEl) totalEl.innerText = formatRupiah(totalProduk + ongkirSaatIni);
 };
 
 window.applyVoucherModal = async () => {
     const type = document.getElementById('modalVoucherType').value;
     const inEl = document.getElementById('modalInVoucher');
     const msgEl = document.getElementById('modalVoucherMsg');
-    
-    let diskonArea = document.getElementById(type === 'single' ? 'sumDiskonArea' : 'cartSumDiskonArea');
-    let diskonValEl = document.getElementById(type === 'single' ? 'sumDiskon' : 'cartSumDiskon');
-    let totalEl = document.getElementById(type === 'single' ? 'sumTotal' : 'cartSumTotal');
-    let ongkirEl = document.getElementById(type === 'single' ? 'sumOngkir' : 'cartSumOngkir');
-    
-    let totalProduk = type === 'single' ? Number(String(cart.prod.price).replace(/\D/g, '')) 
-        : cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+
+    const diskonArea = document.getElementById(type === 'single' ? 'sumDiskonArea' : 'cartSumDiskonArea');
+    const diskonValEl = document.getElementById(type === 'single' ? 'sumDiskon' : 'cartSumDiskon');
+    const totalEl = document.getElementById(type === 'single' ? 'sumTotal' : 'cartSumTotal');
+    const ongkirEl = document.getElementById(type === 'single' ? 'sumOngkir' : 'cartSumOngkir');
+
+    const totalProduk = hitungTotalProduk(type);
 
     const kode = inEl.value.trim().toUpperCase();
     if (!kode) {
@@ -1230,7 +1265,7 @@ window.applyVoucherModal = async () => {
     try {
         const { getVoucherByKode } = await import('./firebase.js');
         const v = await getVoucherByKode(kode);
-        
+
         if (!v) {
             msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Kode voucher tidak ditemukan / salah!";
             return;
@@ -1253,10 +1288,10 @@ window.applyVoucherModal = async () => {
         }
 
         const totalSemua = totalProduk + ongkirSaatIni;
-        if (nilaiDiskon > totalSemua) nilaiDiskon = totalSemua; 
+        if (nilaiDiskon > totalSemua) nilaiDiskon = totalSemua;
 
         vibrate(30);
-        
+
         if (v.tipe === 'free_ongkir') {
             ongkirEl.innerText = "Rp0 (Gratis Ongkir)";
             diskonArea.style.display = 'none';
@@ -1273,16 +1308,16 @@ window.applyVoucherModal = async () => {
         document.getElementById('lblVoucherKode_' + type).innerText = appliedVoucher.kode;
         document.getElementById('lblVoucherDesc_' + type).innerText = appliedVoucher.deskripsi;
         document.getElementById('btnOpenVoucher_' + type).style.display = 'none';
-        
-        showCartToast();
-        const toastEl = document.getElementById('cartToast');
-        if(toastEl) toastEl.innerText = "Voucher Berhasil Dipakai!";
+
+        showCartToast("Voucher Berhasil Dipakai!");
 
     } catch (e) {
+        console.error(e);
         msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Terjadi masalah saat mengecek voucher.";
     }
 };
 
+// ── EXPORT KE WINDOW (dipakai oleh onclick di HTML) ─────────
 window.toggleSidebar = toggleSidebar;
 window.navTo = navTo;
 window.showPage = showPage;
