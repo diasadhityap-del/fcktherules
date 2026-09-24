@@ -199,6 +199,21 @@
 
     </div>
 
+<!-- TAB VOUCHER -->
+<div class="tab-content" id="tab-voucher">
+    <div class="header-row">
+        <div>
+            <div class="page-title">VOUCHER</div>
+            <div class="page-desc">Kelola kode promo & diskon</div>
+        </div>
+        <button class="add-btn" onclick="openModalVoucher()">
+            <i class="fas fa-plus"></i> TAMBAH
+        </button>
+    </div>
+    <div id="voucherList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
+</div>
+
+
     <!-- MOBILE NAV -->
     <div class="mobile-nav">
         <div class="mob-nav-item active" id="mob-order" onclick="switchTab('order')">
@@ -219,6 +234,17 @@
             <i class="fas fa-sign-out-alt"></i> LOGOUT
         </div>
     </div>
+
+<!-- Di Sidebar Desktop -->
+<div class="nav-item" id="nav-voucher" onclick="switchTab('voucher')">
+    <i class="fas fa-ticket-alt"></i> VOUCHER
+</div>
+
+<!-- Di Mobile Nav -->
+<div class="mob-nav-item" id="mob-voucher" onclick="switchTab('voucher')">
+    <i class="fas fa-ticket-alt"></i> VOUCHER
+</div>
+
 
 </div>
 
@@ -403,6 +429,38 @@
         </div>
     </div>
 </div>
+
+<!-- MODAL VOUCHER -->
+<div class="modal-bg" id="modalVoucher">
+    <div class="modal-box">
+        <div class="modal-title">TAMBAH VOUCHER</div>
+        <div class="form-group">
+            <label>KODE VOUCHER</label>
+            <input type="text" id="vKode" placeholder="FVCKONGKIR" style="text-transform:uppercase;">
+        </div>
+        <div class="form-group">
+            <label>TIPE VOUCHER</label>
+            <select id="vTipe" onchange="toggleNilaiVoucher()">
+                <option value="free_ongkir">Gratis Ongkir</option>
+                <option value="nominal">Diskon Nominal (Rp)</option>
+                <option value="persen">Diskon Persen (%)</option>
+            </select>
+        </div>
+        <div class="form-group" id="wrapNilaiVoucher" style="display:none;">
+            <label>NILAI DISKON</label>
+            <input type="number" id="vNilai" placeholder="Contoh: 15000 atau 10">
+        </div>
+        <div class="form-group">
+            <label>KUOTA PEMAKAIAN</label>
+            <input type="number" id="vKuota" placeholder="Contoh: 50">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModalVoucher()">BATAL</button>
+            <button class="btn-save" id="btnSaveVoucher" onclick="saveVoucherData()">SIMPAN</button>
+        </div>
+    </div>
+</div>
+
 
 <script type="module" src="admin.js"></script>
 </body>
