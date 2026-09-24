@@ -858,48 +858,45 @@ function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 
 // ══════════════════════════════════════════════════════════════
 // SISTEM DROPDOWN WILAYAH (ganti "ketik & cari")
-// Data provinsi/kota/kecamatan dari wilayah.id (data resmi Kemendagri, gratis).
+// Data provinsi/kota/kecamatan dari API Statis Wilayah Indonesia (emsifa, v2).
+// Sumber: cahyadsn/wilayah, merujuk Kepmendagri & BIG.
 // Setelah kecamatan dipilih, otomatis dicocokkan ke Biteship (backend ongkir
 // kamu yang sudah ada) supaya ongkir tetap terhitung seperti biasa.
 // ══════════════════════════════════════════════════════════════
-// jsDelivr = CDN yang selalu mengirim header CORS (Access-Control-Allow-Origin: *),
-// jadi dijamin bisa diakses dari domain manapun, beda dengan wilayah.id yang kadang diblokir browser.
-const WILAYAH_API = "https://emsifa.github.io/api-wilayah-indonesia/api"; // Menggunakan domain utama langsung atau mirror lain
+const WILAYAH_API = "https://www.emsifa.com/api-wilayah-indonesia/v2";
+
+// Helper fetch dengan 1x retry singkat (buat koneksi yang cuma putus sesaat).
+// Response API v2 dibungkus { data, meta }, jadi kita ambil .data-nya.
+async function fetchWilayah(path) {
+    try {
+        const res = await fetch(`${WILAYAH_API}${path}`);
+        if (!res.ok) throw new Error('Response tidak ok');
+        const json = await res.json();
+        return json.data || json;
+    } catch (e) {
+        await new Promise(r => setTimeout(r, 800));
+        const res2 = await fetch(`${WILAYAH_API}${path}`);
+        if (!res2.ok) throw new Error('Gagal setelah retry');
+        const json2 = await res2.json();
+        return json2.data || json2;
+    }
+}
 
 async function initProvinsiDropdown() {
+    const p1 = document.getElementById('inProvinsi');
+    const p2 = document.getElementById('cartInProvinsi');
     try {
-        let res = await fetch(`${WILAYAH_API}/provinces.json`);
-        if (!res.ok) throw new Error('Network response was not ok');
-        let data = await res.json();
-        
+        const data = await fetchWilayah('/provinces.json');
         const opts = (data || []).map(p => `<option value="${titleCaseWilayah(p.name)}" data-code="${p.id}">${titleCaseWilayah(p.name)}</option>`).join('');
         const html = `<option value="">Pilih Provinsi...</option>${opts}`;
-
-        const p1 = document.getElementById('inProvinsi');
-        const p2 = document.getElementById('cartInProvinsi');
         if (p1) p1.innerHTML = html;
         if (p2) p2.innerHTML = html;
     } catch (e) {
-        console.error('Gagal dari API utama, mencoba alternatif...', e);
-        // Fallback ke CDN jsDelivr jika domain utama gagal
-        try {
-            let res2 = await fetch(`https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@master/api/provinces.json`);
-            let data2 = await res2.json();
-            const opts2 = (data2 || []).map(p => `<option value="${titleCaseWilayah(p.name)}" data-code="${p.id}">${titleCaseWilayah(p.name)}</option>`).join('');
-            const html2 = `<option value="">Pilih Provinsi...</option>${opts2}`;
-
-            const p1 = document.getElementById('inProvinsi');
-            const p2 = document.getElementById('cartInProvinsi');
-            if (p1) p1.innerHTML = html2;
-            if (p2) p2.innerHTML = html2;
-        } catch (err2) {
-            console.error('Semua sumber gagal:', err2);
-            const msg = '<option value="">Gagal memuat, cek koneksi</option>';
-            const p1 = document.getElementById('inProvinsi');
-            const p2 = document.getElementById('cartInProvinsi');
-            if (p1) p1.innerHTML = msg;
-            if (p2) p2.innerHTML = msg;
-        }
+        console.error('Gagal memuat provinsi:', e);
+        const errHtml = '<option value="">Gagal memuat, cek koneksi</option>';
+        if (p1) p1.innerHTML = errHtml;
+        if (p2) p2.innerHTML = errHtml;
+        triggerAlert("GAGAL MUAT PROVINSI, COBA LAGI!");
     }
 }
 
@@ -933,10 +930,7 @@ async function onProvinsiChange(isCart) {
     kotaSel.disabled = true;
 
     try {
-        let res = await fetch(`${WILAYAH_API}/regencies/${code}.json`);
-        if(!res.ok) res = await fetch(`https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@master/api/regencies/${code}.json`);
-        let data = await res.json();
-        
+        const data = await fetchWilayah(`/regencies/${code}.json`);
         kotaSel.innerHTML = '<option value="">Pilih Kota/Kab...</option>' +
             (data || []).map(k => `<option value="${titleCaseWilayah(k.name)}" data-code="${k.id}">${titleCaseWilayah(k.name)}</option>`).join('');
         kotaSel.disabled = false;
@@ -962,10 +956,7 @@ async function onKotaChange(isCart) {
     kecSel.disabled = true;
 
     try {
-        let res = await fetch(`${WILAYAH_API}/districts/${code}.json`);
-        if(!res.ok) res = await fetch(`https://cdn.jsdelivr.net/gh/emsifa/api-wilayah-indonesia@master/api/districts/${code}.json`);
-        let data = await res.json();
-
+        const data = await fetchWilayah(`/districts/${code}.json`);
         kecSel.innerHTML = '<option value="">Pilih Kecamatan...</option>' +
             (data || []).map(d => `<option value="${titleCaseWilayah(d.name)}">${titleCaseWilayah(d.name)}</option>`).join('');
         kecSel.disabled = false;
