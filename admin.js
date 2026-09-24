@@ -3,275 +3,282 @@ import {
     getProduk, saveProduk, updateProduk, deleteProduk,
     getGaleri, saveGaleri, deleteGaleri, updateGaleri, uploadGambar,
     listenBanners, saveBanner, updateBanner, deleteBanner,
-    listenBannerText, saveBannerText
+    listenBannerText, saveBannerText, 
+    listenVouchers, saveVoucher, deleteVoucher // Pastikan ini di-import jika dipakai langsung
 } from './firebase.js';
-
 
 import { 
     onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
-    let allOrders = [];
-    let allProduk = [];
-    let allGaleri = [];
-    let currentFilter = 'semua';
-    let currentProdukFilter = 'semua';
-    let editingProdukId = null;
+import { 
+    deleteDoc, doc 
+} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
-    // ===== AUTH =====
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('adminPage').style.display = 'block';
-            // Ubah Promise.all ini
-await Promise.all([loadOrders(), loadProduk(), loadGaleri(), loadBanners(), loadVouchers()]);
-        } else {
-            document.getElementById('loginPage').style.display = 'flex';
-            document.getElementById('adminPage').style.display = 'none';
-        }
-    });
+import { db } from "./firebase.js";
 
-    window.doLogin = async () => {
-        const email = document.getElementById('adminEmail').value;
-        const pass = document.getElementById('adminPass').value;
-        const btn = document.getElementById('loginBtn');
-        const err = document.getElementById('loginErr');
-        err.style.display = 'none';
-        btn.disabled = true;
-        btn.innerText = 'MASUK...';
-        const ok = await loginAdmin(email, pass);
-        if (!ok) {
-            err.style.display = 'block';
-            btn.disabled = false;
-            btn.innerText = 'MASUK';
-        }
-    };
+let allOrders = [];
+let allProduk = [];
+let allGaleri = [];
+let allBanners = [];
+let allVouchers = [];
 
-    window.doLogout = async () => {
-        await logoutAdmin();
-    };
+let currentFilter = 'semua';
+let currentProdukFilter = 'semua';
+let editingProdukId = null;
+let editingBannerId = null;
 
-    // ===== TOAST =====
-    window.showToast = (msg, isErr = false) => {
-        const t = document.getElementById('toast');
-        t.innerText = msg;
-        t.className = 'toast' + (isErr ? ' err' : '');
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2500);
-    };
+// ===== AUTH =====
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('adminPage').style.display = 'block';
+        
+        // Memuat semua data sekaligus saat login berhasil
+        await Promise.all([
+            loadOrders(), 
+            loadProduk(), 
+            loadGaleri(), 
+            loadBanners(), 
+            loadVouchers()
+        ]);
+    } else {
+        document.getElementById('loginPage').style.display = 'flex';
+        document.getElementById('adminPage').style.display = 'none';
+    }
+});
 
-    // ===== TABS =====
-    window.switchTab = (tab) => {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.querySelectorAll('.mob-nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById('tab-' + tab).classList.add('active');
-        const navEl = document.getElementById('nav-' + tab);
-        const mobEl = document.getElementById('mob-' + tab);
-        if (navEl) navEl.classList.add('active');
-        if (mobEl) mobEl.classList.add('active');
-    };
+window.doLogin = async () => {
+    const email = document.getElementById('adminEmail').value;
+    const pass = document.getElementById('adminPass').value;
+    const btn = document.getElementById('loginBtn');
+    const err = document.getElementById('loginErr');
+    
+    err.style.display = 'none';
+    btn.disabled = true;
+    btn.innerText = 'MASUK...';
+    
+    const ok = await loginAdmin(email, pass);
+    if (!ok) {
+        err.style.display = 'block';
+        btn.disabled = false;
+        btn.innerText = 'MASUK';
+    }
+};
 
-    // ===== ORDER =====
-    async function loadOrders() {
+window.doLogout = async () => {
+    await logoutAdmin();
+};
 
+// ===== TOAST =====
+window.showToast = (msg, isErr = false) => {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.className = 'toast' + (isErr ? ' err' : '');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+};
+
+// ===== TABS =====
+window.switchTab = (tab) => {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.mob-nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    const navEl = document.getElementById('nav-' + tab);
+    const mobEl = document.getElementById('mob-' + tab);
+    if (navEl) navEl.classList.add('active');
+    if (mobEl) mobEl.classList.add('active');
+};
+
+
+// ===== ORDER =====
+async function loadOrders() {
     allOrders = await getOrders();
-
-    allOrders.sort((a, b) => {
-
-        return new Date(b.createdAt).getTime()
-             - new Date(a.createdAt).getTime();
-
-    });
-
+    allOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     isiFilterProduk();
-
     renderOrders();
 }
 
-    window.filterOrder = (filter, el) => {
-        currentFilter = filter;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        renderOrders();
-    };
+window.filterOrder = (filter, el) => {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    renderOrders();
+};
 
 function isiFilterProduk() {
-
-    const select =
-        document.getElementById('filterProduk');
-
+    const select = document.getElementById('filterProduk');
     if (!select) return;
 
-    const produkUnik = [
-  ...new Set(
-    allOrders.flatMap(o => {
+    const produkUnik = [...new Set(allOrders.flatMap(o => {
+        if (Array.isArray(o.produk)) return o.produk.map(p => p.nama);
+        return [o.produk];
+    }))];
 
-      if (Array.isArray(o.produk)) {
-        return o.produk.map(p => p.nama);
-      }
-
-      return [o.produk];
-
-    })
-  )
-];
-
-    select.innerHTML = `
-        <option value="semua">
-            Semua Produk
-        </option>
-    `;
-
+    select.innerHTML = `<option value="semua">Semua Produk</option>`;
     produkUnik.forEach(nama => {
-
-        select.innerHTML += `
-            <option value="${nama}">
-                ${nama}
-            </option>
-        `;
+        select.innerHTML += `<option value="${nama}">${nama}</option>`;
     });
 }
 
 window.filterProdukOrder = (produk) => {
-
     currentProdukFilter = produk;
-
     renderOrders();
 };
 
-        function renderOrders() {
-        const list = document.getElementById('orderList');
-        let filtered = currentFilter === 'semua' ? allOrders : allOrders.filter(o => o.status === currentFilter);
+function renderOrders() {
+    const list = document.getElementById('orderList');
+    let filtered = currentFilter === 'semua' ? allOrders : allOrders.filter(o => o.status === currentFilter);
 
-        if (currentProdukFilter !== 'semua') {
-            filtered = filtered.filter(o => {
-                if (Array.isArray(o.produk)) {
-                    return o.produk.some(p => p.nama === currentProdukFilter);
-                }
-                return o.produk === currentProdukFilter;
-            });
+    if (currentProdukFilter !== 'semua') {
+        filtered = filtered.filter(o => {
+            if (Array.isArray(o.produk)) {
+                return o.produk.some(p => p.nama === currentProdukFilter);
+            }
+            return o.produk === currentProdukFilter;
+        });
+    }
+
+    if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty"><i class="fas fa-box-open"></i><p>Belum ada order</p></div>`;
+        return;
+    }
+
+    list.innerHTML = filtered.map(o => {
+        const date = new Date(o.createdAt).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+        let sc = 's-pending';
+        let st = 'PENDING';
+        if (o.status === 'lunas') { sc = 's-approved'; st = 'LUNAS'; }
+        if (o.status === 'dp') { sc = 's-approved'; st = 'DP'; }
+        if (o.status === 'rejected') { sc = 's-rejected'; st = 'DITOLAK'; }
+
+        const hargaKaosDisp = o.hargaKaos ? `Rp${Number(o.hargaKaos).toLocaleString('id-ID')}` : `Rp${Number(String(o.harga).replace(/\D/g,'')).toLocaleString('id-ID')}`;
+        const ongkirDisp = o.ongkir ? `Rp${Number(o.ongkir).toLocaleString('id-ID')}` : '-';
+        const totalAkhirDisp = o.totalAkhir ? `Rp${Number(o.totalAkhir).toLocaleString('id-ID')}` : hargaKaosDisp;
+
+        let voucherHTML = "";
+        if (o.voucherKode) {
+            voucherHTML = `
+                <div class="info-item" style="color:var(--yellow)">Voucher Dipakai <span>${o.voucherKode}</span></div>
+                <div class="info-item" style="color:var(--yellow)">Ket. Diskon <span>${o.voucherDeskripsi}</span></div>
+            `;
         }
 
-        if (filtered.length === 0) {
-            list.innerHTML = `<div class="empty"><i class="fas fa-box-open"></i><p>Belum ada order</p></div>`;
-            return;
-        }
+        let produkHTML = Array.isArray(o.produk) 
+            ? o.produk.map(p => `
+                <div class="info-item">Produk <span>${p.nama}</span></div>
+                <div class="info-item">Warna / Size <span>${p.warna} / ${p.size}</span></div>
+            `).join('') 
+            : `
+                <div class="info-item">Produk <span>${o.produk}</span></div>
+                <div class="info-item">Warna / Size <span>${o.warna} / ${o.size}</span></div>
+            `;
 
-        list.innerHTML = filtered.map(o => {
-            const date = new Date(o.createdAt).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-            
-            // Atur warna lencana (badge) di sudut kanan atas
-            let sc = 's-pending';
-            if (o.status === 'lunas') sc = 's-approved';
-            if (o.status === 'dp') sc = 's-approved';
-            if (o.status === 'rejected') sc = 's-rejected';
-            
-            let st = 'PENDING';
-            if (o.status === 'lunas') st = 'LUNAS';
-            if (o.status === 'dp') st = 'DP';
-            if (o.status === 'rejected') st = 'DITOLAK';
-
-            return `<div class="order-card">
-                <div class="order-top">
-                    <div>
-                        <div class="order-name">${o.nama}</div>
-                        <div class="order-time">${date}</div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <button onclick="hapusOrder('${o.id}')" style="width:38px; height:38px; border:1px solid rgba(255,59,59,0.15); border-radius:10px; background:rgba(255,59,59,0.08); color:#ff4d4d; cursor:pointer; backdrop-filter:blur(10px);">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <div class="status-badge ${sc}">${st}</div>
-                    </div>
+        return `
+        <div class="order-card">
+            <div class="order-top">
+                <div>
+                    <div class="order-name">${o.nama}</div>
+                    <div class="order-time">${date}</div>
                 </div>
-               
-                    // Di dalam renderOrders(), ganti bagian <div class="order-info">...</div> dengan ini:
-const hargaKaosDisp = o.hargaKaos ? `Rp${Number(o.hargaKaos).toLocaleString('id-ID')}` : `Rp${Number(String(o.harga).replace(/\D/g,'')).toLocaleString('id-ID')}`;
-const ongkirDisp = o.ongkir ? `Rp${Number(o.ongkir).toLocaleString('id-ID')}` : '-';
-const totalAkhirDisp = o.totalAkhir ? `Rp${Number(o.totalAkhir).toLocaleString('id-ID')}` : hargaKaosDisp;
-
-let voucherHTML = "";
-if (o.voucherKode) {
-    voucherHTML = `
-        <div class="info-item" style="color:var(--yellow)">Voucher Dipakai <span>${o.voucherKode}</span></div>
-        <div class="info-item" style="color:var(--yellow)">Ket. Diskon <span>${o.voucherDeskripsi}</span></div>
-    `;
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <button onclick="hapusOrder('${o.id}')" style="width:38px; height:38px; border:1px solid rgba(255,59,59,0.15); border-radius:10px; background:rgba(255,59,59,0.08); color:#ff4d4d; cursor:pointer; backdrop-filter:blur(10px);">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <div class="status-badge ${sc}">${st}</div>
+                </div>
+            </div>
+            
+            <div class="order-info">
+                ${produkHTML}
+                <div class="info-item">Harga Kaos <span>${hargaKaosDisp}</span></div>
+                <div class="info-item">Ongkir <span>${ongkirDisp}</span></div>
+                ${voucherHTML}
+                <div class="info-item">WhatsApp <span>${o.wa}</span></div>
+                <div class="info-item">Alamat <span>${o.alamat}</span></div>
+                <div class="info-item" style="grid-column: 1 / -1; font-size:14px; color:var(--green)">TOTAL AKHIR <span>${totalAkhirDisp}</span></div>
+            </div>
+            
+            <div class="order-actions" style="display:flex; gap:10px; align-items:center; margin-top:15px; border-top:1px solid #1a1a1a; padding-top:15px;">
+                <a href="${o.buktiURL}" target="_blank" class="btn-sm btn-bukti" style="flex:1; text-align:center;">
+                    <i class="fas fa-image"></i> BUKTI
+                </a>
+                
+                <select onchange="gantiStatusOrder('${o.id}', this.value)" style="flex:1; background:#111; color:#fff; border:1px solid #333; padding:10px; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer; outline:none;">
+                    <option value="pending" ${o.status === 'pending' || !o.status ? 'selected' : ''}>⏳ PENDING</option>
+                    <option value="dp" ${o.status === 'dp' ? 'selected' : ''}>💳 DP</option>
+                    <option value="lunas" ${o.status === 'lunas' ? 'selected' : ''}>✅ LUNAS</option>
+                    <option value="rejected" ${o.status === 'rejected' ? 'selected' : ''}>❌ DITOLAK</option>
+                </select>
+            </div>
+        </div>`;
+    }).join('');
 }
 
-return `<div class="order-card">
-    <div class="order-top">
-        <!-- Kode yang sama seperti sebelumnya -->
-    ...
-    <div class="order-info">
-        ${Array.isArray(o.produk) ? o.produk.map(p => `
-            <div class="info-item">Produk <span>${p.nama}</span></div>
-            <div class="info-item">Warna / Size <span>${p.warna} / ${p.size}</span></div>
-        `).join('') : `
-            <div class="info-item">Produk <span>${o.produk}</span></div>
-            <div class="info-item">Warna / Size <span>${o.warna} / ${o.size}</span></div>
-        `}
-        <div class="info-item">Harga Kaos <span>${hargaKaosDisp}</span></div>
-        <div class="info-item">Ongkir <span>${ongkirDisp}</span></div>${voucherHTML}
-        <div class="info-item">WhatsApp <span>${o.wa}</span></div>
-        <div class="info-item">Alamat <span>${o.alamat}</span></div>
-        <div class="info-item" style="grid-column: 1 / -1; font-size:14px; color:var(--green)">TOTAL AKHIR <span>${totalAkhirDisp}</span></div>
-    </div>
-    <!-- Kode Tombol Bawah -->
-
-             
-                
-                <!-- BAGIAN TOMBOL BAWAH (BUKTI & UBAH STATUS) -->
-                <div class="order-actions" style="display:flex; gap:10px; align-items:center; margin-top:15px; border-top:1px solid #1a1a1a; padding-top:15px;">
-                    <a href="${o.buktiURL}" target="_blank" class="btn-sm btn-bukti" style="flex:1; text-align:center;">
-                        <i class="fas fa-image"></i> BUKTI
-                    </a>
-                    
-                    <select onchange="gantiStatusOrder('${o.id}', this.value)" style="flex:1; background:#111; color:#fff; border:1px solid #333; padding:10px; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer; outline:none;">
-                        <option value="pending" ${o.status === 'pending' || !o.status ? 'selected' : ''}>⏳ PENDING</option>
-                        <option value="dp" ${o.status === 'dp' ? 'selected' : ''}>💳 DP</option>
-                        <option value="lunas" ${o.status === 'lunas' ? 'selected' : ''}>✅ LUNAS</option>
-                        <option value="rejected" ${o.status === 'rejected' ? 'selected' : ''}>❌ DITOLAK</option>
-                    </select>
-                </div>
-            </div>`;
-        }).join('');
+window.gantiStatusOrder = async (id, statusBaru) => {
+    const ok = await updateOrderStatus(id, statusBaru);
+    if (ok) {
+        allOrders = allOrders.map(o => o.id === id ? {...o, status: statusBaru} : o);
+        renderOrders();
+        showToast('STATUS DIPERBARUI ✓');
+    } else {
+        showToast('GAGAL UPDATE STATUS!', true);
     }
+};
 
-    // Fungsi Baru untuk Mengganti Status
-    window.gantiStatusOrder = async (id, statusBaru) => {
-        const ok = await updateOrderStatus(id, statusBaru);
-        if (ok) {
-            allOrders = allOrders.map(o => o.id === id ? {...o, status: statusBaru} : o);
-            renderOrders();
-            showToast('STATUS DIPERBARUI ✓');
-        } else {
-            showToast('GAGAL UPDATE STATUS!', true);
+window.hapusOrder = async (id) => {
+    const konfirmasi = confirm("Hapus order ini?");
+    if (!konfirmasi) return;
+    try {
+        await deleteDoc(doc(db, "orders", id));
+        allOrders = allOrders.filter(o => o.id !== id);
+        isiFilterProduk();
+        renderOrders();
+        showToast("ORDER DIHAPUS");
+    } catch (err) {
+        console.error(err);
+        alert("Gagal hapus order");
+    }
+};
+
+window.hapusProdukOrder = async () => {
+    const yakin = confirm("Hapus semua order sesuai filter?");
+    if (!yakin) return;
+    try {
+        const data = allOrders.filter(o => 
+            (currentProdukFilter === 'semua' || o.produk === currentProdukFilter) &&
+            (currentProdukFilter === 'semua' || (Array.isArray(o.produk) ? o.produk.some(p => p.nama === currentProdukFilter) : o.produk === currentProdukFilter))
+        );
+
+        if (data.length === 0) return alert("Tidak ada order untuk dihapus");
+
+        for (const order of data) {
+            await deleteDoc(doc(db, "orders", order.id));
         }
-    };
 
-
-    // ===== PRODUK =====
-    async function loadProduk() {
-        allProduk = await getProduk();
-        renderProduk();
+        showToast(`${data.length} ORDER DIHAPUS`);
+        await loadOrders();
+    } catch(err) {
+        console.error(err);
+        alert("Gagal hapus");
     }
+};
 
-    function renderProduk() {
 
+// ===== PRODUK =====
+async function loadProduk() {
+    allProduk = await getProduk();
+    renderProduk();
+}
+
+function renderProduk() {
     const list = document.getElementById('produkList');
-
-    const sortedProduk = [...allProduk].sort(
-    (a, b) => (b.order || 0) - (a.order || 0)
-);
+    const sortedProduk = [...allProduk].sort((a, b) => (b.order || 0) - (a.order || 0));
 
     if (sortedProduk.length === 0) {
-        list.innerHTML = `
-            <div class="empty">
-                <i class="fas fa-tshirt"></i>
-                <p>Belum ada produk</p>
-            </div>
-        `;
+        list.innerHTML = `<div class="empty"><i class="fas fa-tshirt"></i><p>Belum ada produk</p></div>`;
         return;
     }
 
@@ -283,503 +290,246 @@ return `<div class="order-card">
                 <div class="produk-info">
                     <div class="produk-badge badge-${p.badge}">${p.status || p.badge}</div>
                     <div class="produk-name">${p.nama}</div>
-                    <div class="produk-price">
-    Rp${Number(String(p.harga).replace(/\D/g,'')).toLocaleString('id-ID')}
-</div>
+                    <div class="produk-price">Rp${Number(String(p.harga).replace(/\D/g,'')).toLocaleString('id-ID')}</div>
                     <div class="produk-actions">
-
-    <div class="btn-icon"
-        onclick="moveProdukUp('${p.id}')">
-
-        ↑
-
-    </div>
-
-    <div class="btn-icon"
-        onclick="moveProdukDown('${p.id}')">
-
-        ↓
-
-    </div>
-
-    <div class="btn-icon"
-        onclick="editProduk('${p.id}')">
-
-        <i class="fas fa-pen"></i>
-
-    </div>
-
-    <div class="btn-icon del"
-        onclick="hapusProduk('${p.id}')">
-
-        <i class="fas fa-trash"></i>
-
-    </div>
-
-</div>
-                        
-                   
+                        <div class="btn-icon" onclick="moveProdukUp('${p.id}')">↑</div>
+                        <div class="btn-icon" onclick="moveProdukDown('${p.id}')">↓</div>
+                        <div class="btn-icon" onclick="editProduk('${p.id}')"><i class="fas fa-pen"></i></div>
+                        <div class="btn-icon del" onclick="hapusProduk('${p.id}')"><i class="fas fa-trash"></i></div>
+                    </div>
                 </div>
-            </div>
-        `).join('')}</div>`;
-    }
+            </div>`).join('')}
+        </div>`;
+}
 
-    window.openModalProduk = () => {
-        editingProdukId = null;
-        document.getElementById('modalProdukTitle').innerText = 'TAMBAH PRODUK';
-        document.getElementById('pNama').value = '';
-        document.getElementById('pHarga').value = '';
-        document.getElementById('pBadge').value = 'pre';
-        document.getElementById('pStatus').value = '';
-        document.getElementById('pWarna').value = '';
-        document.getElementById('pStok').value = '';
-        document.getElementById('pSpecs').value = '';
-        document.getElementById('pShowcase').value = 'yes';
-        document.getElementById('pDP').value = 'yes';
-        document.getElementById('prevThumb').style.display = 'none';
-        [0,1,2,3,4].forEach(i => {
-            const img = document.getElementById('prevDet'+i);
-            img.src = '';
-            img.style.display = 'none';
-        });
-        document.getElementById('modalProduk').classList.add('show');
-    };
-
-    window.closeModalProduk = () => {
-        document.getElementById('modalProduk').classList.remove('show');
-    };
-
-    window.editProduk = (id) => {
-        const p = allProduk.find(x => x.id === id);
-        if (!p) return;
-        editingProdukId = id;
-        document.getElementById('modalProdukTitle').innerText = 'EDIT PRODUK';
-        document.getElementById('pNama').value = p.nama || '';
-        document.getElementById('pHarga').value = p.harga || '';
-        document.getElementById('pBadge').value = p.badge || 'pre';
-        document.getElementById('pStatus').value = p.status || '';
-        document.getElementById('pWarna').value = p.warna || '';
-        document.getElementById('pStok').value = p.stok || '';
-        document.getElementById('pSpecs').value = p.specs || '';
-        document.getElementById('pShowcase').value = p.showcase || 'yes';
-        document.getElementById('pDP').value = p.dpAllowed || 'yes';
-
-        const thumb = document.getElementById('prevThumb');
-        if (p.thumbnail) { thumb.src = p.thumbnail; thumb.style.display = 'block'; }
-
-        const details = p.details || [];
-        [0,1,2,3,4].forEach(i => {
-            const img = document.getElementById('prevDet'+i);
-            if (details[i]) { img.src = details[i]; img.style.display = 'block'; }
-            else { img.src = ''; img.style.display = 'none'; }
-        });
-
-        document.getElementById('modalProduk').classList.add('show');
-    };
-
-    window.saveProdukData = async () => {
-        const btn = document.getElementById('btnSaveProduk');
-        btn.disabled = true;
-        btn.innerText = 'MENYIMPAN...';
-
-        try {
-            // Upload thumbnail
-            let thumbnailURL = editingProdukId ? (allProduk.find(x => x.id === editingProdukId)?.thumbnail || '') : '';
-            const thumbFile = document.getElementById('inputThumb').files[0];
-            if (thumbFile) thumbnailURL = await uploadGambar(thumbFile, 'produk');
-
-            // Upload detail images
-            const details = [];
-            const existing = editingProdukId ? (allProduk.find(x => x.id === editingProdukId)?.details || []) : [];
-            for (let i = 0; i < 5; i++) {
-                const file = document.getElementById('inputDet'+i).files[0];
-                if (file) {
-                    const url = await uploadGambar(file, 'produk');
-                    if (url) details.push(url);
-                } else if (existing[i]) {
-                    details.push(existing[i]);
-                }
-            }
-
-            const data = {
-
-    order: editingProdukId
-        ? (
-            allProduk.find(x => x.id === editingProdukId)?.order
-            ?? 0
-          )
-        : Date.now(),
-
-    nama: document.getElementById('pNama').value,
-    harga: document.getElementById('pHarga').value,
-    badge: document.getElementById('pBadge').value,
-    status: document.getElementById('pStatus').value,
-    warna: document.getElementById('pWarna').value,
-    stok: document.getElementById('pStok').value,
-    specs: document.getElementById('pSpecs').value,
-    showcase: document.getElementById('pShowcase').value,
-    dpAllowed: document.getElementById('pDP').value,
-    thumbnail: thumbnailURL,
-    details
+window.openModalProduk = () => {
+    editingProdukId = null;
+    document.getElementById('modalProdukTitle').innerText = 'TAMBAH PRODUK';
+    document.getElementById('pNama').value = '';
+    document.getElementById('pHarga').value = '';
+    document.getElementById('pBadge').value = 'pre';
+    document.getElementById('pStatus').value = '';
+    document.getElementById('pWarna').value = '';
+    document.getElementById('pStok').value = '';
+    document.getElementById('pSpecs').value = '';
+    document.getElementById('pShowcase').value = 'yes';
+    document.getElementById('pDP').value = 'yes';
+    document.getElementById('prevThumb').style.display = 'none';
+    [0,1,2,3,4].forEach(i => {
+        const img = document.getElementById('prevDet'+i);
+        img.src = '';
+        img.style.display = 'none';
+    });
+    document.getElementById('modalProduk').classList.add('show');
 };
 
-            if (editingProdukId) {
-                await updateProduk(editingProdukId, data);
-                showToast('PRODUK DIUPDATE ✓');
-            } else {
-                await saveProduk(data);
-                showToast('PRODUK DITAMBAHKAN ✓');
-            }
+window.closeModalProduk = () => { document.getElementById('modalProduk').classList.remove('show'); };
 
-            closeModalProduk();
-            await loadProduk();
-        } catch (err) {
-            console.error(err);
-            showToast('GAGAL SIMPAN!', true);
+window.editProduk = (id) => {
+    const p = allProduk.find(x => x.id === id);
+    if (!p) return;
+    editingProdukId = id;
+    document.getElementById('modalProdukTitle').innerText = 'EDIT PRODUK';
+    document.getElementById('pNama').value = p.nama || '';
+    document.getElementById('pHarga').value = p.harga || '';
+    document.getElementById('pBadge').value = p.badge || 'pre';
+    document.getElementById('pStatus').value = p.status || '';
+    document.getElementById('pWarna').value = p.warna || '';
+    document.getElementById('pStok').value = p.stok || '';
+    document.getElementById('pSpecs').value = p.specs || '';
+    document.getElementById('pShowcase').value = p.showcase || 'yes';
+    document.getElementById('pDP').value = p.dpAllowed || 'yes';
+
+    const thumb = document.getElementById('prevThumb');
+    if (p.thumbnail) { thumb.src = p.thumbnail; thumb.style.display = 'block'; }
+
+    const details = p.details || [];
+    [0,1,2,3,4].forEach(i => {
+        const img = document.getElementById('prevDet'+i);
+        if (details[i]) { img.src = details[i]; img.style.display = 'block'; }
+        else { img.src = ''; img.style.display = 'none'; }
+    });
+
+    document.getElementById('modalProduk').classList.add('show');
+};
+
+window.saveProdukData = async () => {
+    const btn = document.getElementById('btnSaveProduk');
+    btn.disabled = true;
+    btn.innerText = 'MENYIMPAN...';
+
+    try {
+        let thumbnailURL = editingProdukId ? (allProduk.find(x => x.id === editingProdukId)?.thumbnail || '') : '';
+        const thumbFile = document.getElementById('inputThumb').files[0];
+        if (thumbFile) thumbnailURL = await uploadGambar(thumbFile, 'produk');
+
+        const details = [];
+        const existing = editingProdukId ? (allProduk.find(x => x.id === editingProdukId)?.details || []) : [];
+        for (let i = 0; i < 5; i++) {
+            const file = document.getElementById('inputDet'+i).files[0];
+            if (file) {
+                const url = await uploadGambar(file, 'produk');
+                if (url) details.push(url);
+            } else if (existing[i]) {
+                details.push(existing[i]);
+            }
         }
 
-        btn.disabled = false;
-        btn.innerText = 'SIMPAN';
-    };
+        const data = {
+            order: editingProdukId ? (allProduk.find(x => x.id === editingProdukId)?.order ?? 0) : Date.now(),
+            nama: document.getElementById('pNama').value,
+            harga: document.getElementById('pHarga').value,
+            badge: document.getElementById('pBadge').value,
+            status: document.getElementById('pStatus').value,
+            warna: document.getElementById('pWarna').value,
+            stok: document.getElementById('pStok').value,
+            specs: document.getElementById('pSpecs').value,
+            showcase: document.getElementById('pShowcase').value,
+            dpAllowed: document.getElementById('pDP').value,
+            thumbnail: thumbnailURL,
+            details
+        };
 
-    window.hapusProduk = async (id) => {
-        if (!confirm('Hapus produk ini?')) return;
-        await deleteProduk(id);
-        allProduk = allProduk.filter(p => p.id !== id);
-        renderProduk();
-        showToast('PRODUK DIHAPUS');
-    };
+        if (editingProdukId) {
+            await updateProduk(editingProdukId, data);
+            showToast('PRODUK DIUPDATE ✓');
+        } else {
+            await saveProduk(data);
+            showToast('PRODUK DITAMBAHKAN ✓');
+        }
 
-    // ===== GALERI =====
-    async function loadGaleri() {
-        allGaleri = await getGaleri();
-        renderGaleri();
+        closeModalProduk();
+        await loadProduk();
+    } catch (err) {
+        console.error(err);
+        showToast('GAGAL SIMPAN!', true);
     }
+    btn.disabled = false;
+    btn.innerText = 'SIMPAN';
+};
 
-    function renderGaleri() {
+window.hapusProduk = async (id) => {
+    if (!confirm('Hapus produk ini?')) return;
+    await deleteProduk(id);
+    allProduk = allProduk.filter(p => p.id !== id);
+    renderProduk();
+    showToast('PRODUK DIHAPUS');
+};
 
+window.moveProdukUp = async (id) => {
+    const sortedProduk = [...allProduk].sort((a, b) => (b.order || 0) - (a.order || 0));
+    const index = sortedProduk.findIndex(p => p.id === id);
+    if (index <= 0) return;
+    const current = sortedProduk[index];
+    const prev = sortedProduk[index - 1];
+    const temp = current.order;
+    await updateProduk(current.id, { order: prev.order });
+    await updateProduk(prev.id, { order: temp });
+    await loadProduk();
+};
+
+window.moveProdukDown = async (id) => {
+    const sortedProduk = [...allProduk].sort((a, b) => (b.order || 0) - (a.order || 0));
+    const index = sortedProduk.findIndex(p => p.id === id);
+    if (index >= sortedProduk.length - 1) return;
+    const current = sortedProduk[index];
+    const next = sortedProduk[index + 1];
+    const temp = current.order;
+    await updateProduk(current.id, { order: next.order });
+    await updateProduk(next.id, { order: temp });
+    await loadProduk();
+};
+
+
+// ===== GALERI =====
+async function loadGaleri() {
+    allGaleri = await getGaleri();
+    renderGaleri();
+}
+
+function renderGaleri() {
     const grid = document.getElementById('galeriGrid');
-
     grid.innerHTML = allGaleri.map(g => `
-
         <div class="galeri-item">
-
             <img src="${g.url}" loading="lazy">
-
-            <div class="galeri-del"
-                 onclick="hapusGaleri('${g.id}')">
-
-                <i class="fas fa-times"></i>
-
-            </div>
-
+            <div class="galeri-del" onclick="hapusGaleri('${g.id}')"><i class="fas fa-times"></i></div>
             <div class="galeri-move">
-
-                <button onclick="moveGaleriUp('${g.id}')">
-                    ↑
-                </button>
-
-                <button onclick="moveGaleriDown('${g.id}')">
-                    ↓
-                </button>
-
+                <button onclick="moveGaleriUp('${g.id}')">↑</button>
+                <button onclick="moveGaleriDown('${g.id}')">↓</button>
             </div>
-
         </div>
-
     `).join('');
 }
 
-    window.uploadGaleriFoto = async (input) => {
-
+window.uploadGaleriFoto = async (input) => {
     const files = [...input.files];
-
     if (!files.length) return;
-
     const overlay = document.getElementById('uploadOverlay');
     const text = document.getElementById('uploadText');
-
     overlay.style.display = 'flex';
-
     let success = 0;
-
+    
     for (let i = 0; i < files.length; i++) {
-
-        text.innerText =
-            `MENGUPLOAD FOTO ${i + 1} / ${files.length}`;
-
+        text.innerText = `MENGUPLOAD FOTO ${i + 1} / ${files.length}`;
         const file = files[i];
-
         const url = await uploadGambar(file, 'galeri');
-
         if (url) {
             await saveGaleri(url);
             success++;
         }
     }
-
     overlay.style.display = 'none';
-
     await loadGaleri();
-
     input.value = '';
-
     showToast(success + ' FOTO BERHASIL ✓');
 };
 
-    window.hapusGaleri = async (id) => {
-        await deleteGaleri(id);
-        allGaleri = allGaleri.filter(g => g.id !== id);
-        renderGaleri();
-        showToast('FOTO DIHAPUS');
-    };
-
-    // ===== IMG PREVIEW =====
-    window.prevImgSlot = (input, previewId) => {
-        const file = input.files[0];
-        if (!file) return;
-        const img = document.getElementById(previewId);
-        const reader = new FileReader();
-        reader.onload = e => { img.src = e.target.result; img.style.display = 'block'; };
-        reader.readAsDataURL(file);
-    };
+window.hapusGaleri = async (id) => {
+    await deleteGaleri(id);
+    allGaleri = allGaleri.filter(g => g.id !== id);
+    renderGaleri();
+    showToast('FOTO DIHAPUS');
+};
 
 window.moveGaleriUp = async (id) => {
-
     const index = allGaleri.findIndex(g => g.id === id);
-
     if (index <= 0) return;
-
     const current = allGaleri[index];
     const prev = allGaleri[index - 1];
-
     const temp = current.order;
-
-    await updateGaleri(current.id, {
-        order: prev.order
-    });
-
-    await updateGaleri(prev.id, {
-        order: temp
-    });
-
+    await updateGaleri(current.id, { order: prev.order });
+    await updateGaleri(prev.id, { order: temp });
     await loadGaleri();
 };
 
 window.moveGaleriDown = async (id) => {
-
     const index = allGaleri.findIndex(g => g.id === id);
-
     if (index >= allGaleri.length - 1) return;
-
     const current = allGaleri[index];
     const next = allGaleri[index + 1];
-
     const temp = current.order;
-
-    await updateGaleri(current.id, {
-        order: next.order
-    });
-
-    await updateGaleri(next.id, {
-        order: temp
-    });
-
+    await updateGaleri(current.id, { order: next.order });
+    await updateGaleri(next.id, { order: temp });
     await loadGaleri();
 };
 
-function formatHarga(value) {
 
-    let angka = String(value)
-        .toLowerCase()
-        .replace(/\s/g, '');
-
-    // support 135k
-    if (angka.includes('k')) {
-        angka = angka.replace('k', '000');
-    }
-
-    angka = angka.replace(/\D/g, '');
-
-    return Number(angka || 0).toLocaleString('id-ID');
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-
-    const hargaInput = document.getElementById('pHarga');
-
-    if (!hargaInput) return;
-
-    hargaInput.addEventListener('input', (e) => {
-
-        const cursor = e.target.selectionStart;
-
-        e.target.value = formatHarga(e.target.value);
-
-        e.target.setSelectionRange(cursor, cursor);
-    });
-
-});
-
-import { deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { db } from "./firebase.js";
-
-async function hapusOrder(id) {
-
-    const konfirmasi =
-        confirm("Hapus order ini?");
-
-    if (!konfirmasi) return;
-
-    try {
-
-        await deleteDoc(
-            doc(db, "orders", id)
-        );
-
-        allOrders = allOrders.filter(
-            o => o.id !== id
-        );
-
-        isiFilterProduk();
-
-        renderOrders();
-
-        showToast("ORDER DIHAPUS");
-
-    } catch (err) {
-
-        console.error(err);
-
-        alert("Gagal hapus order");
-    }
-}
-
-window.hapusOrder = hapusOrder;
-
-async function hapusProdukOrder() {
-
-    const yakin = confirm(
-        "Hapus semua order sesuai filter?"
-    );
-
-    if (!yakin) return;
-
-    try {
-
-        const data = allOrders.filter(
-            o =>
-                (
-                    currentProdukFilter === 'semua'
-                    || o.produk === currentProdukFilter
-                )
-                &&
-                (
-                    currentProdukFilter === 'semua'
-|| (
-    Array.isArray(o.produk)
-    ? o.produk.some(
-        p => p.nama === currentProdukFilter
-      )
-    : o.produk === currentProdukFilter
-)
-                )
-        );
-
-        if (data.length === 0) {
-
-            return alert(
-                "Tidak ada order untuk dihapus"
-            );
-        }
-
-        for (const order of data) {
-
-            await deleteDoc(
-                doc(db, "orders", order.id)
-            );
-        }
-
-        showToast(
-            `${data.length} ORDER DIHAPUS`
-        );
-
-        await loadOrders();
-
-    } catch(err) {
-
-        console.error(err);
-
-        alert("Gagal hapus");
-    }
-}
-
-window.moveProdukUp = async (id) => {
-
-    const sortedProduk = [...allProduk].sort(
-        (a, b) => (b.order || 0) - (a.order || 0)
-    );
-
-    const index =
-        sortedProduk.findIndex(p => p.id === id);
-
-    if (index <= 0) return;
-
-    const current = sortedProduk[index];
-    const prev = sortedProduk[index - 1];
-
-    const temp = current.order;
-
-    await updateProduk(current.id, {
-        order: prev.order
-    });
-
-    await updateProduk(prev.id, {
-        order: temp
-    });
-
-    await loadProduk();
+// ===== IMG PREVIEW =====
+window.prevImgSlot = (input, previewId) => {
+    const file = input.files[0];
+    if (!file) return;
+    const img = document.getElementById(previewId);
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; img.style.display = 'block'; };
+    reader.readAsDataURL(file);
 };
 
-window.moveProdukDown = async (id) => {
 
-    const sortedProduk = [...allProduk].sort(
-        (a, b) => (b.order || 0) - (a.order || 0)
-    );
-
-    const index =
-        sortedProduk.findIndex(p => p.id === id);
-
-    if (index >= sortedProduk.length - 1) return;
-
-    const current = sortedProduk[index];
-    const next = sortedProduk[index + 1];
-
-    const temp = current.order;
-
-    await updateProduk(current.id, {
-        order: next.order
-    });
-
-    await updateProduk(next.id, {
-        order: temp
-    });
-
-    await loadProduk();
-};
-
-let allBanners = [];
-let editingBannerId = null;
-
-// Tambahkan loadBanners() ke dalam onAuthStateChanged bersama loadProduk dll
-// await Promise.all([loadOrders(), loadProduk(), loadGaleri(), loadBanners()]);
-
+// ===== BANNERS =====
 async function loadBanners() {
-    import('./firebase.js').then(module => {
-        module.listenBanners((data) => {
-            allBanners = data;
-            renderBanners();
-        });
+    listenBanners((data) => {
+        allBanners = data;
+        renderBanners();
     });
 }
 
@@ -789,8 +539,6 @@ function renderBanners() {
         list.innerHTML = `<div class="empty"><i class="fas fa-flag"></i><p>Belum ada banner</p></div>`;
         return;
     }
-    
-    // Kita pinjam style produk-grid agar rapi
     list.innerHTML = `<div class="produk-grid">` + allBanners.map((b, i) => `
         <div class="produk-card">
             <img src="${b.image}" style="aspect-ratio: 16/9;">
@@ -838,18 +586,12 @@ window.editBanner = (id) => {
 window.saveBannerData = async () => {
     const btn = document.getElementById('btnSaveBanner');
     btn.disabled = true; btn.innerText = 'MENYIMPAN...';
-    
     try {
-        const { saveBanner, updateBanner } = await import('./firebase.js');
         let imageURL = editingBannerId ? (allBanners.find(x => x.id === editingBannerId)?.image || '') : '';
         const file = document.getElementById('inputBanner').files[0];
-        
-        if (file) {
-            imageURL = await uploadGambar(file, 'galeri'); // Pakai cloudinary preset galeri
-        }
-        
+        if (file) imageURL = await uploadGambar(file, 'galeri');
         if (!imageURL) throw new Error("Gambar wajib diisi!");
-
+        
         const data = {
             title: document.getElementById('bTitle').value,
             subtitle: document.getElementById('bSub').value,
@@ -860,24 +602,21 @@ window.saveBannerData = async () => {
 
         if (editingBannerId) await updateBanner(editingBannerId, data);
         else await saveBanner(data);
-        
+
         showToast('BANNER DISIMPAN ✓');
         closeModalBanner();
     } catch (err) { showToast('GAGAL SIMPAN!', true); }
-    
     btn.disabled = false; btn.innerText = 'SIMPAN';
 };
 
 window.hapusBanner = async (id) => {
     if (!confirm('Hapus banner ini?')) return;
-    const { deleteBanner } = await import('./firebase.js');
     await deleteBanner(id);
     showToast('BANNER DIHAPUS');
 };
 
 window.moveBannerUp = async (id, index) => {
     if (index <= 0) return;
-    const { updateBanner } = await import('./firebase.js');
     const temp = allBanners[index].order;
     await updateBanner(allBanners[index].id, { order: allBanners[index-1].order });
     await updateBanner(allBanners[index-1].id, { order: temp });
@@ -885,7 +624,6 @@ window.moveBannerUp = async (id, index) => {
 
 window.moveBannerDown = async (id, index) => {
     if (index >= allBanners.length - 1) return;
-    const { updateBanner } = await import('./firebase.js');
     const temp = allBanners[index].order;
     await updateBanner(allBanners[index].id, { order: allBanners[index+1].order });
     await updateBanner(allBanners[index+1].id, { order: temp });
@@ -897,13 +635,8 @@ listenBannerText((data) => {
     document.getElementById('bTextBottom').value = data.bottomText || '';
 });
 
-window.openModalBannerText = () => {
-    document.getElementById('modalBannerText').classList.add('show');
-};
-
-window.closeModalBannerText = () => {
-    document.getElementById('modalBannerText').classList.remove('show');
-};
+window.openModalBannerText = () => { document.getElementById('modalBannerText').classList.add('show'); };
+window.closeModalBannerText = () => { document.getElementById('modalBannerText').classList.remove('show'); };
 
 window.saveBannerTextData = async () => {
     const btn = document.getElementById('btnSaveBannerText');
@@ -915,20 +648,16 @@ window.saveBannerTextData = async () => {
         });
         showToast('TEKS BANNER DISIMPAN ✓');
         closeModalBannerText();
-    } catch(err) {
-        console.error(err);
-        showToast('GAGAL SIMPAN!', true);
-    }
+    } catch(err) { showToast('GAGAL SIMPAN!', true); }
     btn.disabled = false; btn.innerText = 'SIMPAN';
 };
 
 
 // ===== LOGIKA VOUCHER =====
-let allVouchers = [];
-
 async function loadVouchers() {
-    import('./firebase.js').then(mod => {
-        mod.listenVouchers(data => { allVouchers = data; renderVouchers(); });
+    listenVouchers(data => { 
+        allVouchers = data; 
+        renderVouchers(); 
     });
 }
 
@@ -985,7 +714,6 @@ window.saveVoucherData = async () => {
     const btn = document.getElementById('btnSaveVoucher');
     btn.disabled = true; btn.innerText = "MENYIMPAN...";
     try {
-        const { saveVoucher } = await import('./firebase.js');
         await saveVoucher({ kode, tipe, nilai: Number(nilai||0), kuota: Number(kuota) });
         showToast("VOUCHER DISIMPAN ✓");
         closeModalVoucher();
@@ -996,12 +724,26 @@ window.saveVoucherData = async () => {
 window.hapusVoucher = async (id) => {
     if(!confirm('Hapus voucher ini?')) return;
     try {
-        const { deleteVoucher } = await import('./firebase.js');
         await deleteVoucher(id);
         showToast("VOUCHER DIHAPUS");
     } catch(e) { showToast("GAGAL HAPUS", true); }
 };
 
 
-window.hapusProdukOrder =
-    hapusProdukOrder;
+// ===== HELPER: FORMAT HARGA (AUTO TITIK) =====
+function formatHarga(value) {
+    let angka = String(value).toLowerCase().replace(/\s/g, '');
+    if (angka.includes('k')) angka = angka.replace('k', '000');
+    angka = angka.replace(/\D/g, '');
+    return Number(angka || 0).toLocaleString('id-ID');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const hargaInput = document.getElementById('pHarga');
+    if (!hargaInput) return;
+    hargaInput.addEventListener('input', (e) => {
+        const cursor = e.target.selectionStart;
+        e.target.value = formatHarga(e.target.value);
+        e.target.setSelectionRange(cursor, cursor);
+    });
+});
