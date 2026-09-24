@@ -159,26 +159,64 @@ justify-content:center;
         </div>
     </div>
 
-    <div class="page" id="form">
+        <div class="page" id="form">
         <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
         <div class="detail-container" style="padding-top:80px;">
             <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
+            
             <div class="input-group">
                 <label>FULL NAME</label>
                 <input type="text" id="inName" placeholder="Nama Lengkap...">
             </div>
+            
             <div class="input-group">
                 <label>WHATSAPP</label>
                 <input type="number" id="inPhone" placeholder="08xxx">
             </div>
+
+            <!-- BAGIAN ALAMAT BARU (TERPISAH) -->
             <div class="input-group">
-                <label>ADDRESS</label>
-                <textarea id="inAddress" rows="4" placeholder="Alamat Lengkap..."></textarea>
+                <label>CARI KECAMATAN / DESA</label>
+                <input type="text" id="inSearchArea" placeholder="Ketik nama kecamatan lalu pilih..." oninput="cariArea(this.value, 'hasilArea', 'inAreaId', false)" autocomplete="off">
+                <div id="hasilArea" style="background:#fff; border:1px solid #eaeaea; border-radius:10px; max-height:150px; overflow-y:auto; display:none; margin-top:5px; font-size:12px;"></div>
+                <input type="hidden" id="inAreaId">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">PROVINSI</label>
+                    <input type="text" id="inProvinsi" readonly style="background: #f9f9f9; color: #888;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KOTA/KAB</label>
+                    <input type="text" id="inKota" readonly style="background: #f9f9f9; color: #888;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KECAMATAN</label>
+                    <input type="text" id="inKecamatan" readonly style="background: #f9f9f9; color: #888;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KODE POS</label>
+                    <input type="text" id="inKodePos" readonly style="background: #f9f9f9; color: #888;">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>ALAMAT DETAIL</label>
+                <textarea id="inAddress" rows="3" placeholder="Nama Jalan, RT/RW, No. Rumah..."></textarea>
                 <p style="font-size: 10px; color: #555; margin-top: 8px;">*Mohon diisi lengkap untuk memudahkan pengiriman.</p>
             </div>
+
+            <!-- Tampilan Ongkir -->
+            <div id="tampilOngkir" style="font-size: 13px; font-weight: 700; color: #000; margin-bottom: 25px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px dashed #eaeaea; text-align: center;">Tunggu Ongkir Muncul...</div>
+
             <div class="btn-container"><button onclick="validateForm()">CONTINUE</button></div>
         </div>
     </div>
+
 
             <div class="page" id="summary">
         <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
@@ -355,26 +393,64 @@ justify-content:center;
 
 
 <!-- CART FORM PAGE -->
-<div class="page" id="cartForm">
-    <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
-    <div class="detail-container" style="padding-top:80px;">
-        <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
-        <div class="input-group">
-            <label>FULL NAME</label>
-            <input type="text" id="cartInName" placeholder="Nama Lengkap...">
+    <div class="page" id="cartForm">
+        <div class="back-btn" onclick="vibrate(30); history.back()">← BACK</div>
+        <div class="detail-container" style="padding-top:80px;">
+            <h2 style="margin-bottom:30px;">SHIPPING INFO</h2>
+            
+            <div class="input-group">
+                <label>FULL NAME</label>
+                <input type="text" id="cartInName" placeholder="Nama Lengkap...">
+            </div>
+            
+            <div class="input-group">
+                <label>WHATSAPP</label>
+                <input type="number" id="cartInPhone" placeholder="08xxx">
+            </div>
+
+            <!-- BAGIAN ALAMAT BARU (TERPISAH) -->
+            <div class="input-group">
+                <label>CARI KECAMATAN / DESA</label>
+                <input type="text" id="cartInSearchArea" placeholder="Ketik nama kecamatan lalu pilih..." oninput="cariArea(this.value, 'cartHasilArea', 'cartInAreaId', true)" autocomplete="off">
+                <div id="cartHasilArea" style="background:#fff; border:1px solid #eaeaea; border-radius:10px; max-height:150px; overflow-y:auto; display:none; margin-top:5px; font-size:12px;"></div>
+                <input type="hidden" id="cartInAreaId">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">PROVINSI</label>
+                    <input type="text" id="cartInProvinsi" readonly style="background: #f9f9f9; color: #888;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KOTA/KAB</label>
+                    <input type="text" id="cartInKota" readonly style="background: #f9f9f9; color: #888;">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KECAMATAN</label>
+                    <input type="text" id="cartInKecamatan" readonly style="background: #f9f9f9; color: #888;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #555; margin-bottom: 10px;">KODE POS</label>
+                    <input type="text" id="cartInKodePos" readonly style="background: #f9f9f9; color: #888;">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>ALAMAT DETAIL</label>
+                <textarea id="cartInAddress" rows="3" placeholder="Nama Jalan, RT/RW, No. Rumah..."></textarea>
+                <p style="font-size: 10px; color: #555; margin-top: 8px;">*Mohon diisi lengkap untuk memudahkan pengiriman.</p>
+            </div>
+
+            <!-- Tampilan Ongkir -->
+            <div id="cartTampilOngkir" style="font-size: 13px; font-weight: 700; color: #000; margin-bottom: 25px; padding: 15px; background: #f9f9f9; border-radius: 10px; border: 1px dashed #eaeaea; text-align: center;">Tunggu Ongkir Muncul...</div>
+
+            <div class="btn-container"><button onclick="validateCartForm()">CONTINUE</button></div>
         </div>
-        <div class="input-group">
-            <label>WHATSAPP</label>
-            <input type="number" id="cartInPhone" placeholder="08xxx">
-        </div>
-        <div class="input-group">
-            <label>ADDRESS</label>
-            <textarea id="cartInAddress" rows="4" placeholder="Alamat Lengkap..."></textarea>
-            <p style="font-size: 10px; color: #555; margin-top: 8px;">*Mohon diisi lengkap untuk memudahkan pengiriman.</p>
-        </div>
-        <div class="btn-container"><button onclick="validateCartForm()">CONTINUE</button></div>
     </div>
-</div>
+
 
 <!-- CART SUMMARY PAGE -->
         <div class="page" id="cartSummary">
