@@ -160,11 +160,12 @@ function validateCartForm() {
     const prov = document.getElementById('cartInProvinsi').value;
     const kota = document.getElementById('cartInKota').value;
     const kec = document.getElementById('cartInKecamatan').value;
+    const kel = document.getElementById('cartInKelurahan').value;
     const kodePos = document.getElementById('cartInKodePos').value;
 
-    const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
+    const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
-    if (!n || !p || !alamatDetail || !prov) return triggerAlert("LENGKAPI DATA!");
+    if (!n || !p || !alamatDetail || !prov || !kel) return triggerAlert("LENGKAPI DATA!");
 
     const adaProdukTanpaDP = cartItems.some(item => item.prod.dpAllowed === 'no');
     const cartDpNote = document.getElementById('cartDpNoteArea');
@@ -249,8 +250,9 @@ async function executeCheckout() {
             const prov = document.getElementById('inProvinsi').value;
             const kota = document.getElementById('inKota').value;
             const kec = document.getElementById('inKecamatan').value;
+            const kel = document.getElementById('inKelurahan').value;
             const kodePos = document.getElementById('inKodePos').value;
-            const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
+            const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
             const buktiURL = uploadedBuktiURL;
             const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
@@ -290,8 +292,9 @@ async function executeCheckout() {
             const prov = document.getElementById('cartInProvinsi').value;
             const kota = document.getElementById('cartInKota').value;
             const kec = document.getElementById('cartInKecamatan').value;
+            const kel = document.getElementById('cartInKelurahan').value;
             const kodePos = document.getElementById('cartInKodePos').value;
-            const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
+            const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
             const buktiURL = uploadedCartBuktiURL;
             const totalProduk = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
@@ -765,11 +768,12 @@ function validateForm() {
     const prov = document.getElementById('inProvinsi').value;
     const kota = document.getElementById('inKota').value;
     const kec = document.getElementById('inKecamatan').value;
+    const kel = document.getElementById('inKelurahan').value;
     const kodePos = document.getElementById('inKodePos').value;
 
-    const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
+    const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
-    if(!n || !p || !alamatDetail || !prov) return triggerAlert("LENGKAPI DATA!");
+    if(!n || !p || !alamatDetail || !prov || !kel) return triggerAlert("LENGKAPI DATA!");
 
     const sumP = document.getElementById('sumProd');
     if(sumP) sumP.innerText = cart.prod.name;
@@ -934,6 +938,11 @@ async function onProvinsiChange(isCart) {
 
     kecSel.innerHTML = '<option value="">Pilih Kecamatan...</option>';
     kecSel.disabled = true;
+    const kelSelReset = document.getElementById(isCart ? 'cartInKelurahan' : 'inKelurahan');
+    if (kelSelReset) {
+        kelSelReset.innerHTML = '<option value="">Pilih Kelurahan...</option>';
+        kelSelReset.disabled = true;
+    }
     resetOngkirArea(isCart);
 
     const code = provSel.options[provSel.selectedIndex]?.dataset.code;
@@ -975,56 +984,118 @@ async function onKotaChange(isCart) {
     try {
         const data = await fetchWilayah(`/districts/${code}.json`);
         kecSel.innerHTML = '<option value="">Pilih Kecamatan...</option>' +
-            (data || []).map(d => `<option value="${titleCaseWilayah(d.name)}">${titleCaseWilayah(d.name)}</option>`).join('');
+            (data || []).map(d => `<option value="${titleCaseWilayah(d.name)}" data-code="${d.id}">${titleCaseWilayah(d.name)}</option>`).join('');
         kecSel.disabled = false;
     } catch (e) {
         kecSel.innerHTML = '<option value="">Gagal memuat, coba lagi</option>';
     }
+
+    const kelSel = document.getElementById(isCart ? 'cartInKelurahan' : 'inKelurahan');
+    if (kelSel) {
+        kelSel.innerHTML = '<option value="">Pilih Kelurahan...</option>';
+        kelSel.disabled = true;
+    }
 }
 
 
-// Setelah kecamatan dipilih: otomatis cocokkan ke Biteship (untuk area ID + hitung ongkir)
-// tanpa user perlu mengetik apapun lagi.
+// Setelah kecamatan dipilih: muat daftar kelurahan/desa dari data wilayah
+// (bukan langsung ke Biteship — itu baru dipanggil setelah kelurahan dipilih).
 async function onKecamatanChange(isCart) {
+    const kecSel = document.getElementById(isCart ? 'cartInKecamatan' : 'inKecamatan');
+    const kelSel = document.getElementById(isCart ? 'cartInKelurahan' : 'inKelurahan');
+    const kodePos = document.getElementById(isCart ? 'cartInKodePos' : 'inKodePos');
+
+    resetOngkirArea(isCart);
+    if (kodePos) kodePos.value = '';
+
+    const code = kecSel.options[kecSel.selectedIndex]?.dataset.code;
+    if (!code) {
+        kelSel.innerHTML = '<option value="">Pilih Kelurahan...</option>';
+        kelSel.disabled = true;
+        return;
+    }
+
+    kelSel.innerHTML = '<option value="">Memuat...</option>';
+    kelSel.disabled = true;
+
+    try {
+        const data = await fetchWilayah(`/villages/${code}.json`);
+        kelSel.innerHTML = '<option value="">Pilih Kelurahan...</option>' +
+            (data || []).map(v => {
+                const postal = v.postal_code || v.postalCode || v.kodepos || '';
+                return `<option value="${titleCaseWilayah(v.name)}" data-postal="${postal}">${titleCaseWilayah(v.name)}</option>`;
+            }).join('');
+        kelSel.disabled = false;
+    } catch (e) {
+        kelSel.innerHTML = '<option value="">Gagal memuat, coba lagi</option>';
+    }
+}
+
+// Panggil Biteship search dan balikin array areas (kosong kalau gagal/nggak ketemu)
+async function cariAreaBiteship(keyword) {
+    try {
+        const res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${encodeURIComponent(keyword)}`);
+        const data = await res.json();
+        return data.areas || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// Setelah kelurahan dipilih: kode pos langsung diisi dari data wilayah (kalau ada),
+// lalu dicocokkan ke Biteship untuk hitung ongkir. Pencarian dicoba 2 tahap:
+// paling spesifik (kelurahan+kecamatan+kota) dulu, baru mundur ke kecamatan+kota
+// kalau yang spesifik nggak ketemu — ini yang tadinya bikin sering "gagal".
+async function onKelurahanChange(isCart) {
     const provSel = document.getElementById(isCart ? 'cartInProvinsi' : 'inProvinsi');
     const kotaSel = document.getElementById(isCart ? 'cartInKota' : 'inKota');
     const kecSel = document.getElementById(isCart ? 'cartInKecamatan' : 'inKecamatan');
+    const kelSel = document.getElementById(isCart ? 'cartInKelurahan' : 'inKelurahan');
     const kodePos = document.getElementById(isCart ? 'cartInKodePos' : 'inKodePos');
     const areaId = document.getElementById(isCart ? 'cartInAreaId' : 'inAreaId');
     const textId = isCart ? 'cartTampilOngkir' : 'tampilOngkir';
 
-    if (!kecSel.value) { resetOngkirArea(isCart); return; }
+    if (!kelSel.value) {
+        resetOngkirArea(isCart);
+        if (kodePos) kodePos.value = '';
+        return;
+    }
+
+    // Isi kode pos langsung dari data wilayah kalau tersedia
+    const postalFromData = kelSel.options[kelSel.selectedIndex]?.dataset.postal || '';
+    if (kodePos) kodePos.value = postalFromData;
 
     document.getElementById(textId).innerText = "Menghitung ongkir...";
     areaId.value = '';
-    kodePos.value = '';
     ongkirSaatIni = 0;
 
-    const keyword = `${kecSel.value} ${kotaSel.value}`;
-    try {
-        const res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${encodeURIComponent(keyword)}`);
-        const data = await res.json();
-        const areas = data.areas || [];
+    const keywordSpesifik = `${kelSel.value} ${kecSel.value} ${kotaSel.value}`;
+    const keywordUmum = `${kecSel.value} ${kotaSel.value}`;
 
-        // Cari kecocokan nama kecamatan + provinsi yang paling pas, kalau tidak ada pakai hasil pertama
-        const match = areas.find(a =>
-            (a.name || '').toLowerCase() === kecSel.value.toLowerCase() &&
-            (a.administrative_division_level_1_name || '').toLowerCase() === provSel.value.toLowerCase()
-        ) || areas.find(a =>
-            (a.administrative_division_level_1_name || '').toLowerCase() === provSel.value.toLowerCase()
-        ) || areas[0];
+    let areas = await cariAreaBiteship(keywordSpesifik);
+    if (!areas.length) areas = await cariAreaBiteship(keywordUmum);
 
-        if (!match) {
-            document.getElementById(textId).innerText = "Pengiriman ke area ini belum tersedia. Coba pilih kecamatan lain.";
-            return;
-        }
-
-        areaId.value = match.id;
-        kodePos.value = match.postal_code || '';
-        hitungOngkirBiteship(match.id, isCart);
-    } catch (e) {
-        document.getElementById(textId).innerText = "Gagal menghubungi server ongkir. Coba pilih ulang kecamatannya.";
+    if (!areas.length) {
+        document.getElementById(textId).innerText = "Gagal menghubungi server ongkir. Coba pilih ulang kelurahannya.";
+        return;
     }
+
+    // Cari kecocokan nama kecamatan + provinsi yang paling pas, kalau tidak ada pakai hasil pertama
+    const match = areas.find(a =>
+        (a.name || '').toLowerCase() === kecSel.value.toLowerCase() &&
+        (a.administrative_division_level_1_name || '').toLowerCase() === provSel.value.toLowerCase()
+    ) || areas.find(a =>
+        (a.administrative_division_level_1_name || '').toLowerCase() === provSel.value.toLowerCase()
+    ) || areas[0];
+
+    if (!match) {
+        document.getElementById(textId).innerText = "Pengiriman ke area ini belum tersedia. Coba pilih kelurahan lain.";
+        return;
+    }
+
+    areaId.value = match.id;
+    if (!postalFromData && match.postal_code) kodePos.value = match.postal_code;
+    hitungOngkirBiteship(match.id, isCart);
 }
 
 async function hitungOngkirBiteship(destId, isCart) {
@@ -1135,3 +1206,4 @@ window.executeCheckout = executeCheckout;
 window.onProvinsiChange = onProvinsiChange;
 window.onKotaChange = onKotaChange;
 window.onKecamatanChange = onKecamatanChange;
+window.onKelurahanChange = onKelurahanChange;
