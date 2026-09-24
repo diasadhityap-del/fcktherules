@@ -1,13 +1,9 @@
-let cartItems = [];
-
-// PASTE URL ANDA DI BAWAH INI (di dalam tanda kutip)
-const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbxPAV4Vn10I5TbWCr3WNRFkuiZ62YixhSCeKpmMAgBfQDh8v6TIaSre6du68DO22dt6/exec"; 
-let ongkirSaatIni = 0;
-let timeoutCari;
-
-
 import { listenProduk, listenGaleri, listenBanners, listenBannerText } from './firebase.js';
 
+let cartItems = [];
+const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFOzBQn9DAyiiefPuqZv--U2gV1BqNA1sIvBL0dgvenTl-l8wUAQ/exec"; 
+let ongkirSaatIni = 0;
+let timeoutCari;
 
 const PAGE_SLUGS = {
     home: '/',
@@ -60,7 +56,6 @@ let galleryImages = [];
 let products = [];
 let cart = { prod: null, size: '', color: '' };
 let lastPage = 'home';
-let cartItems = [];
 
 // ── CART FUNCTIONS ──────────────────────────────────────────
 function addToCart() {
@@ -160,20 +155,16 @@ function validateCartForm() {
     vibrate(40);
     const n = document.getElementById('cartInName').value;
     const p = document.getElementById('cartInPhone').value;
-    
-    // Tarik data yang terpisah lalu gabungkan
+
     const alamatDetail = document.getElementById('cartInAddress').value;
     const prov = document.getElementById('cartInProvinsi').value;
     const kota = document.getElementById('cartInKota').value;
     const kec = document.getElementById('cartInKecamatan').value;
     const kodePos = document.getElementById('cartInKodePos').value;
-    
+
     const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
     if (!n || !p || !alamatDetail || !prov) return triggerAlert("LENGKAPI DATA!");
-
-    // ... (biarkan sisa kode di bawahnya tetap sama)
-
 
     const adaProdukTanpaDP = cartItems.some(item => item.prod.dpAllowed === 'no');
     const cartDpNote = document.getElementById('cartDpNoteArea');
@@ -203,10 +194,10 @@ function validateCartForm() {
     if (sumItems) sumItems.innerHTML = itemsHTML;
 
     const idAreaCart = document.getElementById('cartInAreaId');
-if(!idAreaCart || !idAreaCart.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
+    if(!idAreaCart || !idAreaCart.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
 
-const sumTotal = document.getElementById('cartSumTotal');
-if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni);
+    const sumTotal = document.getElementById('cartSumTotal');
+    if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni);
 
     const sumCust = document.getElementById('cartSumCust');
     if (sumCust) sumCust.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
@@ -214,7 +205,6 @@ if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni);
     showPage('cartSummary');
 }
 
-// ── SISTEM CHECKOUT BARU (TANPA WHATSAPP) ──
 let currentCheckoutType = '';
 
 function confirmCheckout(type) {
@@ -244,9 +234,7 @@ async function executeCheckout() {
     vibrate(40);
     closeConfirm();
 
-   // const SCRIPT_URL(old) = 'https://script.google.com/macros/s/AKfycbxLvncutJ9WBmjPLWW54hnJpekRJfotSlPG-x1FToAaqdaFoVd_J9LfRgv1OOObZOalVg/exec';
-
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFOzBQn9DAyiiefPuqZv--U2gV1BqNA1sIvBL0dgvenTl-l8wUAQ/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFOzBQn9DAyiiefPuqZv--U2gV1BqNA1sIvBL0dgvenTl-l8wUAQ/exec';
     const loader = document.getElementById('loader');
     if(loader) loader.classList.remove('hide');
 
@@ -256,15 +244,14 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFO
         if (currentCheckoutType === 'single') {
             const n = document.getElementById('inName').value;
             const p = document.getElementById('inPhone').value;
-            
-            // Ambil data alamat yang sudah digabung
+
             const alamatDetail = document.getElementById('inAddress').value;
             const prov = document.getElementById('inProvinsi').value;
             const kota = document.getElementById('inKota').value;
             const kec = document.getElementById('inKecamatan').value;
             const kodePos = document.getElementById('inKodePos').value;
             const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
-            
+
             const buktiURL = uploadedBuktiURL;
             const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
             const totalHargaPlusOngkir = hargaProduk + ongkirSaatIni;
@@ -276,8 +263,8 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFO
                 produk: cart.prod.name, 
                 warna: cart.color, 
                 size: cart.size,
-                harga: totalHargaPlusOngkir, // Total harga sudah termasuk ongkir
-                ongkir: ongkirSaatIni,       // Nilai ongkir dikirim terpisah untuk kolom I
+                harga: totalHargaPlusOngkir,
+                ongkir: ongkirSaatIni,
                 tipeBayar: 'Cek Bukti Bayar', 
                 dp: '',
                 buktiURL: buktiURL
@@ -289,7 +276,6 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFO
                 method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
             }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
 
-            // Reset form...
             hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti');
             document.getElementById('inName').value = '';
             document.getElementById('inPhone').value = '';
@@ -299,14 +285,14 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFO
         } else if (currentCheckoutType === 'cart') {
             const n = document.getElementById('cartInName').value;
             const p = document.getElementById('cartInPhone').value;
-            
+
             const alamatDetail = document.getElementById('cartInAddress').value;
             const prov = document.getElementById('cartInProvinsi').value;
             const kota = document.getElementById('cartInKota').value;
             const kec = document.getElementById('cartInKecamatan').value;
             const kodePos = document.getElementById('cartInKodePos').value;
             const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
-            
+
             const buktiURL = uploadedCartBuktiURL;
             const totalProduk = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
             const totalHargaPlusOngkir = totalProduk + ongkirSaatIni;
@@ -351,10 +337,6 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFO
     }
 }
 
-
-
-
-// --- BAGIAN UPLOAD BUKTI KERANJANG ---
 let uploadedCartBuktiURL = null;
 async function previewCartBukti(input) {
     const file = input.files[0];
@@ -392,7 +374,6 @@ async function previewCartBukti(input) {
     }
 }
 
-// --- BAGIAN UPLOAD BUKTI CHECKOUT LANGSUNG ---
 let uploadedBuktiURL = null;
 async function previewBukti(input) {
     const file = input.files[0];
@@ -430,7 +411,6 @@ async function previewBukti(input) {
     }
 }
 
-// --- FUNGSI HAPUS BUKTI (X) ---
 function hapusBukti(inputId, chipId, imgId, labelId) {
     vibrate(20);
     document.getElementById(inputId).value = '';
@@ -447,7 +427,6 @@ function hapusBukti(inputId, chipId, imgId, labelId) {
         uploadedCartBuktiURL = null;
     }
 }
-
 
 window.onload = async () => {
     try {
@@ -497,7 +476,7 @@ window.onload = async () => {
             renderAllSections();
 
             const path = window.location.pathname.replace(/^\//, '').toLowerCase();
-            const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) || path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) || path.match(/^([^\/]+)\/summary$/);
+            const orderMatch = path.match(/^([^\/]+)$/) || path.match(/^([^\/]+)\/$/) \vert{}\vert{} path.match(/^([^\/]+)\/detail$/) || path.match(/^([^\/]+)\/form$/) \vert{}\vert{} path.match(/^([^\/]+)\/summary$/);
 
             if (orderMatch) {
                 const productSlug = orderMatch[1];
@@ -621,14 +600,12 @@ function closeImage() {
 function injectFooters() {
     const footerHTML = `
         <footer>
-            <!-- BAGIAN LOGO GAMBAR DIPERBESAR & DIMEPETKAN -->
             <div class="footer-logo" style="margin-bottom: -40px;">
                 <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="width: 270px; max-width: 100%; height: auto; display: block; margin: 0 auto;">
             </div>
             
             <div class="footer-slogan" style="margin-top: 5px;">BORN TO DISOBEY</div>
             <div class="footer-socials">
-
                 <a href="https://www.instagram.com/fucktherules.exe?igsi=cDYyZDRnenR3MTY0" target="_blank" onclick="vibrate(30)"><i class="fab fa-instagram"></i></a>
                 <a href="https://wa.me/6285725706337" target="_blank" onclick="vibrate(30)"><i class="fab fa-whatsapp"></i></a>
                 <a href="https://shopee.co.id/fvcktherules__" target="_blank" onclick="vibrate(30)"><i class="fas fa-shopping-bag"></i></a>
@@ -647,7 +624,6 @@ function injectFooters() {
         if(el) el.innerHTML = footerHTML;
     });
 }
-
 
 function toggleSidebar() {
     vibrate(20);
@@ -782,20 +758,16 @@ function validateForm() {
     vibrate(40);
     const n = document.getElementById('inName').value;
     const p = document.getElementById('inPhone').value;
-    
-    // Tarik data yang terpisah lalu gabungkan
+
     const alamatDetail = document.getElementById('inAddress').value;
     const prov = document.getElementById('inProvinsi').value;
     const kota = document.getElementById('inKota').value;
     const kec = document.getElementById('inKecamatan').value;
     const kodePos = document.getElementById('inKodePos').value;
-    
+
     const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
     if(!n || !p || !alamatDetail || !prov) return triggerAlert("LENGKAPI DATA!");
-    
-    // ... (biarkan sisa kode di bawahnya tetap sama)
-
 
     const sumP = document.getElementById('sumProd');
     if(sumP) sumP.innerText = cart.prod.name;
@@ -804,11 +776,11 @@ function validateForm() {
     if(sumV) sumV.innerText = `${cart.color} | ${cart.size}`;
 
     const idArea = document.getElementById('inAreaId');
-if(!idArea || !idArea.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
+    if(!idArea || !idArea.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
 
-const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
-const sumPr = document.getElementById('sumPrice');
-if(sumPr) sumPr.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
+    const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
+    const sumPr = document.getElementById('sumPrice');
+    if(sumPr) sumPr.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
 
     const sumC = document.getElementById('sumCust');
     if(sumC) sumC.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
@@ -825,7 +797,6 @@ if(sumPr) sumPr.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
 
     showPage('summary');
 }
-
 
 function openSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='flex'; }
 function closeSize() { const m=document.getElementById('sizeModal'); if(m) m.style.display='none'; }
@@ -883,38 +854,86 @@ function showPageSilent(id) {
 
 function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 
-window.toggleSidebar = toggleSidebar;
-window.navTo = navTo;
-window.showPage = showPage;
-window.goDetail = goDetail;
-window.selOpt = selOpt;
-window.validateDetail = validateDetail;
-window.validateForm = validateForm;
-window.openSize = openSize;
-window.closeSize = closeSize;
-window.openSpecs = openSpecs;
-window.closeSpecs = closeSpecs;
-window.openQRIS = openQRIS;
-window.closeQRIS = closeQRIS;
-window.previewBukti = previewBukti;
-window.openImage = openImage;
-window.closeImage = closeImage;
-window.vibrate = vibrate;
-window.navBack = navBack;
-window.addToCart = addToCart;
-window.removeCartItem = removeCartItem;
-window.goToCartCheckout = goToCartCheckout;
-window.validateCartForm = validateCartForm;
-window.previewCartBukti = previewCartBukti;
-window.openCart = openCart;
-window.goToSlide = goToSlide;
-window.hapusBukti = hapusBukti;
-window.confirmCheckout = confirmCheckout;
-window.closeConfirm = closeConfirm;
-window.executeCheckout = executeCheckout;
-window.cariArea = cariArea;
-window.pilihArea = pilihArea;
+// --- SISTEM ONGKIR BITESHIP ---
+async function cariArea(keyword, resultBoxId, hiddenId, isCart) {
+    if (keyword.length < 3) {
+        document.getElementById(resultBoxId).style.display = "none";
+        return;
+    }
 
+    clearTimeout(timeoutCari);
+    timeoutCari = setTimeout(async () => {
+        document.getElementById(resultBoxId).innerHTML = "<div style='padding:10px;'>Mencari lokasi...</div>";
+        document.getElementById(resultBoxId).style.display = "block";
+
+        try {
+            let res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${keyword}`);
+            let data = await res.json();
+
+            let html = "";
+            data.areas.forEach(area => {
+                let namaTampil = `${area.name}, ${area.administrative_division_level_2_name}, ${area.administrative_division_level_1_name}`;
+
+                let prov = area.administrative_division_level_1_name || '';
+                let kota = area.administrative_division_level_2_name || '';
+                let kec = area.name || '';
+                let pos = area.postal_code || '';
+
+                html += `<div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;" 
+                          onclick="pilihArea('${area.id}', '${prov}', '${kota}', '${kec}', '${pos}', '${resultBoxId}', '${hiddenId}', ${isCart})">
+                          ${namaTampil}
+                         </div>`;
+            });
+            document.getElementById(resultBoxId).innerHTML = html || "<div style='padding:10px;'>Tidak ditemukan</div>";
+        } catch (e) {
+            document.getElementById(resultBoxId).innerHTML = "<div style='padding:10px;'>Gagal memuat lokasi</div>";
+        }
+    }, 600);
+}
+
+function pilihArea(id, prov, kota, kec, pos, resultBoxId, hiddenId, isCart) {
+    document.getElementById(hiddenId).value = id;
+    document.getElementById(resultBoxId).style.display = "none";
+
+    if (isCart) {
+        document.getElementById('cartInSearchArea').value = kec + ", " + kota;
+        document.getElementById('cartInProvinsi').value = prov;
+        document.getElementById('cartInKota').value = kota;
+        document.getElementById('cartInKecamatan').value = kec;
+        document.getElementById('cartInKodePos').value = pos;
+    } else {
+        document.getElementById('inSearchArea').value = kec + ", " + kota;
+        document.getElementById('inProvinsi').value = prov;
+        document.getElementById('inKota').value = kota;
+        document.getElementById('inKecamatan').value = kec;
+        document.getElementById('inKodePos').value = pos;
+    }
+
+    hitungOngkirBiteship(id, isCart);
+}
+
+async function hitungOngkirBiteship(destId, isCart) {
+    let berat = isCart ? (cartItems.length * 250) : 250;
+    let textId = isCart ? 'cartTampilOngkir' : 'tampilOngkir';
+
+    document.getElementById(textId).innerText = "Menghitung ongkir...";
+
+    try {
+        let res = await fetch(`${URL_GAS_BITESHIP}?endpoint=rates&dest=${destId}&weight=${berat}`);
+        let data = await res.json();
+
+        if (data.pricing && data.pricing.length > 0) {
+            ongkirSaatIni = data.pricing[0].price;
+            document.getElementById(textId).innerText = `Ongkos Kirim (J&T): ${formatRupiah(ongkirSaatIni)}`;
+        } else {
+            document.getElementById(textId).innerText = "Pengiriman ke area ini tidak tersedia.";
+            ongkirSaatIni = 0;
+        }
+    } catch (e) {
+        document.getElementById(textId).innerText = "Gagal memuat ongkir.";
+        ongkirSaatIni = 0;
+    }
+}
 
 function openCart() {
     vibrate(20);
@@ -969,63 +988,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
-// --- SISTEM ONGKIR BITESHIP ---
-async function cariArea(keyword, resultBoxId, hiddenId, isCart) {
-    if (keyword.length < 3) {
-        document.getElementById(resultBoxId).style.display = "none";
-        return;
-    }
-
-    clearTimeout(timeoutCari);
-    timeoutCari = setTimeout(async () => {
-        document.getElementById(resultBoxId).innerHTML = "<div style='padding:10px;'>Mencari lokasi...</div>";
-        document.getElementById(resultBoxId).style.display = "block";
-
-        try {
-            let res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${keyword}`);
-            let data = await res.json();
-
-            let html = "";
-            data.areas.forEach(area => {
-                let namaTampil = `${area.name}, ${area.administrative_division_level_2_name}, ${area.administrative_division_level_1_name}`;
-                
-                // Ambil data spesifik dari Biteship
-                let prov = area.administrative_division_level_1_name || '';
-                let kota = area.administrative_division_level_2_name || '';
-                let kec = area.name || '';
-                let pos = area.postal_code || '';
-
-                html += `<div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;" 
-                          onclick="pilihArea('${area.id}', '${prov}', '${kota}', '${kec}', '${pos}', '${resultBoxId}', '${hiddenId}', ${isCart})">
-                          ${namaTampil}
-                         </div>`;
-            });
-            document.getElementById(resultBoxId).innerHTML = html || "<div style='padding:10px;'>Tidak ditemukan</div>";
-        } catch (e) {
-            document.getElementById(resultBoxId).innerHTML = "<div style='padding:10px;'>Gagal memuat lokasi</div>";
-        }
-    }, 600);
-}
-
-function pilihArea(id, prov, kota, kec, pos, resultBoxId, hiddenId, isCart) {
-    document.getElementById(hiddenId).value = id;
-    document.getElementById(resultBoxId).style.display = "none";
-    
-    // Auto-fill ke HTML
-    if (isCart) {
-        document.getElementById('cartInSearchArea').value = kec + ", " + kota;
-        document.getElementById('cartInProvinsi').value = prov;
-        document.getElementById('cartInKota').value = kota;
-        document.getElementById('cartInKecamatan').value = kec;
-        document.getElementById('cartInKodePos').value = pos;
-    } else {
-        document.getElementById('inSearchArea').value = kec + ", " + kota;
-        document.getElementById('inProvinsi').value = prov;
-        document.getElementById('inKota').value = kota;
-        document.getElementById('inKecamatan').value = kec;
-        document.getElementById('inKodePos').value = pos;
-    }
-
-    hitungOngkirBiteship(id, isCart);
-}
+window.toggleSidebar = toggleSidebar;
+window.navTo = navTo;
+window.showPage = showPage;
+window.goDetail = goDetail;
+window.selOpt = selOpt;
+window.validateDetail = validateDetail;
+window.validateForm = validateForm;
+window.openSize = openSize;
+window.closeSize = closeSize;
+window.openSpecs = openSpecs;
+window.closeSpecs = closeSpecs;
+window.openQRIS = openQRIS;
+window.closeQRIS = closeQRIS;
+window.previewBukti = previewBukti;
+window.openImage = openImage;
+window.closeImage = closeImage;
+window.vibrate = vibrate;
+window.navBack = navBack;
+window.addToCart = addToCart;
+window.removeCartItem = removeCartItem;
+window.goToCartCheckout = goToCartCheckout;
+window.validateCartForm = validateCartForm;
+window.previewCartBukti = previewCartBukti;
+window.openCart = openCart;
+window.goToSlide = goToSlide;
+window.hapusBukti = hapusBukti;
+window.confirmCheckout = confirmCheckout;
+window.closeConfirm = closeConfirm;
+window.executeCheckout = executeCheckout;
+window.cariArea = cariArea;
+window.pilihArea = pilihArea;
