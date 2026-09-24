@@ -1061,7 +1061,6 @@ async function onKelurahanChange(isCart) {
         return;
     }
 
-    // Isi kode pos langsung dari data wilayah kalau tersedia
     const postalFromData = kelSel.options[kelSel.selectedIndex]?.dataset.postal || '';
     if (kodePos) kodePos.value = postalFromData;
 
@@ -1069,27 +1068,25 @@ async function onKelurahanChange(isCart) {
     areaId.value = '';
     ongkirSaatIni = 0;
 
-    const keywordSpesifik = `${kelSel.value} ${kecSel.value} ${kotaSel.value}`;
-    const keywordUmum = `${kecSel.value} ${kotaSel.value}`;
-
-    let areas = await cariAreaBiteship(keywordSpesifik);
-    if (!areas.length) areas = await cariAreaBiteship(keywordUmum);
+    // Coba cari dengan beberapa alternatif keyword dari yang paling spesifik ke yang paling aman
+    let areas = await cariAreaBiteship(kecSel.value); // Cari pakai nama kecamatan (paling akurat di Biteship)
+    if (!areas.length) {
+        let cleanKota = kotaSel.value.replace(/Kabupaten|Kota/gi, '').trim();
+        areas = await cariAreaBiteship(cleanKota);
+    }
 
     if (!areas.length) {
         document.getElementById(textId).innerText = "Gagal menghubungi server ongkir. Coba pilih ulang kelurahannya.";
         return;
     }
 
-    // Cari kecocokan nama kecamatan + provinsi yang paling pas, kalau tidak ada pakai hasil pertama
+    // Ambil hasil pertama atau yang paling mendekati wilayah provinsi terkait
     const match = areas.find(a =>
-        (a.name || '').toLowerCase() === kecSel.value.toLowerCase() &&
-        (a.administrative_division_level_1_name || '').toLowerCase() === provSel.value.toLowerCase()
-    ) || areas.find(a =>
-        (a.administrative_division_level_1_name || '').toLowerCase() === provSel.value.toLowerCase()
+        (a.administrative_division_level_1_name || '').toLowerCase().includes(provSel.value.toLowerCase().replace(/daerah istimewa/gi, '').trim())
     ) || areas[0];
 
     if (!match) {
-        document.getElementById(textId).innerText = "Pengiriman ke area ini belum tersedia. Coba pilih kelurahan lain.";
+        document.getElementById(textId).innerText = "Pengiriman ke area ini belum tersedia.";
         return;
     }
 
@@ -1097,6 +1094,7 @@ async function onKelurahanChange(isCart) {
     if (!postalFromData && match.postal_code) kodePos.value = match.postal_code;
     hitungOngkirBiteship(match.id, isCart);
 }
+
 
 async function hitungOngkirBiteship(destId, isCart) {
     let berat = isCart ? (cartItems.length * 250) : 250;
