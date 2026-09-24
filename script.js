@@ -244,7 +244,7 @@ async function executeCheckout() {
     vibrate(40);
     closeConfirm();
 
-    const SCRIPT_URL(old) = 'https://script.google.com/macros/s/AKfycbxLvncutJ9WBmjPLWW54hnJpekRJfotSlPG-x1FToAaqdaFoVd_J9LfRgv1OOObZOalVg/exec';
+   // const SCRIPT_URL(old) = 'https://script.google.com/macros/s/AKfycbxLvncutJ9WBmjPLWW54hnJpekRJfotSlPG-x1FToAaqdaFoVd_J9LfRgv1OOObZOalVg/exec';
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFOzBQn9DAyiiefPuqZv--U2gV1BqNA1sIvBL0dgvenTl-l8wUAQ/exec';
     const loader = document.getElementById('loader');
