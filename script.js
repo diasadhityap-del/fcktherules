@@ -1064,36 +1064,33 @@ async function onKelurahanChange(isCart) {
     const postalFromData = kelSel.options[kelSel.selectedIndex]?.dataset.postal || '';
     if (kodePos) kodePos.value = postalFromData;
 
-    document.getElementById(textId).innerText = "Menghitung ongkir...";
+    document.getElementById(textId).innerText = "Menghitung ongkir J&T...";
     areaId.value = '';
     ongkirSaatIni = 0;
 
-    // Coba cari dengan beberapa alternatif keyword dari yang paling spesifik ke yang paling aman
-    let areas = await cariAreaBiteship(kecSel.value); // Cari pakai nama kecamatan (paling akurat di Biteship)
+    // Gabungkan nama kecamatan dan kota agar pencarian Biteship lebih spesifik dan akurat
+    let keyword = `${kecSel.value} ${kotaSel.value}`;
+    let areas = await cariAreaBiteship(keyword);
+
     if (!areas.length) {
-        let cleanKota = kotaSel.value.replace(/Kabupaten|Kota/gi, '').trim();
-        areas = await cariAreaBiteship(cleanKota);
+        // Fallback pencarian hanya menggunakan nama kecamatan jika pencarian gabungan tidak ditemukan
+        areas = await cariAreaBiteship(kecSel.value);
     }
 
     if (!areas.length) {
-        document.getElementById(textId).innerText = "Gagal menghubungi server ongkir. Coba pilih ulang kelurahannya.";
+        document.getElementById(textId).innerText = "Gagal mencocokkan area pengiriman.";
         return;
     }
 
-    // Ambil hasil pertama atau yang paling mendekati wilayah provinsi terkait
-    const match = areas.find(a =>
-        (a.administrative_division_level_1_name || '').toLowerCase().includes(provSel.value.toLowerCase().replace(/daerah istimewa/gi, '').trim())
-    ) || areas[0];
-
-    if (!match) {
-        document.getElementById(textId).innerText = "Pengiriman ke area ini belum tersedia.";
-        return;
-    }
-
+    // Ambil ID area Biteship yang valid dari hasil pencarian teratas
+    const match = areas[0];
     areaId.value = match.id;
     if (!postalFromData && match.postal_code) kodePos.value = match.postal_code;
+
+    // Kirim ID resmi tersebut untuk menghitung ongkir khusus J&T
     hitungOngkirBiteship(match.id, isCart);
 }
+
 
 
 async function hitungOngkirBiteship(destId, isCart) {
