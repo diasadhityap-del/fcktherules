@@ -542,5 +542,16 @@ justify-content:center;
 
 
 <script type="module" src="script.js"></script>
+<script>
+    // Pengaman darurat agar loader tidak berputar selamanya jika ada error
+    setTimeout(() => {
+        const loader = document.getElementById('loader');
+        if (loader && !loader.classList.contains('hide')) {
+            loader.classList.add('hide');
+            console.warn("Loader disembunyikan secara paksa oleh sistem darurat.");
+        }
+    }, 4000); // Loader akan dipaksa hilang setelah 4 detik
+</script>
+
 </body> 
 </html>
