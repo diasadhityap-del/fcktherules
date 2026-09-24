@@ -865,6 +865,23 @@ function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 // ══════════════════════════════════════════════════════════════
 const WILAYAH_API = "https://www.emsifa.com/api-wilayah-indonesia/v2";
 
+// Data v2 biasanya sudah Title Case ("Aceh", "Sumatera Utara"), tapi fungsi ini
+// dijaga sebagai pengaman kalau ada data yang masih UPPERCASE, sekaligus
+// mempertahankan singkatan umum (DKI, DIY, dst) tetap kapital semua.
+const WILAYAH_ACRONYMS = ['DKI', 'DIY', 'NAD', 'NTB', 'NTT'];
+function titleCaseWilayah(str) {
+    if (!str) return str;
+    return str
+        .toLowerCase()
+        .split(' ')
+        .map(word => {
+            const upper = word.toUpperCase();
+            if (WILAYAH_ACRONYMS.includes(upper)) return upper;
+            return word.charAt(0).toUpperCase() + word.slice(1);
+        })
+        .join(' ');
+}
+
 // Helper fetch dengan 1x retry singkat (buat koneksi yang cuma putus sesaat).
 // Response API v2 dibungkus { data, meta }, jadi kita ambil .data-nya.
 async function fetchWilayah(path) {
