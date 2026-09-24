@@ -49,10 +49,14 @@
         <div class="nav-item" id="nav-galeri" onclick="switchTab('galeri')">
             <i class="fas fa-images"></i> GALERI
         </div>
-
-<div class="nav-item" id="nav-banner" onclick="switchTab('banner')">
-    <i class="fas fa-flag"></i> BANNER
-</div>
+        <div class="nav-item" id="nav-banner" onclick="switchTab('banner')">
+            <i class="fas fa-flag"></i> BANNER
+        </div>
+        
+        <!-- MENU VOUCHER (DESKTOP) -->
+        <div class="nav-item" id="nav-voucher" onclick="switchTab('voucher')">
+            <i class="fas fa-ticket-alt"></i> VOUCHER
+        </div>
 
         <div class="sidebar-bottom">
             <div class="logout-btn" onclick="doLogout()">
@@ -71,82 +75,34 @@
     <div class="main">
 
         <!-- TAB ORDER -->
-<div class="tab-content active" id="tab-order">
+        <div class="tab-content active" id="tab-order">
+            <div class="page-header">
+                <div class="page-title">ORDER</div>
+                <div class="page-desc">Kelola dan approve pesanan masuk</div>
+            </div>
 
-    <div class="page-header">
-        <div class="page-title">ORDER</div>
-        <div class="page-desc">
-            Kelola dan approve pesanan masuk
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="filterOrder('semua',this)">SEMUA</button>
+                <button class="filter-btn" onclick="filterOrder('pending',this)">PENDING</button>
+                <button class="filter-btn" onclick="filterOrder('dp',this)">DP</button>
+                <button class="filter-btn" onclick="filterOrder('lunas',this)">LUNAS</button>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:14px; margin-bottom:18px; flex-wrap:wrap;">
+                <select id="filterProduk" onchange="filterProdukOrder(this.value)" style="background:#111; color:#fff; border:1px solid #333; padding:12px 14px; border-radius:10px; font-size:13px; font-weight:600;">
+                    <option value="semua">Semua Produk</option>
+                </select>
+                <button onclick="hapusProdukOrder()" style="background:#c62828; color:#fff; border:none; padding:12px 16px; border-radius:10px; font-weight:700; cursor:pointer;">
+                    Hapus Semua Order
+                </button>
+            </div>
+
+            <div id="orderList">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Memuat...
+                </div>
+            </div>
         </div>
-    </div>
-
-        <div class="filter-bar">
-        <button class="filter-btn active" onclick="filterOrder('semua',this)">
-            SEMUA
-        </button>
-        <button class="filter-btn" onclick="filterOrder('pending',this)">
-            PENDING
-        </button>
-        <button class="filter-btn" onclick="filterOrder('dp',this)">
-            DP
-        </button>
-        <button class="filter-btn" onclick="filterOrder('lunas',this)">
-            LUNAS
-        </button>
-    </div>
-
-
-    <div style="
-        display:flex;
-        gap:10px;
-        margin-top:14px;
-        margin-bottom:18px;
-        flex-wrap:wrap;
-    ">
-
-        <select id="filterProduk"
-            onchange="filterProdukOrder(this.value)"
-            style="
-                background:#111;
-                color:#fff;
-                border:1px solid #333;
-                padding:12px 14px;
-                border-radius:10px;
-                font-size:13px;
-                font-weight:600;
-            ">
-
-            <option value="semua">
-                Semua Produk
-            </option>
-
-        </select>
-
-        <button onclick="hapusProdukOrder()"
-            style="
-                background:#c62828;
-                color:#fff;
-                border:none;
-                padding:12px 16px;
-                border-radius:10px;
-                font-weight:700;
-                cursor:pointer;
-            ">
-
-            Hapus Semua Order
-
-        </button>
-
-    </div>
-
-    <div id="orderList">
-        <div class="loading">
-            <i class="fas fa-spinner fa-spin"></i>
-            Memuat...
-        </div>
-    </div>
-
-</div>
 
         <!-- TAB PRODUK -->
         <div class="tab-content" id="tab-produk">
@@ -177,42 +133,41 @@
             </div>
             <div class="galeri-grid" id="galeriGrid"></div>
         </div>
-<!-- TAB BANNER -->
-<div class="tab-content" id="tab-banner">
-    <div class="header-row">
-        <div>
-            <div class="page-title">BANNER HOMEPAGE</div>
-            <div class="page-desc">Kelola banner slider yang bisa digeser</div>
+
+        <!-- TAB BANNER -->
+        <div class="tab-content" id="tab-banner">
+            <div class="header-row">
+                <div>
+                    <div class="page-title">BANNER HOMEPAGE</div>
+                    <div class="page-desc">Kelola banner slider yang bisa digeser</div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="add-btn" style="background:#444;" onclick="openModalBannerText()">
+                        <i class="fas fa-text-width"></i> TEKS
+                    </button>
+                    <button class="add-btn" onclick="openModalBanner()">
+                        <i class="fas fa-plus"></i> TAMBAH
+                    </button>
+                </div>
+            </div>
+            <div id="bannerList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
         </div>
-        <div style="display:flex; gap:10px;">
-            <button class="add-btn" style="background:#444;" onclick="openModalBannerText()">
-                <i class="fas fa-text-width"></i> TEKS
-            </button>
-            <button class="add-btn" onclick="openModalBanner()">
-                <i class="fas fa-plus"></i> TAMBAH
-            </button>
+
+        <!-- TAB VOUCHER -->
+        <div class="tab-content" id="tab-voucher">
+            <div class="header-row">
+                <div>
+                    <div class="page-title">VOUCHER</div>
+                    <div class="page-desc">Kelola kode promo & diskon</div>
+                </div>
+                <button class="add-btn" onclick="openModalVoucher()">
+                    <i class="fas fa-plus"></i> TAMBAH
+                </button>
+            </div>
+            <div id="voucherList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
         </div>
-    </div>
 
-    <div id="bannerList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
-</div>
-
-    </div>
-
-<!-- TAB VOUCHER -->
-<div class="tab-content" id="tab-voucher">
-    <div class="header-row">
-        <div>
-            <div class="page-title">VOUCHER</div>
-            <div class="page-desc">Kelola kode promo & diskon</div>
-        </div>
-        <button class="add-btn" onclick="openModalVoucher()">
-            <i class="fas fa-plus"></i> TAMBAH
-        </button>
-    </div>
-    <div id="voucherList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
-</div>
-
+    </div> <!-- TUTUP MAIN -->
 
     <!-- MOBILE NAV -->
     <div class="mobile-nav">
@@ -225,26 +180,19 @@
         <div class="mob-nav-item" id="mob-galeri" onclick="switchTab('galeri')">
             <i class="fas fa-images"></i> GALERI
         </div>
-
-<div class="mob-nav-item" id="mob-banner" onclick="switchTab('banner')">
-    <i class="fas fa-flag"></i> BANNER
-</div>
+        <div class="mob-nav-item" id="mob-banner" onclick="switchTab('banner')">
+            <i class="fas fa-flag"></i> BANNER
+        </div>
+        
+        <!-- MENU VOUCHER (MOBILE) -->
+        <div class="mob-nav-item" id="mob-voucher" onclick="switchTab('voucher')">
+            <i class="fas fa-ticket-alt"></i> VOUCHER
+        </div>
 
         <div class="mob-nav-item" onclick="doLogout()" style="color:var(--red)">
             <i class="fas fa-sign-out-alt"></i> LOGOUT
         </div>
     </div>
-
-<!-- Di Sidebar Desktop -->
-<div class="nav-item" id="nav-voucher" onclick="switchTab('voucher')">
-    <i class="fas fa-ticket-alt"></i> VOUCHER
-</div>
-
-<!-- Di Mobile Nav -->
-<div class="mob-nav-item" id="mob-voucher" onclick="switchTab('voucher')">
-    <i class="fas fa-ticket-alt"></i> VOUCHER
-</div>
-
 
 </div>
 
@@ -252,7 +200,6 @@
 <div class="modal-bg" id="modalProduk">
     <div class="modal-box">
         <div class="modal-title" id="modalProdukTitle">TAMBAH PRODUK</div>
-
         <div class="form-group">
             <label>NAMA PRODUK</label>
             <input type="text" id="pNama" placeholder="Soccer Madness...">
@@ -292,14 +239,13 @@
                 <option value="no">Tidak</option>
             </select>
         </div>
-
         <div class="form-group">
-    <label>BISA DP?</label>
-    <select id="pDP">
-        <option value="yes">Bisa DP</option>
-        <option value="no">Tidak Bisa DP</option>
-    </select>
-</div>
+            <label>BISA DP?</label>
+            <select id="pDP">
+                <option value="yes">Bisa DP</option>
+                <option value="no">Tidak Bisa DP</option>
+            </select>
+        </div>
 
         <!-- FOTO THUMBNAIL -->
         <div class="form-group">
@@ -342,38 +288,18 @@
                 </div>
             </div>
         </div>
-
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeModalProduk()">BATAL</button>
             <button class="btn-save" id="btnSaveProduk" onclick="saveProdukData()">SIMPAN</button>
         </div>
     </div>
 </div>
-<div id="uploadOverlay" style="
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.85);
-    z-index:99999;
-    display:none;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    gap:18px;
-">
 
-    <i class="fas fa-spinner fa-spin"
-       style="font-size:42px;color:#00c853;"></i>
-
-    <div id="uploadText"
-         style="
-            font-size:13px;
-            font-weight:700;
-            letter-spacing:1px;
-         ">
-         MENGUPLOAD...
-    </div>
-
+<div id="uploadOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; display:none; align-items:center; justify-content:center; flex-direction:column; gap:18px;">
+    <i class="fas fa-spinner fa-spin" style="font-size:42px;color:#00c853;"></i>
+    <div id="uploadText" style="font-size:13px; font-weight:700; letter-spacing:1px;">MENGUPLOAD...</div>
 </div>
+
 <!-- MODAL BANNER -->
 <div class="modal-bg" id="modalBanner">
     <div class="modal-box">
@@ -414,7 +340,6 @@
     <div class="modal-box">
         <div class="modal-title">EDIT TEKS GARIS BANNER</div>
         <p style="font-size:12px; color:#777; margin-bottom:20px; line-height:1.5;">Kosongkan kolom di bawah jika Anda ingin menghilangkan garis hitamnya.</p>
-        
         <div class="form-group">
             <label>TEKS GARIS ATAS</label>
             <input type="text" id="bTextTop" placeholder="Contoh: NEW ARRIVALS">
@@ -460,7 +385,6 @@
         </div>
     </div>
 </div>
-
 
 <script type="module" src="admin.js"></script>
 </body>
