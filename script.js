@@ -243,10 +243,10 @@ function closeConfirm() {
 async function executeCheckout() {
     vibrate(40);
     closeConfirm();
-    
-    // Taruh URL cukup 1x saja di paling atas fungsi:
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLvncutJ9WBmjPLWW54hnJpekRJfotSlPG-x1FToAaqdaFoVd_J9LfRgv1OOObZOalVg/exec';
-    
+
+    const SCRIPT_URL(old) = 'https://script.google.com/macros/s/AKfycbxLvncutJ9WBmjPLWW54hnJpekRJfotSlPG-x1FToAaqdaFoVd_J9LfRgv1OOObZOalVg/exec';
+
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFOzBQn9DAyiiefPuqZv--U2gV1BqNA1sIvBL0dgvenTl-l8wUAQ/exec';
     const loader = document.getElementById('loader');
     if(loader) loader.classList.remove('hide');
 
@@ -256,22 +256,40 @@ async function executeCheckout() {
         if (currentCheckoutType === 'single') {
             const n = document.getElementById('inName').value;
             const p = document.getElementById('inPhone').value;
-            const a = document.getElementById('inAddress').value;
+            
+            // Ambil data alamat yang sudah digabung
+            const alamatDetail = document.getElementById('inAddress').value;
+            const prov = document.getElementById('inProvinsi').value;
+            const kota = document.getElementById('inKota').value;
+            const kec = document.getElementById('inKecamatan').value;
+            const kodePos = document.getElementById('inKodePos').value;
+            const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
+            
             const buktiURL = uploadedBuktiURL;
+            const hargaProduk = Number(String(cart.prod.price).replace(/\D/g,''));
+            const totalHargaPlusOngkir = hargaProduk + ongkirSaatIni;
 
             const orderData = {
-                nama: n, wa: p, alamat: a,
-                produk: cart.prod.name, warna: cart.color, size: cart.size,
-                harga: cart.prod.price, tipeBayar: 'Cek Bukti Bayar', dp: '',
+                nama: n, 
+                wa: p, 
+                alamat: a,
+                produk: cart.prod.name, 
+                warna: cart.color, 
+                size: cart.size,
+                harga: totalHargaPlusOngkir, // Total harga sudah termasuk ongkir
+                ongkir: ongkirSaatIni,       // Nilai ongkir dikirim terpisah untuk kolom I
+                tipeBayar: 'Cek Bukti Bayar', 
+                dp: '',
                 buktiURL: buktiURL
             };
 
             await saveOrder(orderData);
 
             fetch(SCRIPT_URL, {
-                method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({...orderData, buktiURL})
+                method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
             }).catch(err => console.error("Gagal kirim ke spreadsheet:", err));
 
+            // Reset form...
             hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti');
             document.getElementById('inName').value = '';
             document.getElementById('inPhone').value = '';
@@ -281,15 +299,28 @@ async function executeCheckout() {
         } else if (currentCheckoutType === 'cart') {
             const n = document.getElementById('cartInName').value;
             const p = document.getElementById('cartInPhone').value;
-            const a = document.getElementById('cartInAddress').value;
+            
+            const alamatDetail = document.getElementById('cartInAddress').value;
+            const prov = document.getElementById('cartInProvinsi').value;
+            const kota = document.getElementById('cartInKota').value;
+            const kec = document.getElementById('cartInKecamatan').value;
+            const kodePos = document.getElementById('cartInKodePos').value;
+            const a = `${alamatDetail}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
+            
             const buktiURL = uploadedCartBuktiURL;
-            const total = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+            const totalProduk = cartItems.reduce((sum, i) => sum + Number(String(i.prod.price).replace(/\D/g,'')), 0);
+            const totalHargaPlusOngkir = totalProduk + ongkirSaatIni;
 
             const orderData = {
-                nama: n, wa: p, alamat: a,
+                nama: n, 
+                wa: p, 
+                alamat: a,
                 produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: i.prod.price })),
                 produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
-                harga: total, tipeBayar: 'Cek Bukti Bayar', dp: '',
+                harga: totalHargaPlusOngkir,
+                ongkir: ongkirSaatIni,
+                tipeBayar: 'Cek Bukti Bayar', 
+                dp: '',
                 buktiURL
             };
 
@@ -319,6 +350,7 @@ async function executeCheckout() {
         if(loader) loader.classList.add('hide'); 
     }
 }
+
 
 
 
