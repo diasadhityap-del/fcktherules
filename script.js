@@ -432,6 +432,8 @@ window.onload = async () => {
     try {
         history.replaceState({ page: 'home' }, '', window.location.pathname);
 
+        initProvinsiDropdown();
+
         listenBannerText((data) => {
             const barAtas = document.getElementById('barAtas');
             const barBawah = document.getElementById('barBawah');
@@ -854,62 +856,144 @@ function showPageSilent(id) {
 
 function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
 
-// --- SISTEM ONGKIR BITESHIP ---
-async function cariArea(keyword, resultBoxId, hiddenId, isCart) {
-    if (keyword.length < 3) {
-        document.getElementById(resultBoxId).style.display = "none";
+// ══════════════════════════════════════════════════════════════
+// SISTEM DROPDOWN WILAYAH (ganti "ketik & cari")
+// Data provinsi/kota/kecamatan dari wilayah.id (data resmi Kemendagri, gratis).
+// Setelah kecamatan dipilih, otomatis dicocokkan ke Biteship (backend ongkir
+// kamu yang sudah ada) supaya ongkir tetap terhitung seperti biasa.
+// ══════════════════════════════════════════════════════════════
+const WILAYAH_API = "https://wilayah.id/api";
+
+async function initProvinsiDropdown() {
+    try {
+        const res = await fetch(`${WILAYAH_API}/provinces.json`);
+        const json = await res.json();
+        const opts = (json.data || []).map(p => `<option value="${p.name}" data-code="${p.code}">${p.name}</option>`).join('');
+        const html = `<option value="">Pilih Provinsi...</option>${opts}`;
+
+        const p1 = document.getElementById('inProvinsi');
+        const p2 = document.getElementById('cartInProvinsi');
+        if (p1) p1.innerHTML = html;
+        if (p2) p2.innerHTML = html;
+    } catch (e) {
+        console.error('Gagal memuat data provinsi:', e);
+        const msg = '<option value="">Gagal memuat, muat ulang halaman</option>';
+        const p1 = document.getElementById('inProvinsi');
+        const p2 = document.getElementById('cartInProvinsi');
+        if (p1) p1.innerHTML = msg;
+        if (p2) p2.innerHTML = msg;
+    }
+}
+
+function resetOngkirArea(isCart) {
+    const areaId = document.getElementById(isCart ? 'cartInAreaId' : 'inAreaId');
+    const kodePos = document.getElementById(isCart ? 'cartInKodePos' : 'inKodePos');
+    const textId = document.getElementById(isCart ? 'cartTampilOngkir' : 'tampilOngkir');
+    if (areaId) areaId.value = '';
+    if (kodePos) kodePos.value = '';
+    if (textId) textId.innerText = 'Tunggu Ongkir Muncul...';
+    ongkirSaatIni = 0;
+}
+
+async function onProvinsiChange(isCart) {
+    const provSel = document.getElementById(isCart ? 'cartInProvinsi' : 'inProvinsi');
+    const kotaSel = document.getElementById(isCart ? 'cartInKota' : 'inKota');
+    const kecSel = document.getElementById(isCart ? 'cartInKecamatan' : 'inKecamatan');
+
+    kecSel.innerHTML = '<option value="">Pilih Kecamatan...</option>';
+    kecSel.disabled = true;
+    resetOngkirArea(isCart);
+
+    const code = provSel.options[provSel.selectedIndex]?.dataset.code;
+    if (!code) {
+        kotaSel.innerHTML = '<option value="">Pilih Kota/Kab...</option>';
+        kotaSel.disabled = true;
         return;
     }
 
-    clearTimeout(timeoutCari);
-    timeoutCari = setTimeout(async () => {
-        document.getElementById(resultBoxId).innerHTML = "<div style='padding:10px;'>Mencari lokasi...</div>";
-        document.getElementById(resultBoxId).style.display = "block";
+    kotaSel.innerHTML = '<option value="">Memuat...</option>';
+    kotaSel.disabled = true;
 
-        try {
-            let res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${keyword}`);
-            let data = await res.json();
-
-            let html = "";
-            data.areas.forEach(area => {
-                let namaTampil = `${area.name}, ${area.administrative_division_level_2_name}, ${area.administrative_division_level_1_name}`;
-
-                let prov = area.administrative_division_level_1_name || '';
-                let kota = area.administrative_division_level_2_name || '';
-                let kec = area.name || '';
-                let pos = area.postal_code || '';
-
-                html += `<div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;" 
-                          onclick="pilihArea('${area.id}', '${prov}', '${kota}', '${kec}', '${pos}', '${resultBoxId}', '${hiddenId}', ${isCart})">
-                          ${namaTampil}
-                         </div>`;
-            });
-            document.getElementById(resultBoxId).innerHTML = html || "<div style='padding:10px;'>Tidak ditemukan</div>";
-        } catch (e) {
-            document.getElementById(resultBoxId).innerHTML = "<div style='padding:10px;'>Gagal memuat lokasi</div>";
-        }
-    }, 600);
+    try {
+        const res = await fetch(`${WILAYAH_API}/regencies/${code}.json`);
+        const json = await res.json();
+        kotaSel.innerHTML = '<option value="">Pilih Kota/Kab...</option>' +
+            (json.data || []).map(k => `<option value="${k.name}" data-code="${k.code}">${k.name}</option>`).join('');
+        kotaSel.disabled = false;
+    } catch (e) {
+        kotaSel.innerHTML = '<option value="">Gagal memuat, coba lagi</option>';
+    }
 }
 
-function pilihArea(id, prov, kota, kec, pos, resultBoxId, hiddenId, isCart) {
-    document.getElementById(hiddenId).value = id;
-    document.getElementById(resultBoxId).style.display = "none";
+async function onKotaChange(isCart) {
+    const kotaSel = document.getElementById(isCart ? 'cartInKota' : 'inKota');
+    const kecSel = document.getElementById(isCart ? 'cartInKecamatan' : 'inKecamatan');
 
-    if (isCart) {
-        document.getElementById('cartInSearchArea').value = kec + ", " + kota;
-        document.getElementById('cartInProvinsi').value = prov;
-        document.getElementById('cartInKota').value = kota;
-        document.getElementById('cartInKecamatan').value = kec;
-        document.getElementById('cartInKodePos').value = pos;
-    } else {
-        document.getElementById('inSearchArea').value = kec + ", " + kota;
-        document.getElementById('inProvinsi').value = prov;
-        document.getElementById('inKota').value = kota;
-        document.getElementById('inKecamatan').value = kec;
-        document.getElementById('inKodePos').value = pos;
+    resetOngkirArea(isCart);
+
+    const code = kotaSel.options[kotaSel.selectedIndex]?.dataset.code;
+    if (!code) {
+        kecSel.innerHTML = '<option value="">Pilih Kecamatan...</option>';
+        kecSel.disabled = true;
+        return;
     }
 
-    hitungOngkirBiteship(id, isCart);
+    kecSel.innerHTML = '<option value="">Memuat...</option>';
+    kecSel.disabled = true;
+
+    try {
+        const res = await fetch(`${WILAYAH_API}/districts/${code}.json`);
+        const json = await res.json();
+        kecSel.innerHTML = '<option value="">Pilih Kecamatan...</option>' +
+            (json.data || []).map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+        kecSel.disabled = false;
+    } catch (e) {
+        kecSel.innerHTML = '<option value="">Gagal memuat, coba lagi</option>';
+    }
+}
+
+// Setelah kecamatan dipilih: otomatis cocokkan ke Biteship (untuk area ID + hitung ongkir)
+// tanpa user perlu mengetik apapun lagi.
+async function onKecamatanChange(isCart) {
+    const provSel = document.getElementById(isCart ? 'cartInProvinsi' : 'inProvinsi');
+    const kotaSel = document.getElementById(isCart ? 'cartInKota' : 'inKota');
+    const kecSel = document.getElementById(isCart ? 'cartInKecamatan' : 'inKecamatan');
+    const kodePos = document.getElementById(isCart ? 'cartInKodePos' : 'inKodePos');
+    const areaId = document.getElementById(isCart ? 'cartInAreaId' : 'inAreaId');
+    const textId = isCart ? 'cartTampilOngkir' : 'tampilOngkir';
+
+    if (!kecSel.value) { resetOngkirArea(isCart); return; }
+
+    document.getElementById(textId).innerText = "Menghitung ongkir...";
+    areaId.value = '';
+    kodePos.value = '';
+    ongkirSaatIni = 0;
+
+    const keyword = `${kecSel.value} ${kotaSel.value}`;
+    try {
+        const res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${encodeURIComponent(keyword)}`);
+        const data = await res.json();
+        const areas = data.areas || [];
+
+        // Cari kecocokan nama kecamatan + provinsi yang paling pas, kalau tidak ada pakai hasil pertama
+        const match = areas.find(a =>
+            (a.name || '').toLowerCase() === kecSel.value.toLowerCase() &&
+            (a.administrative_division_level_1_name || '').toLowerCase() === provSel.value.toLowerCase()
+        ) || areas.find(a =>
+            (a.administrative_division_level_1_name || '').toLowerCase() === provSel.value.toLowerCase()
+        ) || areas[0];
+
+        if (!match) {
+            document.getElementById(textId).innerText = "Pengiriman ke area ini belum tersedia. Coba pilih kecamatan lain.";
+            return;
+        }
+
+        areaId.value = match.id;
+        kodePos.value = match.postal_code || '';
+        hitungOngkirBiteship(match.id, isCart);
+    } catch (e) {
+        document.getElementById(textId).innerText = "Gagal menghubungi server ongkir. Coba pilih ulang kecamatannya.";
+    }
 }
 
 async function hitungOngkirBiteship(destId, isCart) {
@@ -1017,5 +1101,6 @@ window.hapusBukti = hapusBukti;
 window.confirmCheckout = confirmCheckout;
 window.closeConfirm = closeConfirm;
 window.executeCheckout = executeCheckout;
-window.cariArea = cariArea;
-window.pilihArea = pilihArea;
+window.onProvinsiChange = onProvinsiChange;
+window.onKotaChange = onKotaChange;
+window.onKecamatanChange = onKecamatanChange;
