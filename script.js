@@ -238,7 +238,7 @@ async function executeCheckout() {
     vibrate(40);
     closeConfirm();
 
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzresFL79C_eCXYaAEFOzBQn9DAyiiefPuqZv--U2gV1BqNA1sIvBL0dgvenTl-l8wUAQ/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyoVdbvq1JvCtzWFbJaZUdTO2I30DXn4N0p_XOidk98cPnj8m22j2Aa0q6k90KH4sOhUw/exec';
     const loader = document.getElementById('loader');
     if(loader) loader.classList.remove('hide');
 
