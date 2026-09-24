@@ -23,7 +23,8 @@ import {
         if (user) {
             document.getElementById('loginPage').style.display = 'none';
             document.getElementById('adminPage').style.display = 'block';
-            await Promise.all([loadOrders(), loadProduk(), loadGaleri(), loadBanners()]);
+            // Ubah Promise.all ini
+await Promise.all([loadOrders(), loadProduk(), loadGaleri(), loadBanners(), loadVouchers()]);
         } else {
             document.getElementById('loginPage').style.display = 'flex';
             document.getElementById('adminPage').style.display = 'none';
@@ -184,18 +185,41 @@ window.filterProdukOrder = (produk) => {
                         <div class="status-badge ${sc}">${st}</div>
                     </div>
                 </div>
-                <div class="order-info">
-                    ${Array.isArray(o.produk) ? o.produk.map(p => `
-                        <div class="info-item">Produk <span>${p.nama}</span></div>
-                        <div class="info-item">Warna / Size <span>${p.warna} / ${p.size}</span></div>
-                    `).join('') : `
-                        <div class="info-item">Produk <span>${o.produk}</span></div>
-                        <div class="info-item">Warna / Size <span>${o.warna} / ${o.size}</span></div>
-                    `}
-                    <div class="info-item">Harga <span>Rp${Number(String(o.harga).replace(/\D/g,'')).toLocaleString('id-ID')}</span></div>
-                    <div class="info-item">WhatsApp <span>${o.wa}</span></div>
-                    <div class="info-item">Alamat <span>${o.alamat}</span></div>
-                </div>
+               
+                    // Di dalam renderOrders(), ganti bagian <div class="order-info">...</div> dengan ini:
+const hargaKaosDisp = o.hargaKaos ? `Rp${Number(o.hargaKaos).toLocaleString('id-ID')}` : `Rp${Number(String(o.harga).replace(/\D/g,'')).toLocaleString('id-ID')}`;
+const ongkirDisp = o.ongkir ? `Rp${Number(o.ongkir).toLocaleString('id-ID')}` : '-';
+const totalAkhirDisp = o.totalAkhir ? `Rp${Number(o.totalAkhir).toLocaleString('id-ID')}` : hargaKaosDisp;
+
+let voucherHTML = "";
+if (o.voucherKode) {
+    voucherHTML = `
+        <div class="info-item" style="color:var(--yellow)">Voucher Dipakai <span>${o.voucherKode}</span></div>
+        <div class="info-item" style="color:var(--yellow)">Ket. Diskon <span>${o.voucherDeskripsi}</span></div>
+    `;
+}
+
+return `<div class="order-card">
+    <div class="order-top">
+        <!-- Kode yang sama seperti sebelumnya -->
+    ...
+    <div class="order-info">
+        ${Array.isArray(o.produk) ? o.produk.map(p => `
+            <div class="info-item">Produk <span>${p.nama}</span></div>
+            <div class="info-item">Warna / Size <span>${p.warna} / ${p.size}</span></div>
+        `).join('') : `
+            <div class="info-item">Produk <span>${o.produk}</span></div>
+            <div class="info-item">Warna / Size <span>${o.warna} / ${o.size}</span></div>
+        `}
+        <div class="info-item">Harga Kaos <span>${hargaKaosDisp}</span></div>
+        <div class="info-item">Ongkir <span>${ongkirDisp}</span></div>${voucherHTML}
+        <div class="info-item">WhatsApp <span>${o.wa}</span></div>
+        <div class="info-item">Alamat <span>${o.alamat}</span></div>
+        <div class="info-item" style="grid-column: 1 / -1; font-size:14px; color:var(--green)">TOTAL AKHIR <span>${totalAkhirDisp}</span></div>
+    </div>
+    <!-- Kode Tombol Bawah -->
+
+             
                 
                 <!-- BAGIAN TOMBOL BAWAH (BUKTI & UBAH STATUS) -->
                 <div class="order-actions" style="display:flex; gap:10px; align-items:center; margin-top:15px; border-top:1px solid #1a1a1a; padding-top:15px;">
@@ -898,6 +922,85 @@ window.saveBannerTextData = async () => {
     btn.disabled = false; btn.innerText = 'SIMPAN';
 };
 
+
+// ===== LOGIKA VOUCHER =====
+let allVouchers = [];
+
+async function loadVouchers() {
+    import('./firebase.js').then(mod => {
+        mod.listenVouchers(data => { allVouchers = data; renderVouchers(); });
+    });
+}
+
+function renderVouchers() {
+    const list = document.getElementById('voucherList');
+    if (allVouchers.length === 0) {
+        list.innerHTML = `<div class="empty"><i class="fas fa-ticket-alt"></i><p>Belum ada voucher</p></div>`;
+        return;
+    }
+    list.innerHTML = `<div class="produk-grid">` + allVouchers.map(v => {
+        const isHabis = Number(v.kuota) <= 0;
+        const badgeClass = isHabis ? 'badge-sold' : 'badge-pre';
+        const badgeText = isHabis ? 'HABIS' : `KUOTA: ${v.kuota}`;
+        let deskripsi = "Gratis Ongkir";
+        if(v.tipe === 'nominal') deskripsi = `Diskon Rp${Number(v.nilai).toLocaleString('id-ID')}`;
+        if(v.tipe === 'persen') deskripsi = `Diskon ${v.nilai}%`;
+
+        return `
+        <div class="produk-card" style="padding:15px; border-left:3px solid var(--green)">
+            <div class="produk-badge ${badgeClass}" style="margin-bottom:10px;">${badgeText}</div>
+            <div class="produk-name" style="font-size:18px; letter-spacing:1px; margin-bottom:5px;">${v.kode}</div>
+            <div class="info-item" style="margin-bottom:15px; color:var(--green); font-size:11px; font-weight:700;">${deskripsi}</div>
+            <div class="produk-actions">
+                <div class="btn-icon del" onclick="hapusVoucher('${v.id}')"><i class="fas fa-trash"></i> HAPUS</div>
+            </div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+
+window.toggleNilaiVoucher = () => {
+    const t = document.getElementById('vTipe').value;
+    document.getElementById('wrapNilaiVoucher').style.display = (t === 'free_ongkir') ? 'none' : 'block';
+};
+
+window.openModalVoucher = () => {
+    document.getElementById('vKode').value = '';
+    document.getElementById('vTipe').value = 'free_ongkir';
+    document.getElementById('vNilai').value = '';
+    document.getElementById('vKuota').value = '';
+    toggleNilaiVoucher();
+    document.getElementById('modalVoucher').classList.add('show');
+};
+
+window.closeModalVoucher = () => document.getElementById('modalVoucher').classList.remove('show');
+
+window.saveVoucherData = async () => {
+    const kode = document.getElementById('vKode').value.trim().toUpperCase();
+    const tipe = document.getElementById('vTipe').value;
+    const nilai = document.getElementById('vNilai').value;
+    const kuota = document.getElementById('vKuota').value;
+
+    if(!kode || !kuota || (tipe !== 'free_ongkir' && !nilai)) return showToast('LENGKAPI DATA!', true);
+
+    const btn = document.getElementById('btnSaveVoucher');
+    btn.disabled = true; btn.innerText = "MENYIMPAN...";
+    try {
+        const { saveVoucher } = await import('./firebase.js');
+        await saveVoucher({ kode, tipe, nilai: Number(nilai||0), kuota: Number(kuota) });
+        showToast("VOUCHER DISIMPAN ✓");
+        closeModalVoucher();
+    } catch(e) { showToast("GAGAL SIMPAN", true); }
+    btn.disabled = false; btn.innerText = "SIMPAN";
+};
+
+window.hapusVoucher = async (id) => {
+    if(!confirm('Hapus voucher ini?')) return;
+    try {
+        const { deleteVoucher } = await import('./firebase.js');
+        await deleteVoucher(id);
+        showToast("VOUCHER DIHAPUS");
+    } catch(e) { showToast("GAGAL HAPUS", true); }
+};
 
 
 window.hapusProdukOrder =
