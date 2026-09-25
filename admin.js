@@ -1,20 +1,15 @@
 import {
-    auth, loginAdmin, logoutAdmin, getOrders, updateOrderStatus,
+    adminAuth, loginAdmin, logoutAdmin, getOrders, updateOrderStatus,
     getProduk, saveProduk, updateProduk, deleteProduk,
     getGaleri, saveGaleri, deleteGaleri, updateGaleri, uploadGambar,
     listenBanners, saveBanner, updateBanner, deleteBanner,
-    listenBannerText, saveBannerText, 
-    listenVouchers, saveVoucher, deleteVoucher // Pastikan ini di-import jika dipakai langsung
+    listenBannerText, saveBannerText,
+    listenVouchers, saveVoucher, deleteVoucher,
+    listenCustomers, deleteCustomer
 } from './firebase.js';
 
-import { 
-    onAuthStateChanged 
-} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-
-import { 
-    deleteDoc, doc 
-} from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+import { deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import { db } from "./firebase.js";
 
 let allOrders = [];
@@ -22,6 +17,7 @@ let allProduk = [];
 let allGaleri = [];
 let allBanners = [];
 let allVouchers = [];
+let allCustomers = [];
 
 let currentFilter = 'semua';
 let currentProdukFilter = 'semua';
@@ -29,19 +25,19 @@ let editingProdukId = null;
 let editingBannerId = null;
 
 // ===== AUTH =====
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(adminAuth, async (user) => {
     if (user) {
         document.getElementById('loginPage').style.display = 'none';
         document.getElementById('adminPage').style.display = 'block';
-        
-        // Memuat semua data sekaligus saat login berhasil
+
         await Promise.all([
-            loadOrders(), 
-            loadProduk(), 
-            loadGaleri(), 
-            loadBanners(), 
+            loadOrders(),
+            loadProduk(),
+            loadGaleri(),
+            loadBanners(),
             loadVouchers()
         ]);
+        loadCustomersList();
     } else {
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('adminPage').style.display = 'none';
@@ -53,11 +49,11 @@ window.doLogin = async () => {
     const pass = document.getElementById('adminPass').value;
     const btn = document.getElementById('loginBtn');
     const err = document.getElementById('loginErr');
-    
+
     err.style.display = 'none';
     btn.disabled = true;
     btn.innerText = 'MASUK...';
-    
+
     const ok = await loginAdmin(email, pass);
     if (!ok) {
         err.style.display = 'block';
@@ -66,9 +62,7 @@ window.doLogin = async () => {
     }
 };
 
-window.doLogout = async () => {
-    await logoutAdmin();
-};
+window.doLogout = async () => { await logoutAdmin(); };
 
 // ===== TOAST =====
 window.showToast = (msg, isErr = false) => {
@@ -91,13 +85,13 @@ window.switchTab = (tab) => {
     if (mobEl) mobEl.classList.add('active');
 };
 
-
 // ===== ORDER =====
 async function loadOrders() {
     allOrders = await getOrders();
     allOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     isiFilterProduk();
     renderOrders();
+    if (allCustomers.length >= 0) renderCustomers();
 }
 
 window.filterOrder = (filter, el) => {
@@ -110,12 +104,10 @@ window.filterOrder = (filter, el) => {
 function isiFilterProduk() {
     const select = document.getElementById('filterProduk');
     if (!select) return;
-
     const produkUnik = [...new Set(allOrders.flatMap(o => {
         if (Array.isArray(o.produk)) return o.produk.map(p => p.nama);
         return [o.produk];
     }))];
-
     select.innerHTML = `<option value="semua">Semua Produk</option>`;
     produkUnik.forEach(nama => {
         select.innerHTML += `<option value="${nama}">${nama}</option>`;
@@ -133,9 +125,7 @@ function renderOrders() {
 
     if (currentProdukFilter !== 'semua') {
         filtered = filtered.filter(o => {
-            if (Array.isArray(o.produk)) {
-                return o.produk.some(p => p.nama === currentProdukFilter);
-            }
+            if (Array.isArray(o.produk)) return o.produk.some(p => p.nama === currentProdukFilter);
             return o.produk === currentProdukFilter;
         });
     }
@@ -166,11 +156,13 @@ function renderOrders() {
             `;
         }
 
-        let produkHTML = Array.isArray(o.produk) 
+        const emailHTML = o.email ? `<div class="info-item">Email <span>${o.email}</span></div>` : '';
+
+        let produkHTML = Array.isArray(o.produk)
             ? o.produk.map(p => `
                 <div class="info-item">Produk <span>${p.nama}</span></div>
                 <div class="info-item">Warna / Size <span>${p.warna} / ${p.size}</span></div>
-            `).join('') 
+            `).join('')
             : `
                 <div class="info-item">Produk <span>${o.produk}</span></div>
                 <div class="info-item">Warna / Size <span>${o.warna} / ${o.size}</span></div>
@@ -190,9 +182,9 @@ function renderOrders() {
                     <div class="status-badge ${sc}">${st}</div>
                 </div>
             </div>
-            
             <div class="order-info">
                 ${produkHTML}
+                ${emailHTML}
                 <div class="info-item">Harga Kaos <span>${hargaKaosDisp}</span></div>
                 <div class="info-item">Ongkir <span>${ongkirDisp}</span></div>
                 ${voucherHTML}
@@ -200,12 +192,10 @@ function renderOrders() {
                 <div class="info-item">Alamat <span>${o.alamat}</span></div>
                 <div class="info-item" style="grid-column: 1 / -1; font-size:14px; color:var(--green)">TOTAL AKHIR <span>${totalAkhirDisp}</span></div>
             </div>
-            
             <div class="order-actions" style="display:flex; gap:10px; align-items:center; margin-top:15px; border-top:1px solid #1a1a1a; padding-top:15px;">
                 <a href="${o.buktiURL}" target="_blank" class="btn-sm btn-bukti" style="flex:1; text-align:center;">
                     <i class="fas fa-image"></i> BUKTI
                 </a>
-                
                 <select onchange="gantiStatusOrder('${o.id}', this.value)" style="flex:1; background:#111; color:#fff; border:1px solid #333; padding:10px; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer; outline:none;">
                     <option value="pending" ${o.status === 'pending' || !o.status ? 'selected' : ''}>⏳ PENDING</option>
                     <option value="dp" ${o.status === 'dp' ? 'selected' : ''}>💳 DP</option>
@@ -229,13 +219,13 @@ window.gantiStatusOrder = async (id, statusBaru) => {
 };
 
 window.hapusOrder = async (id) => {
-    const konfirmasi = confirm("Hapus order ini?");
-    if (!konfirmasi) return;
+    if (!confirm("Hapus order ini?")) return;
     try {
         await deleteDoc(doc(db, "orders", id));
         allOrders = allOrders.filter(o => o.id !== id);
         isiFilterProduk();
         renderOrders();
+        renderCustomers();
         showToast("ORDER DIHAPUS");
     } catch (err) {
         console.error(err);
@@ -247,17 +237,13 @@ window.hapusProdukOrder = async () => {
     const yakin = confirm("Hapus semua order sesuai filter?");
     if (!yakin) return;
     try {
-        const data = allOrders.filter(o => 
-            (currentProdukFilter === 'semua' || o.produk === currentProdukFilter) &&
+        const data = allOrders.filter(o =>
             (currentProdukFilter === 'semua' || (Array.isArray(o.produk) ? o.produk.some(p => p.nama === currentProdukFilter) : o.produk === currentProdukFilter))
         );
-
         if (data.length === 0) return alert("Tidak ada order untuk dihapus");
-
         for (const order of data) {
             await deleteDoc(doc(db, "orders", order.id));
         }
-
         showToast(`${data.length} ORDER DIHAPUS`);
         await loadOrders();
     } catch(err) {
@@ -265,7 +251,6 @@ window.hapusProdukOrder = async () => {
         alert("Gagal hapus");
     }
 };
-
 
 // ===== PRODUK =====
 async function loadProduk() {
@@ -440,7 +425,6 @@ window.moveProdukDown = async (id) => {
     await loadProduk();
 };
 
-
 // ===== GALERI =====
 async function loadGaleri() {
     allGaleri = await getGaleri();
@@ -468,15 +452,12 @@ window.uploadGaleriFoto = async (input) => {
     const text = document.getElementById('uploadText');
     overlay.style.display = 'flex';
     let success = 0;
-    
+
     for (let i = 0; i < files.length; i++) {
         text.innerText = `MENGUPLOAD FOTO ${i + 1} / ${files.length}`;
         const file = files[i];
         const url = await uploadGambar(file, 'galeri');
-        if (url) {
-            await saveGaleri(url);
-            success++;
-        }
+        if (url) { await saveGaleri(url); success++; }
     }
     overlay.style.display = 'none';
     await loadGaleri();
@@ -494,25 +475,20 @@ window.hapusGaleri = async (id) => {
 window.moveGaleriUp = async (id) => {
     const index = allGaleri.findIndex(g => g.id === id);
     if (index <= 0) return;
-    const current = allGaleri[index];
-    const prev = allGaleri[index - 1];
-    const temp = current.order;
-    await updateGaleri(current.id, { order: prev.order });
-    await updateGaleri(prev.id, { order: temp });
+    const temp = allGaleri[index].order;
+    await updateGaleri(allGaleri[index].id, { order: allGaleri[index-1].order });
+    await updateGaleri(allGaleri[index-1].id, { order: temp });
     await loadGaleri();
 };
 
 window.moveGaleriDown = async (id) => {
     const index = allGaleri.findIndex(g => g.id === id);
     if (index >= allGaleri.length - 1) return;
-    const current = allGaleri[index];
-    const next = allGaleri[index + 1];
-    const temp = current.order;
-    await updateGaleri(current.id, { order: next.order });
-    await updateGaleri(next.id, { order: temp });
+    const temp = allGaleri[index].order;
+    await updateGaleri(allGaleri[index].id, { order: allGaleri[index+1].order });
+    await updateGaleri(allGaleri[index+1].id, { order: temp });
     await loadGaleri();
 };
-
 
 // ===== IMG PREVIEW =====
 window.prevImgSlot = (input, previewId) => {
@@ -523,7 +499,6 @@ window.prevImgSlot = (input, previewId) => {
     reader.onload = e => { img.src = e.target.result; img.style.display = 'block'; };
     reader.readAsDataURL(file);
 };
-
 
 // ===== BANNERS =====
 async function loadBanners() {
@@ -591,7 +566,7 @@ window.saveBannerData = async () => {
         const file = document.getElementById('inputBanner').files[0];
         if (file) imageURL = await uploadGambar(file, 'galeri');
         if (!imageURL) throw new Error("Gambar wajib diisi!");
-        
+
         const data = {
             title: document.getElementById('bTitle').value,
             subtitle: document.getElementById('bSub').value,
@@ -629,7 +604,7 @@ window.moveBannerDown = async (id, index) => {
     await updateBanner(allBanners[index+1].id, { order: temp });
 };
 
-// --- FUNGSI TEKS GARIS BANNER ---
+// TEKS GARIS BANNER
 listenBannerText((data) => {
     document.getElementById('bTextTop').value = data.topText || '';
     document.getElementById('bTextBottom').value = data.bottomText || '';
@@ -652,12 +627,11 @@ window.saveBannerTextData = async () => {
     btn.disabled = false; btn.innerText = 'SIMPAN';
 };
 
-
-// ===== LOGIKA VOUCHER =====
+// ===== VOUCHER =====
 async function loadVouchers() {
-    listenVouchers(data => { 
-        allVouchers = data; 
-        renderVouchers(); 
+    listenVouchers(data => {
+        allVouchers = data;
+        renderVouchers();
     });
 }
 
@@ -723,14 +697,106 @@ window.saveVoucherData = async () => {
 
 window.hapusVoucher = async (id) => {
     if(!confirm('Hapus voucher ini?')) return;
-    try {
-        await deleteVoucher(id);
-        showToast("VOUCHER DIHAPUS");
-    } catch(e) { showToast("GAGAL HAPUS", true); }
+    try { await deleteVoucher(id); showToast("VOUCHER DIHAPUS"); }
+    catch(e) { showToast("GAGAL HAPUS", true); }
 };
 
+// ===== CUSTOMER LIST =====
+async function loadCustomersList() {
+    listenCustomers((data) => {
+        allCustomers = data;
+        renderCustomers();
+    });
+}
 
-// ===== HELPER: FORMAT HARGA (AUTO TITIK) =====
+function aggregateCustomers() {
+    const map = {};
+
+    allCustomers.forEach(c => {
+        const key = (c.email || '').toLowerCase();
+        if (!key) return;
+        map[key] = map[key] || {
+            email: c.email, uid: c.uid || c.id,
+            registered: true, registeredAt: c.createdAt,
+            purchaseCount: 0, totalSpent: 0, orders: []
+        };
+        map[key].registered = true;
+    });
+
+    allOrders.forEach(o => {
+        const email = (o.email || '').toLowerCase();
+        if (!email) return;
+        map[email] = map[email] || {
+            email: o.email, registered: false,
+            purchaseCount: 0, totalSpent: 0, orders: []
+        };
+        map[email].purchaseCount++;
+        map[email].totalSpent += Number(String(o.totalAkhir || 0).replace(/\D/g,''));
+        map[email].orders.push(o);
+    });
+
+    return Object.values(map).sort((a, b) => b.purchaseCount - a.purchaseCount);
+}
+
+function renderCustomers() {
+    const list = document.getElementById('customerList');
+    if (!list) return;
+
+    const data = aggregateCustomers();
+    if (data.length === 0) {
+        list.innerHTML = `<div class="empty"><i class="fas fa-users"></i><p>Belum ada pelanggan</p></div>`;
+        return;
+    }
+
+    list.innerHTML = data.map(c => {
+        const safeId = 'cust-' + btoa(unescape(encodeURIComponent(c.email))).replace(/=/g,'').replace(/\//g,'_').replace(/\+/g,'-');
+        return `
+        <div class="order-card" style="padding:0;">
+            <div class="cust-row" onclick="toggleCustDetail('${c.email}')" style="display:flex; justify-content:space-between; align-items:center; padding:16px 18px; cursor:pointer; gap:10px;">
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="font-size:13px; font-weight:700; color:#fff; word-break:break-all;">${c.email}</span>
+                        ${c.registered ? '<span class="status-badge s-approved" style="font-size:8px;">TERDAFTAR</span>' : ''}
+                    </div>
+                    <div style="font-size:11px; color:var(--muted); margin-top:4px;">${c.purchaseCount}x pembelian</div>
+                </div>
+                <button onclick="event.stopPropagation(); hapusCustomer('${c.email}')" title="Hapus" style="width:34px; height:34px; border:1px solid rgba(255,59,59,0.2); background:rgba(255,59,59,0.1); color:#ff4d4d; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="cust-detail" id="${safeId}" style="display:none; border-top:1px solid var(--border); padding:16px 18px; background:#0d0d0d; font-size:12px; line-height:1.9; color:#ddd;">
+                <div><b style="color:#fff;">Email:</b> ${c.email}</div>
+                <div><b style="color:#fff;">Total pembelian:</b> ${c.purchaseCount} kali</div>
+                <div><b style="color:#fff;">Total transaksi:</b> Rp${c.totalSpent.toLocaleString('id-ID')}</div>
+                ${c.registered ? `<div style="color:var(--green); font-size:11px; margin-top:6px;">✓ Terdaftar sebagai member</div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+window.toggleCustDetail = (email) => {
+    const safeId = 'cust-' + btoa(unescape(encodeURIComponent(email))).replace(/=/g,'').replace(/\//g,'_').replace(/\+/g,'-');
+    const el = document.getElementById(safeId);
+    if (!el) return;
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.hapusCustomer = async (email) => {
+    if (!confirm(`Hapus data pelanggan ${email}?\n\n(Order yang pernah dibuat TIDAK terhapus.)`)) return;
+    const key = email.toLowerCase();
+    const target = allCustomers.find(c => (c.email || '').toLowerCase() === key);
+    try {
+        if (target) await deleteCustomer(target.id);
+        allCustomers = allCustomers.filter(c => (c.email || '').toLowerCase() !== key);
+        renderCustomers();
+        showToast('PELANGGAN DIHAPUS');
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL HAPUS', true);
+    }
+};
+
+// ===== HELPER: FORMAT HARGA =====
 function formatHarga(value) {
     let angka = String(value).toLowerCase().replace(/\s/g, '');
     if (angka.includes('k')) angka = angka.replace('k', '000');
