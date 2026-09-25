@@ -52,10 +52,11 @@
         <div class="nav-item" id="nav-banner" onclick="switchTab('banner')">
             <i class="fas fa-flag"></i> BANNER
         </div>
-        
-        <!-- MENU VOUCHER (DESKTOP) -->
         <div class="nav-item" id="nav-voucher" onclick="switchTab('voucher')">
             <i class="fas fa-ticket-alt"></i> VOUCHER
+        </div>
+        <div class="nav-item" id="nav-pelanggan" onclick="switchTab('pelanggan')">
+            <i class="fas fa-users"></i> PELANGGAN
         </div>
 
         <div class="sidebar-bottom">
@@ -167,7 +168,20 @@
             <div id="voucherList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
         </div>
 
-    </div> <!-- TUTUP MAIN -->
+        <!-- TAB PELANGGAN -->
+        <div class="tab-content" id="tab-pelanggan">
+            <div class="header-row">
+                <div>
+                    <div class="page-title">PELANGGAN</div>
+                    <div class="page-desc">Data pelanggan terdaftar & pembeli</div>
+                </div>
+            </div>
+            <div id="customerList">
+                <div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div>
+            </div>
+        </div>
+
+    </div>
 
     <!-- MOBILE NAV -->
     <div class="mobile-nav">
@@ -183,12 +197,12 @@
         <div class="mob-nav-item" id="mob-banner" onclick="switchTab('banner')">
             <i class="fas fa-flag"></i> BANNER
         </div>
-        
-        <!-- MENU VOUCHER (MOBILE) -->
         <div class="mob-nav-item" id="mob-voucher" onclick="switchTab('voucher')">
             <i class="fas fa-ticket-alt"></i> VOUCHER
         </div>
-
+        <div class="mob-nav-item" id="mob-pelanggan" onclick="switchTab('pelanggan')">
+            <i class="fas fa-users"></i> MEMBER
+        </div>
         <div class="mob-nav-item" onclick="doLogout()" style="color:var(--red)">
             <i class="fas fa-sign-out-alt"></i> LOGOUT
         </div>
@@ -247,7 +261,6 @@
             </select>
         </div>
 
-        <!-- FOTO THUMBNAIL -->
         <div class="form-group">
             <label>FOTO THUMBNAIL</label>
             <div class="img-slot" onclick="document.getElementById('inputThumb').click()" style="width:120px; height:120px;">
@@ -257,7 +270,6 @@
             </div>
         </div>
 
-        <!-- FOTO DETAIL (maks 5) -->
         <div class="form-group">
             <label>FOTO DETAIL (maks 5)</label>
             <div class="img-upload-grid">
