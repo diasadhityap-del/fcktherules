@@ -114,12 +114,16 @@
         <div id="colorArea"></div>
         <div id="sizeArea"></div>
         <p onclick="openSize()" style="color:#555; font-size:12px; font-weight:700; margin-top:20px; text-decoration:underline; cursor:pointer;">Size Guide (Sizing Information)</p>
-        <p onclick="openSpecs()" style="color:#555; font-size:12px; font-weight:700; margin-top:10px; text-decoration:underline; cursor:pointer;">Product Specifications (Bahan & Detail)</p>
         <div class="btn-container" style="display:flex; gap:10px;">
             <button onclick="addToCart()" style="width:60px; min-width:60px; height:54px; background:#0a0a0a; border:1.5px solid #1a1a1a; color:#fff; border-radius:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-bag-shopping"></i>
             </button>
             <button onclick="validateDetail()" style="flex:1;">NEXT</button>
+        </div>
+
+        <div id="detSpecsArea" style="margin-top:35px; padding-top:25px; border-top:1px solid #eaeaea;">
+            <div class="section-label">PRODUCT SPECIFICATIONS</div>
+            <p id="detSpecsContent" style="font-size:13px; line-height:1.8; color:#333; margin-top:12px; white-space:pre-line;"></p>
         </div>
     </div>
 </div>
@@ -449,7 +453,6 @@
 </div>
 
 <div id="sizeModal" class="modal-overlay" onclick="closeSize()"><div style="max-width:500px; width:100%;"><img src="/size.jpg" style="width:100%; border-radius:15px;"></div></div>
-<div id="specsModal" class="modal-overlay" onclick="closeSpecs()"><div class="specs-box" onclick="event.stopPropagation()"><h3>SPESIFIKASI PRODUK</h3><p id="specContent"></p><button onclick="closeSpecs()">CLOSE</button></div></div>
 <div id="qrisModal" class="modal-overlay" onclick="closeQRIS()">
     <div class="specs-box" onclick="event.stopPropagation()">
         <h3 style="margin:0 0 15px 0; border-bottom:1px solid #222; padding-bottom:10px; font-size:16px; letter-spacing:1px;">QRIS PEMBAYARAN</h3>
