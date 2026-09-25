@@ -1,4 +1,4 @@
-Import {
+import {
     listenProduk, listenGaleri, listenBanners, listenBannerText,
     auth, customerSignUp, customerSignIn, customerSignOut, customerSignInGoogle, onAuthStateChanged,
     getCustomerProfile, updateCustomerProfile, getCustomerOrders
