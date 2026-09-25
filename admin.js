@@ -29,6 +29,8 @@ onAuthStateChanged(adminAuth, async (user) => {
     if (user) {
         document.getElementById('loginPage').style.display = 'none';
         document.getElementById('adminPage').style.display = 'block';
+        console.log('Login admin sebagai:', user.email);
+        showToast('LOGIN SEBAGAI: ' + user.email);
 
         await Promise.all([
             loadOrders(),
@@ -738,11 +740,21 @@ function updatePelangganDeleteBtn() {
 let customersLoaded = false;
 
 async function loadCustomersList() {
-    listenCustomers((data) => {
-        allCustomers = data;
-        customersLoaded = true;
-        renderCustomers();
-    });
+    listenCustomers(
+        (data) => {
+            allCustomers = data;
+            customersLoaded = true;
+            renderCustomers();
+        },
+        (err) => {
+            showToast('GAGAL AMBIL DATA MEMBER: ' + (err.code || err.message || 'unknown'), true);
+            const errMsg = `<div class="empty"><i class="fas fa-triangle-exclamation"></i><p>Gagal memuat data<br>(${err.code || 'error'})</p></div>`;
+            const memberList = document.getElementById('memberList');
+            const pembeliList = document.getElementById('pembeliList');
+            if (memberList) memberList.innerHTML = errMsg;
+            if (pembeliList) pembeliList.innerHTML = errMsg;
+        }
+    );
 }
 
 function aggregateCustomers() {
