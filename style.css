@@ -647,3 +647,32 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .modal-overlay {
     z-index: 10000;
 }
+
+/* ============ CART TOAST (fix nyangkut) ============ */
+#cartToast {
+    top: auto !important;
+    bottom: -100px !important;
+    transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#cartToast.show {
+    top: auto !important;
+    bottom: 130px !important;
+}
+
+/* ============ AUTH MODAL Z-INDEX ============ */
+#authModal {
+    z-index: 10001 !important;
+}
+
+/* ============ SIDEBAR AUTH ITEM ============ */
+.nav-links li#authSidebarItem,
+.nav-links li:last-child {
+    transition: 0.3s;
+}
+.nav-links li:last-child:hover {
+    padding-left: 10px;
+}
+#authNavText {
+    font-weight: 700;
+    letter-spacing: 1px;
+}
