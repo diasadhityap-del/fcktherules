@@ -1,8 +1,15 @@
-import { listenProduk, listenGaleri, listenBanners, listenBannerText } from './firebase.js';
+import {
+    listenProduk, listenGaleri, listenBanners, listenBannerText,
+    auth, customerSignUp, customerSignIn, customerSignOut, onAuthStateChanged
+} from './firebase.js';
 
 let cartItems = [];
 const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyDTEPvP5yndja35U02nkC4lsYRy3vQqVe2s4NTx-MxBE8MCSB9co2ztG5ZDMtJzuAO/exec";
 let ongkirSaatIni = 0;
+
+// ===== CUSTOMER AUTH STATE =====
+let currentCustomer = null;
+let authMode = 'signin'; // 'signin' | 'signup'
 
 const PAGE_SLUGS = {
     home: '/',
@@ -73,7 +80,7 @@ let galleryImages = [];
 let products = [];
 let cart = { prod: null, size: '', color: '' };
 let lastPage = 'home';
-let routed = false; // routing awal hanya dijalankan sekali
+let routed = false;
 
 // ── CART FUNCTIONS ──────────────────────────────────────────
 function addToCart() {
@@ -276,6 +283,7 @@ async function executeCheckout() {
         if (currentCheckoutType === 'single') {
             const n = document.getElementById('inName').value;
             const p = document.getElementById('inPhone').value;
+            const email = document.getElementById('inEmail')?.value?.trim() || (currentCustomer?.email || '');
 
             const alamatDetail = document.getElementById('inAddress').value;
             const prov = document.getElementById('inProvinsi').value;
@@ -291,7 +299,7 @@ async function executeCheckout() {
             const totalAkhir = hargaProduk + ongkirSaatIni - nilaiDiskon;
 
             const orderData = {
-                nama: n, wa: p, alamat: a,
+                nama: n, wa: p, email: email, alamat: a,
                 produk: cart.prod.name, warna: cart.color, size: cart.size,
                 hargaKaos: hargaProduk,
                 ongkir: ongkirSaatIni,
@@ -314,7 +322,8 @@ async function executeCheckout() {
             }
 
             fetch(SCRIPT_URL, {
-                method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
+                method: "POST", mode: "no-cors", cache: "no-cache",
+                headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
             }).catch(err => console.error(err));
 
             hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti');
@@ -326,6 +335,7 @@ async function executeCheckout() {
         } else if (currentCheckoutType === 'cart') {
             const n = document.getElementById('cartInName').value;
             const p = document.getElementById('cartInPhone').value;
+            const email = document.getElementById('cartInEmail')?.value?.trim() || (currentCustomer?.email || '');
 
             const alamatDetail = document.getElementById('cartInAddress').value;
             const prov = document.getElementById('cartInProvinsi').value;
@@ -341,7 +351,7 @@ async function executeCheckout() {
             const totalAkhir = totalProduk + ongkirSaatIni - nilaiDiskon;
 
             const orderData = {
-                nama: n, wa: p, alamat: a,
+                nama: n, wa: p, email: email, alamat: a,
                 produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: i.prod.price })),
                 produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
                 hargaKaos: totalProduk,
@@ -365,7 +375,8 @@ async function executeCheckout() {
             }
 
             fetch(SCRIPT_URL, {
-                method: "POST", mode: "no-cors", cache: "no-cache", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
+                method: "POST", mode: "no-cors", cache: "no-cache",
+                headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
             }).catch(err => console.error(err));
 
             cartItems = [];
@@ -481,21 +492,19 @@ function hapusBukti(inputId, chipId, imgId, labelId) {
     }
 }
 
-// ── ROUTING AWAL (dijalankan sekali) ───────────────────────
+// ── ROUTING AWAL ───────────────────────────────────────────
 function handleInitialRoute() {
     if (routed) return;
     routed = true;
 
     const path = window.location.pathname.replace(/^\//, '').replace(/\/$/, '').toLowerCase();
 
-    // 1. Halaman biasa (/katalog, /preorder, dst.)
     if (path === '' || SLUG_TO_PAGE[path] !== undefined) {
         const targetPage = SLUG_TO_PAGE[path] || 'home';
         if (targetPage !== 'home') showPage(targetPage);
         return;
     }
 
-    // 2. Halaman produk (/slug, /slug/detail, /slug/form, /slug/summary)
     const orderMatch = path.match(/^([^\/]+)$/)
         || path.match(/^([^\/]+)\/detail$/)
         || path.match(/^([^\/]+)\/form$/)
@@ -512,7 +521,6 @@ function handleInitialRoute() {
         if (found) {
             cart = { prod: found, size: '', color: found.colors.length === 1 ? found.colors[0] : '' };
             goDetailSilent(found);
-            // form/summary butuh pilihan warna & ukuran; kalau dibuka langsung, kembalikan ke detail
             showPageSilent('detail');
             if (!document.referrer.includes(window.location.hostname)) {
                 history.replaceState({ page: 'home' }, '', '/');
@@ -721,7 +729,6 @@ function showPage(id) {
     const menuBtn = document.querySelector('.menu-btn');
     const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang'];
 
-    // Guard: halaman produk butuh produk terpilih, halaman keranjang butuh isi keranjang
     if (PRODUCT_PAGES.includes(id) && !cart.prod) {
         history.pushState({ page: 'home' }, '', '/');
         id = 'home';
@@ -1317,7 +1324,158 @@ window.applyVoucherModal = async () => {
     }
 };
 
-// ── EXPORT KE WINDOW (dipakai oleh onclick di HTML) ─────────
+// ══════════════════════════════════════════════════════════════
+// CUSTOMER AUTH (SIGN IN / SIGN UP)
+// ══════════════════════════════════════════════════════════════
+onAuthStateChanged(auth, (user) => {
+    currentCustomer = user;
+    updateBottomNavAuth();
+    autoFillEmailFields();
+});
+
+function updateBottomNavAuth() {
+    const textEl = document.getElementById('authNavText');
+    const iconEl = document.getElementById('authNavIcon');
+    if (!textEl || !iconEl) return;
+    if (currentCustomer) {
+        textEl.innerText = 'LOG OUT';
+        iconEl.className = 'fas fa-sign-out-alt';
+        textEl.style.color = '#000';
+    } else {
+        textEl.innerText = 'SIGN IN';
+        iconEl.className = 'fas fa-user';
+        textEl.style.color = '';
+    }
+}
+
+function autoFillEmailFields() {
+    const inEmail = document.getElementById('inEmail');
+    const cartInEmail = document.getElementById('cartInEmail');
+    const noteSingle = document.getElementById('emailNote');
+    const noteCart = document.getElementById('cartEmailNote');
+
+    if (currentCustomer) {
+        [inEmail, cartInEmail].forEach(el => {
+            if (!el) return;
+            el.value = currentCustomer.email;
+            el.readOnly = true;
+            el.style.background = '#f5f5f5';
+            el.style.color = '#555';
+            el.style.cursor = 'not-allowed';
+        });
+        [noteSingle, noteCart].forEach(n => {
+            if (n) { n.innerText = '(terisi otomatis)'; n.style.color = '#00a844'; }
+        });
+    } else {
+        [inEmail, cartInEmail].forEach(el => {
+            if (!el) return;
+            el.readOnly = false;
+            el.style.background = '';
+            el.style.color = '';
+            el.style.cursor = '';
+        });
+        [noteSingle, noteCart].forEach(n => {
+            if (n) { n.innerText = '(opsional)'; n.style.color = '#999'; }
+        });
+    }
+}
+
+window.handleAuthNav = () => {
+    vibrate(20);
+    if (currentCustomer) {
+        if (confirm('Yakin ingin log out dari akun ' + currentCustomer.email + '?')) {
+            customerSignOut().then(() => {
+                triggerAlert('BERHASIL LOG OUT');
+            });
+        }
+    } else {
+        openAuthModal();
+    }
+};
+
+function openAuthModal() {
+    authMode = 'signin';
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
+    document.getElementById('authMsg').innerText = '';
+    updateAuthModalUI();
+    document.getElementById('authModal').style.display = 'flex';
+    vibrate(20);
+}
+
+window.closeAuthModal = () => {
+    document.getElementById('authModal').style.display = 'none';
+};
+
+window.toggleAuthMode = () => {
+    authMode = authMode === 'signin' ? 'signup' : 'signin';
+    document.getElementById('authMsg').innerText = '';
+    updateAuthModalUI();
+};
+
+function updateAuthModalUI() {
+    const title = document.getElementById('authModalTitle');
+    const desc = document.getElementById('authModalDesc');
+    const btn = document.getElementById('authSubmitBtn');
+    const toggleText = document.getElementById('authToggleText');
+    const toggleBtn = document.getElementById('authToggleBtn');
+    if (authMode === 'signin') {
+        title.innerText = 'SIGN IN';
+        desc.innerText = 'Masuk untuk auto-fill email saat checkout.';
+        btn.innerText = 'SIGN IN';
+        toggleText.innerText = 'Belum punya akun?';
+        toggleBtn.innerText = 'Daftar';
+    } else {
+        title.innerText = 'SIGN UP';
+        desc.innerText = 'Buat akun agar email otomatis terisi saat checkout.';
+        btn.innerText = 'DAFTAR';
+        toggleText.innerText = 'Sudah punya akun?';
+        toggleBtn.innerText = 'Masuk';
+    }
+}
+
+window.submitAuth = async () => {
+    const email = document.getElementById('authEmail').value.trim();
+    const pass = document.getElementById('authPassword').value;
+    const msg = document.getElementById('authMsg');
+    const btn = document.getElementById('authSubmitBtn');
+
+    msg.style.color = '#ff3b3b';
+    if (!email || !email.includes('@')) { msg.innerText = 'Email tidak valid.'; return; }
+    if (!pass || pass.length < 6) { msg.innerText = 'Password minimal 6 karakter.'; return; }
+
+    btn.disabled = true;
+    btn.innerText = 'Memproses...';
+    msg.style.color = '#555'; msg.innerText = 'Mohon tunggu...';
+
+    try {
+        if (authMode === 'signin') {
+            await customerSignIn(email, pass);
+        } else {
+            await customerSignUp(email, pass);
+        }
+        msg.style.color = '#00a844';
+        msg.innerText = authMode === 'signin' ? 'Berhasil masuk!' : 'Akun berhasil dibuat!';
+        setTimeout(() => {
+            closeAuthModal();
+            triggerAlert(authMode === 'signin' ? 'SELAMAT DATANG!' : 'AKUN DIBUAT!');
+        }, 500);
+    } catch (err) {
+        console.error(err);
+        const code = err.code || '';
+        if (code.includes('invalid-credential') || code.includes('wrong-password')) msg.innerText = 'Email atau password salah.';
+        else if (code.includes('user-not-found')) msg.innerText = 'Akun tidak ditemukan. Silakan daftar dulu.';
+        else if (code.includes('email-already-in-use')) msg.innerText = 'Email sudah terdaftar. Silakan sign in.';
+        else if (code.includes('weak-password')) msg.innerText = 'Password terlalu lemah.';
+        else if (code.includes('invalid-email')) msg.innerText = 'Format email salah.';
+        else msg.innerText = 'Gagal: ' + (err.message || 'coba lagi');
+    } finally {
+        btn.disabled = false;
+        updateAuthModalUI();
+    }
+};
+
+// ── EXPORT KE WINDOW ────────────────────────────────────────
 window.toggleSidebar = toggleSidebar;
 window.navTo = navTo;
 window.showPage = showPage;
@@ -1351,3 +1509,7 @@ window.onProvinsiChange = onProvinsiChange;
 window.onKotaChange = onKotaChange;
 window.onKecamatanChange = onKecamatanChange;
 window.onKelurahanChange = onKelurahanChange;
+window.handleAuthNav = handleAuthNav;
+window.closeAuthModal = closeAuthModal;
+window.toggleAuthMode = toggleAuthMode;
+window.submitAuth = submitAuth;
