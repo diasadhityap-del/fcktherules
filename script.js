@@ -1,4 +1,4 @@
-import {
+Import {
     listenProduk, listenGaleri, listenBanners, listenBannerText,
     auth, customerSignUp, customerSignIn, customerSignOut, customerSignInGoogle, onAuthStateChanged,
     getCustomerProfile, updateCustomerProfile, getCustomerOrders
@@ -818,6 +818,14 @@ function renderDetailContent(p, selectedColor) {
         slider.scrollLeft = 0;
     }
 
+    // Tampilkan Product Specifications langsung di halaman (tanpa modal)
+    const specEl = document.getElementById('detSpecsContent');
+    if (specEl) {
+        specEl.innerHTML = p.specs
+            ? p.specs.replace(/\\n/g, '<br>').replace(/\n/g, '<br>')
+            : "Spesifikasi belum tersedia.";
+    }
+
     let cHTML = `<div class="section-label">PILIH WARNA</div><div class="option-box">`;
     p.colors.forEach(c => {
         cHTML += `<div class="${selectedColor === c ? 'active' : ''}" onclick="selOpt('color','${c}',this)">${c}</div>`;
@@ -931,14 +939,6 @@ function validateForm() {
 
 function openSize() { const m = document.getElementById('sizeModal'); if (m) m.style.display = 'flex'; }
 function closeSize() { const m = document.getElementById('sizeModal'); if (m) m.style.display = 'none'; }
-function openSpecs() {
-    const text = cart.prod && cart.prod.specs ? cart.prod.specs.replace(/\\n/g, '<br>').replace(/\n/g, '<br>') : "Spesifikasi belum tersedia.";
-    const el = document.getElementById('specContent');
-    const m = document.getElementById('specsModal');
-    if (el) el.innerHTML = text;
-    if (m) m.style.display = 'flex';
-}
-function closeSpecs() { const m = document.getElementById('specsModal'); if (m) m.style.display = 'none'; }
 function openQRIS() { vibrate(30); const m = document.getElementById('qrisModal'); if (m) m.style.display = 'flex'; }
 function closeQRIS() { const m = document.getElementById('qrisModal'); if (m) m.style.display = 'none'; }
 
@@ -1790,8 +1790,6 @@ window.validateDetail = validateDetail;
 window.validateForm = validateForm;
 window.openSize = openSize;
 window.closeSize = closeSize;
-window.openSpecs = openSpecs;
-window.closeSpecs = closeSpecs;
 window.openQRIS = openQRIS;
 window.closeQRIS = closeQRIS;
 window.previewBukti = previewBukti;
