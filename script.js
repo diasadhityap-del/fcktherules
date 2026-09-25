@@ -1335,16 +1335,14 @@ onAuthStateChanged(auth, (user) => {
 
 function updateBottomNavAuth() {
     const textEl = document.getElementById('authNavText');
-    const iconEl = document.getElementById('authNavIcon');
-    if (!textEl || !iconEl) return;
+    if (!textEl) return;
+
     if (currentCustomer) {
         textEl.innerText = 'LOG OUT';
-        iconEl.className = 'fas fa-sign-out-alt';
-        textEl.style.color = '#000';
+        textEl.style.color = '#ff3b3b';
     } else {
         textEl.innerText = 'SIGN IN';
-        iconEl.className = 'fas fa-user';
-        textEl.style.color = '';
+        textEl.style.color = '#000';
     }
 }
 
@@ -1382,6 +1380,15 @@ function autoFillEmailFields() {
 
 window.handleAuthNav = () => {
     vibrate(20);
+
+    // Tutup sidebar dulu
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar?.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        overlay?.classList.remove('show');
+    }
+
     if (currentCustomer) {
         if (confirm('Yakin ingin log out dari akun ' + currentCustomer.email + '?')) {
             customerSignOut().then(() => {
