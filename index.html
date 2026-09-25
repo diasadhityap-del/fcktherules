@@ -41,7 +41,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div class="menu-btn" onclick="toggleSidebar()">
@@ -63,6 +63,9 @@
         <li onclick="navTo('arsip')">ARSIP</li>
         <li onclick="navTo('galeri')">GALERI</li>
         <li onclick="navTo('tentang')">TENTANG KAMI</li>
+        <li onclick="handleAuthNav()" style="border-top: 1px solid #eaeaea; padding-top: 25px; margin-top: 15px;">
+            <span id="authNavText">SIGN IN</span>
+        </li>
     </ul>
 </nav>
 
@@ -480,9 +483,8 @@
     <div class="bottom-nav-item" onclick="vibrate(20); navTo('katalog')">
         <i class="fas fa-tshirt"></i><span>KATALOG</span>
     </div>
-    <div class="bottom-nav-item" id="authNavBtn" onclick="handleAuthNav()">
-        <i class="fas fa-user" id="authNavIcon"></i>
-        <span id="authNavText">SIGN IN</span>
+    <div class="bottom-nav-item" onclick="vibrate(20); openCart()">
+        <i class="fas fa-bag-shopping"></i><span>KERANJANG</span>
     </div>
 </nav>
 
@@ -512,7 +514,7 @@
     </div>
 </div>
 
-<script type="module" src="script.js"></script>
+<script type="module" src="/script.js"></script>
 <script>
     setTimeout(() => {
         const loader = document.getElementById('loader');
