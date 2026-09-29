@@ -1884,3 +1884,25 @@ window.submitAuth = submitAuth;
 window.openProfileModal = openProfileModal;
 window.closeProfileModal = closeProfileModal;
 window.saveProfile = saveProfile;
+/* ===== playchill: konfeti kecil saat menyentuh tombol / pilihan ===== */
+(function () {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var E = ['⭐', '🌸', '💖', '✨', '⚽', '🍓', '☺️'];
+    document.addEventListener('pointerdown', function (ev) {
+        var t = ev.target.closest && ev.target.closest('button, .btn, .option-box div, .chip, .react, .card, .dlink, .sec-link');
+        if (!t) return;
+        for (var i = 0; i < 9; i++) {
+            var s = document.createElement('span');
+            s.className = 'confetti';
+            s.textContent = E[Math.floor(Math.random() * E.length)];
+            s.style.left = ev.clientX + 'px'; s.style.top = ev.clientY + 'px';
+            document.body.appendChild(s);
+            var a = Math.random() * Math.PI * 2, d = 40 + Math.random() * 60;
+            s.animate([
+                { transform: 'translate(-50%,-50%) scale(.4)', opacity: 1 },
+                { transform: 'translate(' + (Math.cos(a) * d - 12) + 'px,' + (Math.sin(a) * d - 40) + 'px) rotate(' + (Math.random() * 360) + 'deg) scale(1)', opacity: 1, offset: .6 },
+                { transform: 'translate(' + (Math.cos(a) * d) + 'px,' + (Math.sin(a) * d + 30) + 'px) scale(.6)', opacity: 0 }
+            ], { duration: 750 + Math.random() * 250, easing: 'ease-out' }).onfinish = (function (n) { return function () { n.remove(); }; })(s);
+        }
+    }, { passive: true });
+})();
