@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
-Disallow: /admin.html
-Sitemap: https://fucktherules.my.id/sitemap.xml
+Sitemap: https://gloriam.id/sitemap.xml
