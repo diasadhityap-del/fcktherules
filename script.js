@@ -11,6 +11,7 @@ let ongkirSaatIni = 0;
 // ===== CUSTOMER AUTH STATE =====
 let currentCustomer = null;
 let authMode = 'signin'; // 'signin' | 'signup'
+let mastProfileName = ''; // nama profil untuk tombol akun di masthead
 
 const PAGE_SLUGS = {
     home: '/',
@@ -18,7 +19,9 @@ const PAGE_SLUGS = {
     katalog: '/katalog',
     arsip: '/arsip',
     galeri: '/galeri',
-    tentang: '/tentang'
+    tentang: '/tentang',
+    berita: '/berita',
+    diskusi: '/diskusi'
 };
 
 const SLUG_TO_PAGE = {
@@ -27,7 +30,9 @@ const SLUG_TO_PAGE = {
     'katalog': 'katalog',
     'arsip': 'arsip',
     'galeri': 'galeri',
-    'tentang': 'tentang'
+    'tentang': 'tentang',
+    'berita': 'berita',
+    'diskusi': 'diskusi'
 };
 
 const PRODUCT_PAGES = ['detail', 'form', 'summary'];
@@ -58,7 +63,9 @@ const META = {
     preorder: { title: 'Pre Order | FvcktheRules', desc: 'Pre order produk terbaru FvcktheRules.' },
     arsip: { title: 'Arsip | FvcktheRules', desc: 'Koleksi arsip FvcktheRules Store.' },
     galeri: { title: 'Galeri | FvcktheRules', desc: 'Galeri foto FvcktheRules Store.' },
-    tentang: { title: 'Tentang Kami | FvcktheRules', desc: 'FvcktheRules, built for those who carry football into everyday life.' }
+    tentang: { title: 'Tentang Kami | FvcktheRules', desc: 'FvcktheRules, built for those who carry football into everyday life.' },
+    berita: { title: 'Berita | FvcktheRules Journal', desc: 'Berita football, Indonesia, dan budaya jalanan dari FvcktheRules.' },
+    diskusi: { title: 'Diskusi | FvcktheRules Journal', desc: 'Diskusi komunitas FvcktheRules: post tim, reaksi, dan balasan.' }
 };
 
 function slugify(text) {
@@ -566,6 +573,9 @@ window.onload = async () => {
         history.replaceState({ page: 'home' }, '', window.location.pathname);
         initProvinsiDropdown();
 
+        // Berita & diskusi Journal (gagal pun tidak boleh mengganggu toko)
+        import('./journal.js').then(m => m.initJournal()).catch(err => console.warn('Journal tidak dimuat:', err));
+
         listenBannerText((data) => {
             const barAtas = document.getElementById('barAtas');
             const barBawah = document.getElementById('barBawah');
@@ -630,7 +640,7 @@ window.onload = async () => {
 
     window.addEventListener('popstate', (e) => {
         const page = e.state?.page || 'home';
-        const menuBtn = document.querySelector('.menu-btn');
+        const menuBtn = document.getElementById('mast');
 
         const invalidProduct = PRODUCT_PAGES.includes(page) && !cart.prod;
         const invalidCart = CART_PAGES.includes(page) && cartItems.length === 0;
@@ -657,6 +667,7 @@ window.onload = async () => {
             if (menuBtn) menuBtn.style.display = 'flex';
             lastPage = page;
         }
+        onPageChanged(page);
     });
 };
 
@@ -678,7 +689,7 @@ function renderList(items, containerId) {
             <div class="card ${isSold ? 'sold-out-display' : ''}">
                 <div class="badge ${p.badge}">${p.status}</div>
                 <img src="${p.thumbnail}">
-                <div style="padding:25px">
+                <div class="card-body">
                     <h3>${p.name}</h3>
                     <p style="opacity:0.5; font-weight:600;">${isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
                     <button onclick="sessionStorage.setItem('lastPage', document.querySelector('.page.active') ? document.querySelector('.page.active').id : 'home'); vibrate(40); goDetail('${p.id}');" ${isSold ? 'disabled' : ''}>
@@ -713,26 +724,45 @@ function closeImage() {
 
 function injectFooters() {
     const footerHTML = `
-        <footer>
-            <div class="footer-logo" style="margin-bottom: -40px;">
-                <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="width: 270px; max-width: 100%; height: auto; display: block; margin: 0 auto;">
-            </div>
-            <div class="footer-slogan" style="margin-top: 5px;">BORN TO DISOBEY</div>
-            <div class="footer-socials">
-                <a href="https://www.instagram.com/fucktherules.exe?igsi=cDYyZDRnenR3MTY0" target="_blank" onclick="vibrate(30)"><i class="fab fa-instagram"></i></a>
-                <a href="https://wa.me/6285725706337" target="_blank" onclick="vibrate(30)"><i class="fab fa-whatsapp"></i></a>
-                <a href="https://shopee.co.id/fvcktherules__" target="_blank" onclick="vibrate(30)"><i class="fas fa-shopping-bag"></i></a>
-            </div>
-            <div class="footer-contact-title">KONTAK KAMI :</div>
-            <div class="footer-contact-info">
-                Saluran WhatsApp : <a href="https://whatsapp.com/channel/0029VbD2hZqEKyZQXCFpkD2p" target="_blank"><i class="fab fa-whatsapp"></i> Klik Disini</a><br>
-                WhatsApp : <a href="https://wa.me/6285725706337">085725706337</a><br>
-                Email : <a href="mailto:fucktherules34@gmail.com">fucktherules34@gmail.com</a>
+        <footer class="foot">
+            <div class="wrap foot-in">
+                <div class="foot-brand">
+                    <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="FvcktheRules" class="foot-logo">
+                    <div class="footer-slogan">BORN TO DISOBEY</div>
+                    <div class="footer-socials">
+                        <a href="https://www.instagram.com/fucktherules.exe?igsi=cDYyZDRnenR3MTY0" target="_blank" onclick="vibrate(30)"><i class="fab fa-instagram"></i></a>
+                        <a href="https://wa.me/6285725706337" target="_blank" onclick="vibrate(30)"><i class="fab fa-whatsapp"></i></a>
+                        <a href="https://shopee.co.id/fvcktherules__" target="_blank" onclick="vibrate(30)"><i class="fas fa-shopping-bag"></i></a>
+                    </div>
+                    <div class="footer-contact-title">KONTAK KAMI :</div>
+                    <div class="footer-contact-info">
+                        Saluran WhatsApp : <a href="https://whatsapp.com/channel/0029VbD2hZqEKyZQXCFpkD2p" target="_blank"><i class="fab fa-whatsapp"></i> Klik Disini</a><br>
+                        WhatsApp : <a href="https://wa.me/6285725706337">085725706337</a><br>
+                        Email : <a href="mailto:fucktherules34@gmail.com">fucktherules34@gmail.com</a>
+                    </div>
+                </div>
+                <div class="foot-cols">
+                    <nav aria-label="Store">
+                        <b>STORE</b>
+                        <a href="/" onclick="return navLink(event,'home')">Beranda</a>
+                        <a href="/preorder" onclick="return navLink(event,'preorder')">Pre Order</a>
+                        <a href="/katalog" onclick="return navLink(event,'katalog')">Katalog</a>
+                        <a href="/arsip" onclick="return navLink(event,'arsip')">Arsip</a>
+                        <a href="/galeri" onclick="return navLink(event,'galeri')">Galeri</a>
+                        <a href="/tentang" onclick="return navLink(event,'tentang')">Tentang</a>
+                    </nav>
+                    <nav aria-label="Journal">
+                        <b>JOURNAL</b>
+                        <a href="/berita" onclick="return navLink(event,'berita')">Berita</a>
+                        <a href="/diskusi" onclick="return navLink(event,'diskusi')">Diskusi</a>
+                        <a href="https://jurnal-fucktherules.my.id/">Situs Journal ↗</a>
+                    </nav>
+                </div>
             </div>
             <p class="copyright">© 2026 FVCKTHERULES. All rights reserved.</p>
         </footer>`;
 
-    ['home', 'pre', 'kat', 'ars', 'about', 'galeri'].forEach(id => {
+    ['home', 'pre', 'kat', 'ars', 'about', 'galeri', 'berita', 'diskusi'].forEach(id => {
         const el = document.getElementById(`footer-${id}`);
         if (el) el.innerHTML = footerHTML;
     });
@@ -753,8 +783,8 @@ function navTo(pageId) {
 
 function showPage(id) {
     if (META[id]) updateMeta(META[id].title, META[id].desc);
-    const menuBtn = document.querySelector('.menu-btn');
-    const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang'];
+    const menuBtn = document.getElementById('mast');
+    const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang', 'berita', 'diskusi'];
 
     if (PRODUCT_PAGES.includes(id) && !cart.prod) {
         history.pushState({ page: 'home' }, '', '/');
@@ -790,7 +820,25 @@ function showPage(id) {
         target.classList.add('active');
         target.scrollTop = 0;
     }
+    onPageChanged(id);
 }
+
+// Tandai menu aktif (masthead + drawer) dan kabari modul Journal
+function onPageChanged(id) {
+    document.querySelectorAll('[data-nav]').forEach(a => {
+        if (a.dataset.nav === id) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
+    });
+    if (window.journalPageShown) window.journalPageShown(id);
+}
+
+// Link menu berupa <a href> asli (bisa dibuka di tab baru), tapi klik biasa tetap SPA
+window.navLink = (e, id, fromDrawer) => {
+    if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1)) return true;
+    if (e) e.preventDefault();
+    if (fromDrawer) navTo(id); else showPage(id);
+    return false;
+};
 
 function navBack() {
     vibrate(30);
@@ -943,11 +991,12 @@ function openQRIS() { vibrate(30); const m = document.getElementById('qrisModal'
 function closeQRIS() { const m = document.getElementById('qrisModal'); if (m) m.style.display = 'none'; }
 
 function showPageSilent(id) {
-    const menuBtn = document.querySelector('.menu-btn');
+    const menuBtn = document.getElementById('mast');
     if (ORDER_PAGES.includes(id) && menuBtn) menuBtn.style.display = 'none';
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const target = document.getElementById(id);
     if (target) target.classList.add('active');
+    onPageChanged(id);
 }
 
 function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
@@ -1465,6 +1514,7 @@ function updateBottomNavAuth() {
     const signInItem = document.getElementById('navSignInItem');
     const profileItem = document.getElementById('navProfileItem');
     const logoutItem = document.getElementById('navLogoutItem');
+    updateMastAuth();
     if (!signInItem || !profileItem || !logoutItem) return;
 
     if (currentCustomer) {
@@ -1477,6 +1527,22 @@ function updateBottomNavAuth() {
         logoutItem.style.display = 'none';
     }
 }
+
+// Tombol akun di masthead: "SIGN IN" atau nama depan (nama profil toko kalau ada)
+function updateMastAuth() {
+    const btn = document.getElementById('mastAuthBtn');
+    if (!btn) return;
+    if (!currentCustomer) { btn.textContent = 'SIGN IN'; mastProfileName = ''; return; }
+    const base = (mastProfileName || currentCustomer.displayName || (currentCustomer.email || 'AKUN').split('@')[0]).trim();
+    btn.textContent = base.split(/\s+/)[0];
+    if (!mastProfileName) {
+        const uid = currentCustomer.uid;
+        getCustomerProfile(uid).then(p => {
+            if (currentCustomer && currentCustomer.uid === uid && p && p.nama) { mastProfileName = p.nama; updateMastAuth(); }
+        });
+    }
+}
+window.mastAuthClick = () => { vibrate(20); if (currentCustomer) openProfileModal(); else openAuthModal(); };
 
 function autoFillEmailFields() {
     const inEmail = document.getElementById('inEmail');

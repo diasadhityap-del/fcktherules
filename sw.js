@@ -1,8 +1,9 @@
-const CACHE_NAME = 'fvcktherules-v2';
+const CACHE_NAME = 'fvcktherules-v3';
 const ASSETS = [
   'index.html',
   'style.css',
   'script.js',
+  'journal.js',
   'manifest.json'
 ];
 

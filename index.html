@@ -37,44 +37,56 @@
     <meta name="theme-color" content="#000000">
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/manifest.json">
 
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<div class="menu-btn" onclick="toggleSidebar()">
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
+<!-- MASTHEAD (tata letak ala Journal, warna putih) -->
+<div class="mast" id="mast">
+    <div class="mast-in">
+        <button class="burger" type="button" onclick="toggleSidebar()" aria-label="Buka menu" aria-controls="sidebar"><span class="bar"></span><span class="bar"></span><span class="bar"></span></button>
+        <a class="logo" href="/" onclick="return navLink(event,'home')" aria-label="FvcktheRules beranda">FVCKTHERULES<i>STORE</i></a>
+        <button class="auth-btn" id="mastAuthBtn" type="button" onclick="mastAuthClick()">SIGN IN</button>
+    </div>
+    <nav class="cats" aria-label="Bagian situs">
+        <a href="/" data-nav="home" aria-current="page" onclick="return navLink(event,'home')">Beranda</a>
+        <a href="/preorder" data-nav="preorder" onclick="return navLink(event,'preorder')">Pre Order</a>
+        <a href="/katalog" data-nav="katalog" onclick="return navLink(event,'katalog')">Katalog</a>
+        <a href="/arsip" data-nav="arsip" onclick="return navLink(event,'arsip')">Arsip</a>
+        <a href="/galeri" data-nav="galeri" onclick="return navLink(event,'galeri')">Galeri</a>
+        <a href="/tentang" data-nav="tentang" onclick="return navLink(event,'tentang')">Tentang</a>
+        <span class="spacer"></span>
+        <a href="/berita" data-nav="berita" onclick="return navLink(event,'berita')">Berita</a>
+        <a href="/diskusi" data-nav="diskusi" onclick="return navLink(event,'diskusi')">Diskusi</a>
+    </nav>
 </div>
 
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-<nav class="sidebar" id="sidebar">
-    <div class="sidebar-header" style="margin-bottom: 15px;">
-        <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="Logo" style="width: 200px; height: auto; display: block;">
+<!-- MENU SAMPING: Store dulu, baru Journal (kebalikan dari web Journal) -->
+<nav class="sidebar" id="sidebar" aria-label="Menu">
+    <div class="drawer-head">
+        <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788256148/Tak_berjudul26_20260901160311_g4gy1e.png" alt="FvcktheRules">
+        <button type="button" onclick="toggleSidebar()">TUTUP</button>
     </div>
-    <ul class="nav-links">
-        <li onclick="navTo('home')">BERANDA</li>
-        <li onclick="navTo('preorder')">PRE ORDER</li>
-        <li onclick="navTo('katalog')">KATALOG</li>
-        <li onclick="navTo('arsip')">ARSIP</li>
-        <li onclick="navTo('galeri')">GALERI</li>
-<li onclick="window.location.href='https://jurnal-fucktherules.my.id/'">JOURNAL</li>
-        <li onclick="window.location.href='https://jurnal-fucktherules.my.id/discussion.html'">DISKUSI</li>
-        <li onclick="navTo('tentang')">TENTANG KAMI</li>
-        <li id="navSignInItem" onclick="openAuthModal()" style="border-top: 1px solid #eaeaea; padding-top: 25px; margin-top: 15px;">
-            <span id="authNavText">SIGN IN</span>
-        </li>
-        <li id="navProfileItem" onclick="openProfileModal()" style="display:none; border-top: 1px solid #eaeaea; padding-top: 25px; margin-top: 15px; margin-bottom: 8px;">
-            PROFILE
-        </li>
-        <li id="navLogoutItem" onclick="handleLogout()" style="display:none; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: #ff3b3b; margin-bottom: 30px; margin-top:14px; opacity:0.75;">
-            Log Out
-        </li>
-    </ul>
+    <p class="dgroup first">Store</p>
+    <a class="dlink" href="/" data-nav="home" onclick="return navLink(event,'home',true)">Beranda</a>
+    <a class="dlink" href="/preorder" data-nav="preorder" onclick="return navLink(event,'preorder',true)">Pre Order</a>
+    <a class="dlink" href="/katalog" data-nav="katalog" onclick="return navLink(event,'katalog',true)">Katalog</a>
+    <a class="dlink" href="/arsip" data-nav="arsip" onclick="return navLink(event,'arsip',true)">Arsip</a>
+    <a class="dlink" href="/galeri" data-nav="galeri" onclick="return navLink(event,'galeri',true)">Galeri</a>
+    <a class="dlink" href="/tentang" data-nav="tentang" onclick="return navLink(event,'tentang',true)">Tentang Kami</a>
+    <p class="dgroup">Journal · jurnal-fucktherules.my.id</p>
+    <a class="dlink" href="/berita" data-nav="berita" onclick="return navLink(event,'berita',true)">Berita</a>
+    <a class="dlink" href="/diskusi" data-nav="diskusi" onclick="return navLink(event,'diskusi',true)">Diskusi</a>
+    <a class="dlink small" href="https://jurnal-fucktherules.my.id/">Buka situs Journal ↗</a>
+    <p class="dgroup">Akun</p>
+    <a class="dlink small" id="navSignInItem" href="#" onclick="event.preventDefault();openAuthModal()"><span id="authNavText">SIGN IN</span></a>
+    <a class="dlink small" id="navProfileItem" href="#" style="display:none" onclick="event.preventDefault();toggleSidebar();openProfileModal()">Profil &amp; Pesanan</a>
+    <a class="dlink small danger" id="navLogoutItem" href="#" style="display:none" onclick="event.preventDefault();handleLogout()">Log Out</a>
 </nav>
 
 <div class="loader" id="loader">
@@ -84,26 +96,25 @@
 <div id="toast" class="toast">LENGKAPI DATA!</div>
 
 <div class="page active" id="home">
-    <header>
-        <img src="https://res.cloudinary.com/dfbxrouwf/image/upload/v1788257032/Tak_berjudul26_20260901170328_bi8ifc.png" alt="FvcktheRules" style="width:270px; height:auto; margin-bottom:-20px; margin-top:-30px;">
-        <p class="slogan" style="margin-bottom: -20px;">BORN TO DISOBEY.</p>
-        <p class="description">
-            FvcktheRules is built for those who carry football beyond the pitch — into the streets, the stands, and everyday life. We don't follow the rules. We make our own.
-        </p>
-    </header>
+    <div id="barAtas" style="display:none; background:#0a0a0a; color:#fff; padding:12px 20px; text-align:center; font-weight:800; font-size:13px; letter-spacing:3px; text-transform:uppercase;"></div>
 
-    <div id="barAtas" style="display:none; background:#0a0a0a; color:#fff; padding:12px 20px; text-align:center; font-weight:800; font-size:13px; letter-spacing:3px; text-transform:uppercase; margin-top:-20px;"></div>
-
-    <div class="banner-slider">
-        <div class="banner-track" id="bannerTrack"></div>
-        <div class="banner-dots" id="bannerDots"></div>
+    <div class="wrap banner-wrap">
+        <div class="banner-slider">
+            <div class="banner-track" id="bannerTrack"></div>
+            <div class="banner-dots" id="bannerDots"></div>
+        </div>
     </div>
 
-    <div id="barBawah" style="display:none; background:#0a0a0a; color:#fff; padding:12px 20px; text-align:center; font-weight:800; font-size:13px; letter-spacing:3px; text-transform:uppercase; margin-bottom:20px;"></div>
+    <div id="barBawah" style="display:none; background:#0a0a0a; color:#fff; padding:12px 20px; text-align:center; font-weight:800; font-size:13px; letter-spacing:3px; text-transform:uppercase;"></div>
 
-    <h2 style="text-align: center; margin: 40px 0 20px; font-size: 20px; letter-spacing: 2px;">LATEST RELEASE</h2>
-
-    <div class="products" id="list-home"></div>
+    <main class="wrap layout">
+        <section class="feed">
+            <p class="page-sub">BORN TO DISOBEY. FvcktheRules is built for those who carry football beyond the pitch: into the streets, the stands, and everyday life.</p>
+            <h2 class="sect-title">LATEST RELEASE</h2>
+            <div class="products" id="list-home"></div>
+        </section>
+        <aside class="side" data-side="shop"></aside>
+    </main>
     <div id="footer-home"></div>
 </div>
 
@@ -272,16 +283,72 @@
     </div>
 </div>
 
-<div class="page" id="preorder"><header><h2>PRE ORDER</h2></header><div class="products" id="list-preorder"></div><div id="footer-pre"></div></div>
-<div class="page" id="katalog"><header><h2>KATALOG</h2></header><div class="products" id="list-katalog"></div><div id="footer-kat"></div></div>
-<div class="page" id="arsip"><header><h2>ARSIP</h2></header><div class="products" id="list-arsip"></div><div id="footer-ars"></div></div>
-<div class="page" id="galeri"><header><h2>GALLERY</h2><p class="slogan">FVCKTHERULES MAKE A STAND</p></header><div class="gallery-grid" id="gallery-container"></div><div id="footer-galeri"></div></div>
+<div class="page" id="preorder">
+    <main class="wrap layout">
+        <section class="feed">
+            <h1 class="page-title">PRE ORDER</h1>
+            <div class="products" id="list-preorder"></div>
+        </section>
+        <aside class="side" data-side="shop"></aside>
+    </main>
+    <div id="footer-pre"></div>
+</div>
+<div class="page" id="katalog">
+    <main class="wrap layout">
+        <section class="feed">
+            <h1 class="page-title">KATALOG</h1>
+            <div class="products" id="list-katalog"></div>
+        </section>
+        <aside class="side" data-side="shop"></aside>
+    </main>
+    <div id="footer-kat"></div>
+</div>
+<div class="page" id="arsip">
+    <main class="wrap layout">
+        <section class="feed">
+            <h1 class="page-title">ARSIP</h1>
+            <div class="products" id="list-arsip"></div>
+        </section>
+        <aside class="side" data-side="shop"></aside>
+    </main>
+    <div id="footer-ars"></div>
+</div>
+<div class="page" id="galeri">
+    <div class="wrap">
+        <h1 class="page-title">GALLERY</h1>
+        <p class="page-sub">FVCKTHERULES MAKE A STAND</p>
+        <div class="gallery-grid" id="gallery-container"></div>
+    </div>
+    <div id="footer-galeri"></div>
+</div>
 <div class="page" id="tentang">
-    <div class="detail-container" style="padding-top:100px; text-align:center;">
-        <h2>TENTANG KAMI</h2>
+    <div class="detail-container" style="padding-top:36px; padding-bottom:40px; text-align:center;">
+        <h1 class="page-title" style="font-size:clamp(30px,7vw,52px);">TENTANG KAMI</h1>
         <p style="opacity:0.6; line-height:2; font-size:13px;">Soccer culture, street attitude.<br>FvcktheRules is built for those who carry football into everyday life — not just as a game, but as an identity.<br><br>Founded in 2024, FvcktheRules represents passion, loyalty, and pride. Every piece is designed to reflect the spirit of the streets and the energy of the game.<br><br>We stand for those who live football beyond the pitch. Make a stand with pride.</p>
     </div>
-    <div id="footer-about" style="margin-top:-130px;"></div>
+    <div id="footer-about"></div>
+</div>
+
+<!-- JOURNAL DI WEB UTAMA: data dari koleksi articles & posts (satu project Firebase dengan toko) -->
+<div class="page" id="berita">
+    <main class="wrap layout">
+        <section class="feed">
+            <h1 class="page-title">BERITA</h1>
+            <p class="page-sub">Football, Indonesia, dan budaya jalanan dari tim FvcktheRules. Baca selengkapnya di situs Journal.</p>
+            <div class="j-chips" id="beritaChips"></div>
+            <div id="beritaFeed"><div class="j-loading">Memuat berita…</div></div>
+        </section>
+        <aside class="side" data-side="news"></aside>
+    </main>
+    <div id="footer-berita"></div>
+</div>
+<div class="page" id="diskusi">
+    <div class="j-thread-wrap">
+        <h1 class="page-title">DISKUSI</h1>
+        <p class="page-sub">Post dari tim, reaksi, dan balasan dari customer. Masuk dengan akun toko yang sama.</p>
+        <div id="diskusiList"><div class="j-loading">Memuat diskusi…</div></div>
+    </div>
+    <div id="footer-diskusi"></div>
 </div>
 
 <div class="page" id="cartPage">
@@ -492,7 +559,7 @@
 <div id="authModal" class="modal-overlay" onclick="closeAuthModal()">
     <div class="specs-box" onclick="event.stopPropagation()" style="max-width:380px;">
         <h3 id="authModalTitle" style="margin:0 0 8px 0; font-size:20px; letter-spacing:2px;">SIGN IN</h3>
-        <p style="font-size:11px; color:#555; margin:0 0 22px; line-height:1.5;" id="authModalDesc">Masuk untuk auto-fill email saat checkout.</p>
+        <p style="font-size:11px; color:#555; margin:0 0 22px; line-height:1.5;" id="authModalDesc">Satu akun untuk toko dan Journal: auto-fill checkout, balas &amp; reaksi diskusi.</p>
 
         <div class="input-group">
             <label>EMAIL</label>

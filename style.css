@@ -98,23 +98,24 @@ header .description {
 
 /* ============ PRODUCTS ============ */
 .products {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 40px;
-    padding: 0 20px 80px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 0 0 20px;
 }
 .card {
     width: 100%;
-    max-width: 450px;
     background: #ffffff;
-    border-radius: 20px;
-    border: 1px solid #eaeaea;
+    border-radius: 2px;
+    border: 2px solid #000000;
     overflow: hidden;
     position: relative;
     transition: 0.3s;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
+.card-body { padding: 14px; }
+.card h3 { font-size: 13px; line-height: 1.35; margin: 0 0 6px; text-transform: uppercase; letter-spacing: .02em; }
+.card p { margin: 0 0 12px; font-size: 12px; }
+.card button { border-radius: 2px; padding: 13px; font-size: 11px; letter-spacing: .12em; }
 .card.sold-out { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
 .card img { width: 100%; display: block; }
 .badge {
@@ -124,7 +125,7 @@ header .description {
     padding: 6px 14px;
     font-size: 10px;
     font-weight: 700;
-    border-radius: 8px;
+    border-radius: 2px;
     z-index: 2;
     color: #fff;
 }
@@ -132,29 +133,35 @@ header .description {
 .ready { background: #000000; }
 .sold  { background: #ff3b3b; }
 
-/* ============ FOOTER ============ */
+/* ============ FOOTER (gaya Journal) ============ */
 footer {
     background: #f9f9f9;
-    border-top: 1px solid #eaeaea;
-    padding: 60px 20px;
-    text-align: center;
-    margin-top: 40px;
+    border-top: 2px solid #000;
+    padding: 40px 0 30px;
+    margin-top: 20px;
     color: #000000;
 }
-.footer-logo { letter-spacing: 10px; font-size: 22px; font-weight: 700; margin-bottom: 5px; color: #000000; }
-.footer-slogan { font-size: 9px; opacity: 0.5; letter-spacing: 2px; margin-bottom: 35px; text-transform: uppercase; }
-.footer-socials { display: flex; justify-content: center; gap: 25px; margin-bottom: 35px; }
+footer.foot { text-align: left; }
+.foot-in { display: flex; flex-wrap: wrap; gap: 28px 60px; justify-content: space-between; }
+.foot-logo { width: 240px; max-width: 100%; height: auto; display: block; margin: 0 0 -36px -16px; }
+.footer-slogan { font-size: 9px; opacity: 0.5; letter-spacing: 2px; margin: 8px 0 20px; text-transform: uppercase; }
+.footer-socials { display: flex; gap: 22px; margin-bottom: 22px; }
 .footer-socials a { color: #000000; font-size: 20px; opacity: 0.8; text-decoration: none; transition: 0.3s; }
 .footer-socials a:hover { opacity: 1; }
 .footer-contact-title { font-size: 12px; font-weight: 700; color: #000000; margin-bottom: 10px; }
-.footer-contact-info { font-size: 11px; opacity: 0.7; line-height: 1.8; margin-bottom: 40px; }
+.footer-contact-info { font-size: 11px; opacity: 0.7; line-height: 1.8; }
 .footer-contact-info a { color: #000000; text-decoration: none; font-weight: 600; }
-.copyright { font-size: 9px; opacity: 0.4; letter-spacing: 1px; margin-top: 20px; }
+.foot-cols { display: flex; gap: 48px; flex-wrap: wrap; }
+.foot-cols nav { display: flex; flex-direction: column; gap: 9px; }
+.foot-cols b { font-size: 11px; letter-spacing: .2em; color: #777; margin-bottom: 4px; }
+.foot-cols a { color: #000; text-decoration: none; font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.foot-cols a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.copyright { font-size: 9px; opacity: 0.4; letter-spacing: 1px; margin: 26px 0 0; text-align: center; }
 
 /* ============ PAGE SYSTEM ============ */
 .page {
     position: fixed;
-    inset: 0;
+    inset: var(--mast-h) 0 0 0;
     overflow-y: auto;
     background: #ffffff;
     opacity: 0;
@@ -163,6 +170,8 @@ footer {
     pointer-events: none;
     z-index: 1;
 }
+/* halaman order/checkout tampil penuh tanpa masthead */
+.page:is(#detail, #form, #summary, #cartPage, #cartForm, #cartSummary) { inset: 0; }
 .page.active {
     opacity: 1;
     transform: translateY(0);
@@ -349,64 +358,33 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .specs-box button:hover { background: #333333; }
 
-/* ============ SIDEBAR ============ */
-.menu-btn {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 5000;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid #eaeaea;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-.bar {
-    width: 25px;
-    height: 2px;
-    background: #000000;
-    transition: 0.3s;
-}
+/* ============ MENU SAMPING (gaya Journal, putih) ============ */
 .sidebar {
     position: fixed;
-    top: 0;
-    left: -280px;
-    width: 280px;
+    top: 0; left: 0;
+    width: min(480px, 100%);
     height: 100%;
     background: #ffffff;
+    color: #000000;
     z-index: 6000;
-    transition: 0.5s cubic-bezier(0.85, 0, 0.15, 1);
+    overflow-y: auto;
+    padding: 22px 26px 40px;
     border-right: 1px solid #eaeaea;
-    padding: 100px 30px;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform .25s, visibility 0s .25s;
 }
-.sidebar.open { left: 0; }
-.sidebar-header {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    color: #000000;
-    margin-bottom: 40px;
-    text-transform: uppercase;
-}
-.nav-links { list-style: none; padding: 0; margin: 0; }
-.nav-links li {
-    font-size: 16px;
-    font-weight: 700;
-    color: #000000;
-    margin-bottom: 30px;
-    cursor: pointer;
-    letter-spacing: 1px;
-    transition: 0.3s;
-    list-style: none;
-}
-.nav-links li:hover {
-    color: #555555;
-    padding-left: 10px;
-}
+.sidebar.open { transform: none; visibility: visible; transition: transform .25s; }
+.drawer-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.drawer-head img { width: 170px; height: auto; display: block; }
+.drawer-head button { width: auto; padding: 9px 14px; background: transparent; color: #000; border: 2px solid #000; border-radius: 2px; font-size: 11px; letter-spacing: .12em; }
+.drawer-head button:hover { background: #f2f2f2; }
+.dgroup { font-size: 11px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: #777; margin: 26px 0 8px; padding-top: 16px; border-top: 2px solid #000; }
+.dgroup.first { border-top: 0; padding-top: 0; margin-top: 0; }
+.dlink { display: block; text-decoration: none; color: #000; font-weight: 900; font-size: clamp(26px, 7vw, 34px); line-height: 1.12; padding: .1em 0; text-transform: uppercase; letter-spacing: .01em; cursor: pointer; }
+.dlink:hover, .dlink[aria-current="page"] { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.dlink.small { font-size: 17px; font-weight: 700; padding: .25em 0; }
+.dlink.danger { color: #ff3b3b; }
 .sidebar-overlay {
     position: fixed;
     inset: 0;
@@ -444,13 +422,13 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    padding: 0 20px 100px;
+    padding: 0 0 60px;
 }
 .gallery-grid img {
     width: 100%;
     aspect-ratio: 1 / 1;
     object-fit: cover;
-    border-radius: 12px;
+    border-radius: 2px;
     border: 1px solid #eaeaea;
     background: #f9f9f9;
 }
@@ -511,9 +489,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .banner-slider {
     position: relative;
     width: 100%;
-    max-width: 600px;
     margin: 0 auto;
     overflow: hidden;
+    border-radius: 2px;
 }
 .banner-track {
     display: flex;
@@ -531,7 +509,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .banner-slide img {
     width: 100%;
-    height: 250px;
+    height: clamp(200px, 30vw, 340px);
     object-fit: cover;
     display: block;
 }
@@ -611,14 +589,139 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 /* ============ SIDEBAR AUTH ITEM ============ */
-.nav-links li#authSidebarItem,
-.nav-links li:last-child {
-    transition: 0.3s;
-}
-.nav-links li:last-child:hover {
-    padding-left: 10px;
-}
 #authNavText {
     font-weight: 700;
     letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TATA LETAK ALA JOURNAL (tetap putih)
+   masthead + menu kategori + feed & sidebar + footer
+   ═══════════════════════════════════════════════════════════════ */
+:root { --mast-h: 109px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; width: 100%; }
+
+/* ---- masthead ---- */
+.mast { position: fixed; top: 0; left: 0; right: 0; height: var(--mast-h); z-index: 5000; background: #ffffff; border-bottom: 1px solid #eaeaea; flex-direction: column; display: flex; }
+.mast-in { display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 12px; height: 64px; flex: none; padding: 0 20px; max-width: 1180px; width: 100%; margin: 0 auto; }
+.mast .burger { width: 44px; height: 44px; padding: 0; background: transparent; border: 2px solid #000; border-radius: 2px; display: grid; place-content: center; gap: 5px; }
+.mast .burger:hover { background: #f2f2f2; }
+.mast .burger .bar { display: block; width: 22px; height: 3px; background: #000; }
+.mast .logo { min-width: 0; justify-self: center; text-decoration: none; color: #000; display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: clamp(16px, 5vw, 26px); letter-spacing: .06em; white-space: nowrap; }
+.mast .logo i { font-style: normal; background: #000; color: #fff; font-size: .42em; font-weight: 800; letter-spacing: .12em; padding: .4em .6em; transform: rotate(-4deg); border-radius: 2px; }
+.mast .auth-btn { width: auto; max-width: 120px; padding: 10px 14px; background: #000; color: #fff; border: 2px solid #000; border-radius: 2px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mast .auth-btn:hover { background: #333; border-color: #333; }
+.cats { display: flex; gap: 4px; height: 44px; flex: none; overflow-x: auto; scrollbar-width: none; padding: 0 20px; max-width: 1180px; width: 100%; margin: 0 auto; }
+.cats::-webkit-scrollbar { display: none; }
+.cats a { display: flex; align-items: center; text-decoration: none; color: #000; font-weight: 700; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; padding: 0 .9em; border-bottom: 4px solid transparent; white-space: nowrap; }
+.cats a:hover { border-color: #cfcfcf; }
+.cats a[aria-current="page"] { border-color: #000; }
+.cats .spacer { flex: 1; min-width: 8px; }
+
+/* ---- layout: feed + sidebar ---- */
+.banner-wrap { padding-top: 20px; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; padding-top: 26px; padding-bottom: 34px; }
+.feed { min-width: 0; }
+.page-title { font-size: clamp(34px, 8vw, 68px); line-height: .98; font-weight: 900; letter-spacing: .01em; margin: 6px 0 8px; text-transform: uppercase; }
+.page-sub { color: #555; font-size: 12px; line-height: 1.8; margin: 0 0 22px; max-width: 60ch; }
+.sect-title { font-size: 12px; font-weight: 800; letter-spacing: .22em; margin: 0 0 16px; padding-top: 12px; border-top: 4px solid #000; text-transform: uppercase; text-align: left; }
+.side { display: grid; gap: 22px; align-content: start; }
+
+/* ---- kotak sidebar ---- */
+.j-box { border: 2px solid #000; padding: 18px; }
+.j-box h3 { font-size: 12px; letter-spacing: .2em; font-weight: 800; margin: 0 0 12px; text-transform: uppercase; }
+.j-box p { margin: 0 0 14px; font-size: 12px; line-height: 1.7; }
+.j-box.dark { background: #000; color: #fff; border-color: #000; }
+.j-box.dark h3 { color: #fff; }
+.j-list { margin-bottom: 14px; }
+.j-list a { display: block; text-decoration: none; color: #000; padding: 10px 0; border-top: 1px solid #e6e6e6; font-weight: 700; font-size: 13px; line-height: 1.4; }
+.j-list a:hover { text-decoration: underline; }
+.j-list small { display: block; margin-top: 3px; font-weight: 600; font-size: 10px; letter-spacing: .06em; color: #777; text-transform: uppercase; }
+
+/* ---- tombol Journal (menimpa gaya global button) ---- */
+.j-btn, .j-chip, .j-react, .j-link { width: auto; font-family: inherit; }
+.j-btn { display: inline-block; text-decoration: none; padding: 12px 18px; background: #000; color: #fff; border: 2px solid #000; border-radius: 2px; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
+.j-btn:hover { background: #333; border-color: #333; }
+.j-btn.sm { padding: 10px 14px; font-size: 10px; }
+.j-btn.ghost { background: transparent; color: #000; border-color: #000; }
+.j-btn.ghost:hover { background: #f2f2f2; }
+.j-btn.light { background: #fff; color: #000; border-color: #fff; }
+.j-btn.light:hover { background: #e9e9e9; border-color: #e9e9e9; }
+.j-btn:disabled { opacity: .5; cursor: wait; }
+.j-link { background: none; border: 0; padding: 0 0 0 8px; color: #777; font-size: 11px; text-decoration: underline; cursor: pointer; border-radius: 0; }
+.j-link:hover { background: none; color: #000; }
+
+/* ---- berita ---- */
+.j-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 22px; }
+.j-chip { padding: 9px 14px; background: transparent; color: #000; border: 2px solid #e2e2e2; border-radius: 2px; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.j-chip:hover { background: #f2f2f2; }
+.j-chip.on { background: #000; color: #fff; border-color: #000; }
+.j-cover { position: relative; background: repeating-linear-gradient(90deg, #111 0 44px, #1b1b1b 44px 88px); color: rgba(255,255,255,.3); overflow: hidden; aspect-ratio: 16/10; }
+.j-cover img, .j-cover .j-pitch, .j-cover svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.j-cover img { object-fit: cover; }
+.j-pitch * { vector-effect: non-scaling-stroke; stroke-width: 2px; }
+.j-lead { display: block; position: relative; text-decoration: none; color: #fff; margin-bottom: 12px; }
+.j-lead .j-cover { position: absolute; inset: 0; aspect-ratio: auto; }
+.j-lead-body { position: relative; min-height: 260px; display: flex; flex-direction: column; justify-content: flex-end; padding: 26px 22px 22px; background: linear-gradient(transparent, rgba(0,0,0,.92) 60%); }
+.j-lead h2 { font-size: clamp(24px, 4.2vw, 38px); line-height: 1.05; font-weight: 900; max-width: 18ch; margin: 10px 0 8px; text-transform: uppercase; }
+.j-lead p { margin: 0; max-width: 56ch; font-size: 13px; line-height: 1.7; color: rgba(255,255,255,.88); }
+.j-row { display: grid; grid-template-columns: minmax(0, 1fr) 180px; gap: 22px; padding: 22px 0; border-top: 2px solid #e6e6e6; }
+.j-row h3 { font-size: clamp(17px, 3vw, 22px); line-height: 1.2; font-weight: 800; margin: 8px 0; }
+.j-row h3 a { color: #000; text-decoration: none; }
+.j-row h3 a:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.j-row p { margin: 0; color: #555; font-size: 12px; line-height: 1.7; }
+.j-thumb { align-self: start; display: block; }
+.j-thumb .j-cover { aspect-ratio: 4/3; }
+.j-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #777; }
+.j-lead .j-meta { color: rgba(255,255,255,.85); }
+.j-tag { display: inline-block; background: #000; color: #fff; font-size: 9px; font-weight: 800; letter-spacing: .12em; padding: .45em .7em; border-radius: 2px; text-transform: uppercase; }
+.j-lead .j-tag { background: #fff; color: #000; }
+.j-tag.ai { background: transparent; color: inherit; border: 1.5px solid currentColor; }
+.j-loading { padding: 50px 0; color: #777; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.j-empty { padding: 36px 0; color: #777; font-size: 13px; line-height: 1.7; }
+.j-empty strong { display: block; font-size: 22px; font-weight: 900; color: #000; margin-bottom: 6px; text-transform: uppercase; }
+.j-notice { border: 2px solid #e2e2e2; background: #f6f6f6; padding: 16px 18px; font-size: 12px; line-height: 1.7; }
+.j-notice.bad { border-color: #ff3b3b; }
+.j-muted { color: #777; margin: 0; font-size: 12px; }
+
+/* ---- diskusi ---- */
+.j-thread-wrap { max-width: 780px; margin: 0 auto; padding: 26px 20px 30px; }
+.j-post { border-top: 4px solid #000; padding: 20px 0 28px; }
+.j-post header { padding: 0; display: flex; flex-direction: row; justify-content: flex-start; align-items: center; text-align: left; gap: 12px; margin-bottom: 12px; }
+.j-post header div { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 13px; }
+.j-post time, .j-reply time { color: #777; font-size: 11px; }
+.j-avatar { width: 44px; height: 44px; background: #000; color: #fff; display: grid; place-content: center; font-weight: 900; font-size: 22px; border-radius: 2px; flex: none; }
+.j-post-label { font-size: clamp(22px, 5vw, 32px); font-weight: 900; line-height: 1.1; margin: 0 0 8px; text-transform: uppercase; }
+.j-post-text { white-space: pre-wrap; margin: 0 0 14px; font-size: 14px; line-height: 1.7; }
+.j-post-img { width: 100%; max-height: 480px; object-fit: cover; margin-bottom: 14px; display: block; border-radius: 2px; }
+.j-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.j-react { display: inline-flex; gap: 6px; align-items: center; padding: 7px 12px; background: transparent; color: #000; border: 2px solid #e2e2e2; border-radius: 2px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.j-react:hover { background: #f2f2f2; }
+.j-react.on { background: #000; color: #fff; border-color: #000; }
+.j-replies { margin-top: 16px; border-left: 4px solid #e2e2e2; padding-left: 18px; }
+.j-reply { padding: 10px 0; border-bottom: 1px solid #ececec; }
+.j-reply strong { font-size: 13px; margin-right: 6px; }
+.j-reply p { margin: 3px 0 0; white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+.j-composer { display: grid; gap: 8px; margin-top: 14px; justify-items: start; }
+.j-composer textarea { min-height: 96px; padding: 12px; border-radius: 2px; font-size: 13px; resize: vertical; box-shadow: none; }
+.j-err { color: #ff3b3b; font-size: 12px; min-height: 1.2em; }
+.j-signin { margin: 14px 0 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+
+/* ---- lain-lain ---- */
+@media (min-width: 640px) {
+    .products { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; }
+    .card-body { padding: 16px; }
+    .card h3 { font-size: 14px; }
+    .gallery-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 960px) { .gallery-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 30px; } }
+@media (max-width: 600px) {
+    .mast-in { grid-template-columns: 44px 1fr auto; gap: 8px; }
+    .mast .logo { font-size: 15px; letter-spacing: .02em; gap: 5px; }
+    .mast .auth-btn { padding: 9px 10px; font-size: 10px; max-width: 96px; }
+    .mast-in, .cats { padding: 0 14px; }
+    .wrap { padding: 0 14px; }
+    .j-row { grid-template-columns: minmax(0, 1fr) 104px; gap: 14px; }
+    .j-row p { display: none; }
 }
