@@ -9,8 +9,8 @@
     --ink: #111111;
     --ink-2: #3b3a37;
     --muted: #7a766f;
-    --line: #e8e5df;
-    --line-2: #d6d2ca;
+    --line: rgba(0, 0, 0, .08);
+    --line-2: rgba(0, 0, 0, .14);
     --gold: #7a766f;
     --danger: #b3261e;
     --ok: #2f7a4d;
@@ -161,10 +161,10 @@ label.f input, label.f textarea { margin-top: 9px; letter-spacing: normal; text-
 /* ---------- judul & seksi ---------- */
 .page-title { font-family: var(--font-display); font-size: clamp(40px, 8vw, 68px); font-weight: 500; line-height: 1; letter-spacing: 0; margin: 4px 0 10px; }
 .page-sub { color: var(--muted); font-size: 13px; line-height: 1.85; margin: 0 0 26px; max-width: 58ch; }
-.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 20px; padding-top: 18px; border-top: 1px solid var(--ink); }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 20px; padding-top: 18px; border-top: 1px solid var(--line); }
 .sec-title { font-family: var(--font-display); font-size: clamp(28px, 5vw, 38px); font-weight: 500; line-height: 1; margin: 0; }
 .sec-title small { display: block; font-family: var(--font-ui); font-size: 10px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
-.sec-link { width: auto; background: none; border: 0; padding: 0; color: var(--ink); font-size: 10.5px; letter-spacing: .16em; text-decoration: none; border-bottom: 1px solid var(--ink); padding-bottom: 3px; white-space: nowrap; }
+.sec-link { width: auto; background: none; border: 0; padding: 0; color: var(--ink); font-size: 10.5px; letter-spacing: .16em; text-decoration: none; border-bottom: 1px solid var(--line); padding-bottom: 3px; white-space: nowrap; }
 .sec-link:hover { background: none; color: var(--gold); border-color: var(--gold); }
 .notice { border: 1px solid var(--line); background: var(--paper); border-radius: var(--r); padding: 16px 18px; font-size: 13px; line-height: 1.7; }
 .notice.bad { border-color: #ecc9c6; background: #fbf1f0; }
@@ -243,7 +243,7 @@ footer, .foot { background: var(--paper); border-top: 1px solid var(--line); pad
 .feature h3 { font-size: clamp(30px, 4.4vw, 46px); font-weight: 500; line-height: 1.04; margin: 14px 0 12px; }
 .feature p { margin: 0 0 20px; color: var(--muted); font-size: 13px; line-height: 1.85; }
 .feature:hover h3 { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 6px; }
-.more-link { font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; border-bottom: 1px solid var(--ink); padding-bottom: 3px; }
+.more-link { font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
 .row { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 26px; padding: 26px 0; border-top: 1px solid var(--line); }
 .row h3 { font-size: clamp(24px, 3.4vw, 32px); font-weight: 500; margin: 10px 0; }
 .row h3 a { text-decoration: none; }
@@ -267,7 +267,7 @@ footer, .foot { background: var(--paper); border-top: 1px solid var(--line); pad
 
 /* diskusi lengkap */
 .thread-wrap { max-width: 780px; margin: 0 auto; padding: 36px 24px 40px; }
-.post { border-top: 1px solid var(--ink); padding: 24px 0 30px; }
+.post { border-top: 1px solid var(--line); padding: 24px 0 30px; }
 .post header { padding: 0; display: flex; flex-direction: row; justify-content: flex-start; align-items: center; text-align: left; gap: 12px; margin-bottom: 14px; }
 .post header div { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12px; }
 .post header time, .reply time { color: var(--muted); font-size: 11px; }
@@ -341,10 +341,10 @@ footer, .foot { background: var(--paper); border-top: 1px solid var(--line); pad
 .banner-track::-webkit-scrollbar { display: none; }
 .banner-slide { position: relative; flex: 0 0 100%; width: 100%; scroll-snap-align: center; }
 .banner-slide img { width: 100%; height: clamp(210px, 32vw, 380px); object-fit: cover; display: block; }
-.banner-slide::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(17, 17, 17, .72) 0%, rgba(17, 17, 17, .12) 55%, rgba(17, 17, 17, 0) 100%); pointer-events: none; }
+.banner-slide::after { content: none; }
 .banner-content { position: absolute; bottom: 26px; left: 26px; right: 60px; z-index: 2; color: #fff; text-align: left; }
-.banner-content h3 { margin: 0 0 6px; font-size: clamp(26px, 4vw, 40px); font-weight: 500; line-height: 1.05; color: #fff; }
-.banner-content p { margin: 0 0 14px; font-size: 12px; opacity: .85; line-height: 1.6; color: #fff; }
+.banner-content h3 { text-shadow: 0 1px 12px rgba(0,0,0,.35); margin: 0 0 6px; font-size: clamp(26px, 4vw, 40px); font-weight: 500; line-height: 1.05; color: #fff; }
+.banner-content p { text-shadow: 0 1px 10px rgba(0,0,0,.35); margin: 0 0 14px; font-size: 12px; opacity: .85; line-height: 1.6; color: #fff; }
 .banner-content a { color: #fff; font-size: 10px; font-weight: 600; text-decoration: none; letter-spacing: .2em; text-transform: uppercase; border-bottom: 1px solid rgba(255, 255, 255, .7); padding-bottom: 3px; cursor: pointer; }
 .banner-dots { position: absolute; bottom: 24px; right: 24px; display: flex; gap: 6px; z-index: 3; }
 .banner-dots .dot { width: 6px; height: 6px; background: rgba(255, 255, 255, .5); border-radius: 50%; cursor: pointer; transition: .3s; }
@@ -363,7 +363,7 @@ footer, .foot { background: var(--paper); border-top: 1px solid var(--line); pad
 .card-body { padding: 14px 2px 0; }
 .card h3 { font-size: 22px; font-weight: 600; line-height: 1.1; margin: 0 0 6px; }
 .card .price { margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--muted); }
-.card button { padding: 13px; font-size: 10.5px; background: transparent; color: var(--ink); border-color: var(--ink); }
+.card button { padding: 13px; font-size: 10.5px; background: transparent; color: var(--ink); border-color: var(--line-2); }
 .card button:hover { background: var(--ink); color: #fff; }
 .card button:disabled { background: var(--paper); color: var(--muted); border-color: var(--line); }
 .card.sold-out-display .card-media img { filter: grayscale(.7); opacity: .65; }
@@ -553,7 +553,7 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -.01em; line-height: 1.2; }
 .row h3 { font-size: clamp(17px, 2.6vw, 21px); font-weight: 600; }
 .disc h3 { font-size: clamp(18px, 3vw, 24px); font-weight: 600; }
 .post-label { font-size: clamp(20px, 3.4vw, 26px); font-weight: 600; }
-.banner-content h3 { font-size: clamp(20px, 3.4vw, 30px); font-weight: 600; }
+.banner-content h3 { text-shadow: 0 1px 12px rgba(0,0,0,.35); font-size: clamp(20px, 3.4vw, 30px); font-weight: 600; }
 .card h3 { font-size: 14px; font-weight: 600; line-height: 1.35; letter-spacing: 0; }
 .det-name { font-size: clamp(22px, 6vw, 28px); font-weight: 600; line-height: 1.2; }
 .form-title { font-size: clamp(22px, 6vw, 28px); font-weight: 600; }
@@ -598,3 +598,67 @@ h1, h2, h3, .page-title, .sec-title, .card h3 { font-weight: 700; letter-spacing
     #home .sec-head { flex-direction: column; align-items: center; gap: 6px; }
     #home .sec-head .sec-link { position: static; }
 }
+
+/* ---------- clean: header, kartu, bayangan minimal ---------- */
+.mast { border-bottom: 1px solid var(--line); }
+.card-media { border: 0; }
+.sec-head { border-top: 0; padding-top: 0; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+.card-box { border: 1px solid var(--line); }
+.sum-total { border-top: 1px solid var(--line); }
+.ongkir { border-left: 2px solid var(--line-2); }
+.foot, footer { border-top: 1px solid var(--line); }
+
+
+/* =====================================================================
+   CLEAN · SIMPLE · ELEGAN
+   - Judul & kata penting: HURUF KAPITAL
+   - Garis pembatas: abu-abu tipis (ubah lewat --rule di bawah)
+   ===================================================================== */
+:root {
+    --rule: #d6d6d4;          /* abu-abu garis pembatas antar bagian */
+    --rule-soft: #e6e6e4;     /* abu-abu garis di dalam daftar/kartu */
+    --line: var(--rule-soft);
+    --line-2: #cfcfcd;
+    --paper: #f7f7f6;
+    --shadow: 0 12px 36px rgba(17, 17, 17, .08);
+    --shadow-sm: none;
+}
+body { letter-spacing: .005em; }
+
+/* ---------- KAPITAL untuk kata penting ---------- */
+h1, h2, h3,
+.page-title, .hero-title, .sec-title, .modal-title, .form-title, .det-name,
+.dlg-head h2, .drawer-head strong, .empty strong, .box h3, .about h2,
+.sources h2, .more h2, .adm h1, .sum-name {
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 600;
+}
+.page-title, .hero-title { letter-spacing: .05em; line-height: 1.15; }
+.sec-title { font-size: clamp(16px, 3vw, 20px); letter-spacing: .14em; }
+.card h3, .feature h3, .row h3, .disc h3, .post-label { text-transform: uppercase; letter-spacing: .04em; }
+/* judul artikel panjang & isi bacaan tetap normal supaya nyaman dibaca */
+.story h1, .prose h2, .prose h3, .arow h3, .check b { text-transform: none; letter-spacing: -.01em; }
+.dlink, .cats a, .foot-cols a, .tag, .chip, .meta, .logo,
+.sec-link, .more-link, .eyebrow, .dgroup, .form-block, .footer-slogan, .copyright {
+    text-transform: uppercase;
+}
+.dlink { letter-spacing: .1em; font-size: clamp(15px, 4.2vw, 18px); }
+
+/* ---------- garis pembatas: abu-abu, tipis, rapi ---------- */
+.sec-head { border-bottom: 1px solid var(--rule); padding-bottom: 16px; margin-bottom: 26px; }
+.home-sec { margin-top: 72px; }
+.mast, .foot, footer { border-color: var(--rule); }
+.row, .post, .reply, .sum-item, .sum-total, .dgroup, .form-block, .specs,
+.about .eco dt, .about .lead, .sources, .tabs, .tbl td { border-color: var(--rule-soft); }
+.divider::before, .divider::after { background: var(--rule); }
+.sec-link { border-bottom: 1px solid var(--rule); color: var(--muted); }
+.sec-link:hover { color: var(--ink); border-color: var(--ink); }
+
+/* ---------- lebih lega & minim dekorasi ---------- */
+.card-box, .box, .disc, .tile, .notice { box-shadow: none; border-color: var(--rule-soft); }
+.box, .disc, .tile { background: var(--paper); }
+input, textarea, select { border-color: var(--line-2); }
+input:focus, textarea:focus, select:focus { box-shadow: none; border-color: var(--ink); }
+button:hover, .btn:hover { background: #333; border-color: #333; }
+.gallery-grid img:hover { transform: none; box-shadow: none; opacity: .92; }
