@@ -45,27 +45,31 @@ const CART_SLUGS = {
     cartSummary: '/keranjang/summary'
 };
 
-function updateMeta(title, description) {
+function updateMeta(title, description, path) {
     document.title = title;
-    const descMeta = document.querySelector('meta[name="description"]');
-    if (descMeta) descMeta.content = description;
-
-    const ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle) ogTitle.content = title;
-
-    const ogDesc = document.querySelector('meta[property="og:description"]');
-    if (ogDesc) ogDesc.content = description;
+    const setC = (sel, v) => { const el = document.querySelector(sel); if (el) el.setAttribute('content', v); };
+    setC('meta[name="description"]', description);
+    setC('meta[property="og:title"]', title);
+    setC('meta[property="og:description"]', description);
+    setC('meta[name="twitter:title"]', title);
+    setC('meta[name="twitter:description"]', description);
+    if (path !== undefined) {
+        const url = 'https://fucktherules.my.id' + path;
+        setC('meta[property="og:url"]', url);
+        const can = document.querySelector('link[rel="canonical"]');
+        if (can) can.setAttribute('href', url);
+    }
 }
 
 const META = {
-    home: { title: 'FvcktheRules | Make a Stand with Pride', desc: 'Soccer culture, street attitude.' },
-    katalog: { title: 'Katalog | FvcktheRules', desc: 'Koleksi lengkap FvcktheRules Store.' },
-    preorder: { title: 'Pre Order | FvcktheRules', desc: 'Pre order produk terbaru FvcktheRules.' },
-    arsip: { title: 'Arsip | FvcktheRules', desc: 'Koleksi arsip FvcktheRules Store.' },
-    galeri: { title: 'Galeri | FvcktheRules', desc: 'Galeri foto FvcktheRules Store.' },
-    tentang: { title: 'Tentang Kami | FvcktheRules', desc: 'FvcktheRules, built for those who carry football into everyday life.' },
-    berita: { title: 'Berita | FvcktheRules Journal', desc: 'Berita football, Indonesia, dan budaya jalanan dari FvcktheRules.' },
-    diskusi: { title: 'Diskusi | FvcktheRules Journal', desc: 'Diskusi komunitas FvcktheRules: post tim, reaksi, dan balasan.' }
+    home: { title: 'FvcktheRules | Football Streetwear & Culture. Born to Disobey', desc: 'FvcktheRules: label streetwear, media, dan komunitas budaya sepak bola dari Indonesia. Kaos bola, berita, opini, jurnal, zine, dan diskusi. Born to Disobey.', path: '/' },
+    katalog: { title: 'Katalog | FvcktheRules', desc: 'Katalog ready stock FvcktheRules: kaos dan streetwear budaya sepak bola yang bisa langsung dipesan.', path: '/katalog/' },
+    preorder: { title: 'Pre Order | FvcktheRules', desc: 'Pre order produk terbaru FvcktheRules: kaos dan streetwear bertema sepak bola. Slot terbatas, Born to Disobey.', path: '/preorder/' },
+    arsip: { title: 'Arsip | FvcktheRules', desc: 'Arsip koleksi FvcktheRules yang sudah habis terjual. Jejak rilisan streetwear sepak bola kami.', path: '/arsip/' },
+    galeri: { title: 'Galeri | FvcktheRules', desc: 'Galeri foto FvcktheRules: budaya sepak bola dilihat dari jalanan.', path: '/galeri/' },
+    tentang: { title: 'Tentang FvcktheRules | Born to Disobey', desc: 'FvcktheRules dibangun untuk mereka yang membawa sepak bola ke luar lapangan: clothing label, media, zine, e-book, dan komunitas. Founded in 2024.', path: '/tentang/' },
+    berita: { title: 'Berita Sepak Bola | FvcktheRules Journal', desc: 'Berita sepak bola Indonesia dan dunia dari sudut pandang FvcktheRules: transfer, pertandingan, klub, dan budaya di sekitarnya.', path: '/berita/' },
+    diskusi: { title: 'Diskusi | FvcktheRules Journal', desc: 'Ruang diskusi FvcktheRules untuk suporter, kolektor, pemain, dan kreator. Bicara bola, debat bola, bagikan cerita.', path: '/diskusi/' }
 };
 
 function slugify(text) {
@@ -740,7 +744,7 @@ function injectFooters() {
                     <div class="footer-contact-info">
                         Saluran WhatsApp : <a href="https://whatsapp.com/channel/0029VbD2hZqEKyZQXCFpkD2p" target="_blank"><i class="fab fa-whatsapp"></i> Klik Disini</a><br>
                         WhatsApp : <a href="https://wa.me/6285725706337">085725706337</a><br>
-                        Email : <a href="mailto:fucktherules34@gmail.com">fucktherules34@gmail.com</a>
+                        Email : <a href="mailto:fvcktherulesmakestandfucktherules3404@gmail.com">fvcktherulesmakestandfucktherules3404@gmail.com</a>
                     </div>
                 </div>
                 <div class="foot-cols">
@@ -784,7 +788,7 @@ function navTo(pageId) {
 }
 
 function showPage(id) {
-    if (META[id]) updateMeta(META[id].title, META[id].desc);
+    if (META[id]) updateMeta(META[id].title, META[id].desc, META[id].path);
     const menuBtn = document.getElementById('mast');
     const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang', 'berita', 'diskusi'];
 

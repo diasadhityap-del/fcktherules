@@ -1,11 +1,11 @@
 {
   "name": "FvcktheRules",
   "short_name": "FvcktheRules",
-  "description": "Make Stand With Pride",
+  "description": "Soccer culture. Street attitude. Born to Disobey.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#000000",
   "orientation": "portrait",
   "icons": [
     {
@@ -20,5 +20,6 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "lang": "id"
 }
