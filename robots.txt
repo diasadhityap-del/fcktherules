@@ -1,6 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
-Disallow: /keranjang
-
 Sitemap: https://fucktherules.my.id/sitemap.xml

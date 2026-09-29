@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // ADMIN WHITELIST (2 email)
+    // Email ini HARUS terdaftar di Firebase Console -> Authentication -> Users
+    // ============================================================
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'diasadhityap@gmail.com',
+          'fvcktherules3404@gmail.com'
+        ];
+    }
+
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // ============================================================
+    // PUBLIK: read semua orang, write HANYA admin
+    // ============================================================
+    match /produk/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /galeri/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /banners/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // VOUCHERS
+    // - Publik boleh read (cek kode) dan HANYA boleh menurunkan kuota
+    //   (potong kuota saat checkout). Field lain tidak bisa diubah publik.
+    // - Admin: create, update, delete
+    // ============================================================
+    match /vouchers/{document=**} {
+      allow read: if true;
+      allow update: if isAdmin()
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['kuota'])
+            && request.resource.data.kuota is number
+            && request.resource.data.kuota >= 0
+            && request.resource.data.kuota <= resource.data.kuota);
+      allow create, delete: if isAdmin();
+    }
+
+    // ============================================================
+    // ORDERS
+    // - Publik bisa CREATE (guest checkout), status awal wajib 'pending'
+    // - Read: admin (semua) ATAU customer pemilik order
+    // - Update/Delete: hanya admin
+    // ============================================================
+    match /orders/{document=**} {
+      allow create: if request.resource.data.status == 'pending';
+      allow read:   if isAdmin()
+                    || (isLoggedIn() && (
+                         resource.data.customerUid == request.auth.uid
+                         || resource.data.email == request.auth.token.email
+                       ));
+      allow update, delete: if isAdmin();
+    }
+
+    // ============================================================
+    // CUSTOMERS
+    // - Customer hanya bisa akses datanya sendiri (doc ID = uid)
+    // - Admin bisa read & delete semua
+    // ============================================================
+    match /customers/{customerId} {
+      allow create: if isLoggedIn() && request.auth.uid == customerId;
+      allow read:   if isAdmin()
+                    || (isLoggedIn() && request.auth.uid == customerId);
+      allow update: if isLoggedIn() && request.auth.uid == customerId;
+      allow delete: if isAdmin();
+    }
+  }
+}
