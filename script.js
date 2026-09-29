@@ -58,12 +58,12 @@ function updateMeta(title, description) {
 }
 
 const META = {
-    home: { title: 'FvcktheRules | Make a Stand with Pride', desc: 'Soccer culture, street attitude.' },
+    home: { title: 'FvcktheRules | Soccer Culture. Street Attitude. Born to Disobey.', desc: 'FvcktheRules is a football culture ecosystem: clothing, news, culture, opinion, journal, zine, e-book, and discussion. Soccer culture. Street attitude. Born to Disobey.' },
     katalog: { title: 'Katalog | FvcktheRules', desc: 'Koleksi lengkap FvcktheRules Store.' },
     preorder: { title: 'Pre Order | FvcktheRules', desc: 'Pre order produk terbaru FvcktheRules.' },
     arsip: { title: 'Arsip | FvcktheRules', desc: 'Koleksi arsip FvcktheRules Store.' },
     galeri: { title: 'Galeri | FvcktheRules', desc: 'Galeri foto FvcktheRules Store.' },
-    tentang: { title: 'Tentang Kami | FvcktheRules', desc: 'FvcktheRules, built for those who carry football into everyday life.' },
+    tentang: { title: 'Tentang Kami | FvcktheRules', desc: 'FvcktheRules: soccer culture, street attitude, born to disobey. Clothing label, media platform, publishing space, and community built around football culture.' },
     berita: { title: 'Berita | FvcktheRules Journal', desc: 'Berita football, Indonesia, dan budaya jalanan dari FvcktheRules.' },
     diskusi: { title: 'Diskusi | FvcktheRules Journal', desc: 'Diskusi komunitas FvcktheRules: post tim, reaksi, dan balasan.' }
 };
@@ -707,7 +707,7 @@ function renderGallery() {
     if (!container) return;
     container.innerHTML = '';
     galleryImages.forEach(img => {
-        container.innerHTML += `<img src="${img}" loading="lazy" onclick="vibrate(20); openImage('${img}')">`;
+        container.innerHTML += `<img src="${img}" alt="Galeri FvcktheRules" loading="lazy" decoding="async" onclick="vibrate(20); openImage('${img}')">`;
     });
 }
 
@@ -740,7 +740,7 @@ function injectFooters() {
                     <div class="footer-contact-info">
                         Saluran WhatsApp : <a href="https://whatsapp.com/channel/0029VbD2hZqEKyZQXCFpkD2p" target="_blank"><i class="fab fa-whatsapp"></i> Klik Disini</a><br>
                         WhatsApp : <a href="https://wa.me/6285725706337">085725706337</a><br>
-                        Email : <a href="mailto:fucktherules34@gmail.com">fucktherules34@gmail.com</a>
+                        Email : <a href="mailto:fvcktherules3404@gmail.com">fvcktherules3404@gmail.com</a>
                     </div>
                 </div>
                 <div class="foot-cols">
@@ -1442,7 +1442,7 @@ window.applyVoucherModal = async () => {
 
     const kode = inEl.value.trim().toUpperCase();
     if (!kode) {
-        msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Masukkan kode promo terlebih dahulu!";
+        msgEl.style.color = '#b3261e'; msgEl.innerText = "Masukkan kode promo terlebih dahulu!";
         return;
     }
 
@@ -1453,11 +1453,11 @@ window.applyVoucherModal = async () => {
         const v = await getVoucherByKode(kode);
 
         if (!v) {
-            msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Kode voucher tidak ditemukan / salah!";
+            msgEl.style.color = '#b3261e'; msgEl.innerText = "Kode voucher tidak ditemukan / salah!";
             return;
         }
         if (Number(v.kuota) <= 0) {
-            msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Yahh.. Kuota voucher ini sudah habis :(";
+            msgEl.style.color = '#b3261e'; msgEl.innerText = "Yahh.. Kuota voucher ini sudah habis :(";
             return;
         }
 
@@ -1499,7 +1499,7 @@ window.applyVoucherModal = async () => {
 
     } catch (e) {
         console.error(e);
-        msgEl.style.color = '#ff3b3b'; msgEl.innerText = "Terjadi masalah saat mengecek voucher.";
+        msgEl.style.color = '#b3261e'; msgEl.innerText = "Terjadi masalah saat mengecek voucher.";
     }
 };
 
@@ -1562,7 +1562,7 @@ function autoFillEmailFields() {
             el.style.cursor = 'not-allowed';
         });
         [noteSingle, noteCart].forEach(n => {
-            if (n) { n.innerText = '(terisi otomatis)'; n.style.color = '#00a844'; }
+            if (n) { n.innerText = '(terisi otomatis)'; n.style.color = '#000000'; }
         });
     } else {
         [inEmail, cartInEmail].forEach(el => {
@@ -1623,7 +1623,7 @@ window.signInWithGoogle = async () => {
     const msg = document.getElementById('authMsg');
     try {
         await customerSignInGoogle();
-        if (msg) { msg.style.color = '#00a844'; msg.innerText = 'Berhasil masuk!'; }
+        if (msg) { msg.style.color = '#000000'; msg.innerText = 'Berhasil masuk!'; }
         setTimeout(() => {
             closeAuthModal();
             triggerAlert('SELAMAT DATANG!');
@@ -1631,7 +1631,7 @@ window.signInWithGoogle = async () => {
     } catch (err) {
         console.error('Google sign-in gagal:', err);
         if (msg) {
-            msg.style.color = '#ff3b3b';
+            msg.style.color = '#b3261e';
             msg.innerText = err.code === 'auth/popup-closed-by-user'
                 ? 'Login dibatalkan.'
                 : 'Gagal masuk dengan Google. Coba lagi.';
@@ -1672,7 +1672,7 @@ window.submitAuth = async () => {
     const msg = document.getElementById('authMsg');
     const btn = document.getElementById('authSubmitBtn');
 
-    msg.style.color = '#ff3b3b';
+    msg.style.color = '#b3261e';
     if (!email || !email.includes('@')) { msg.innerText = 'Email tidak valid.'; return; }
     if (!pass || pass.length < 6) { msg.innerText = 'Password minimal 6 karakter.'; return; }
 
@@ -1686,7 +1686,7 @@ window.submitAuth = async () => {
         } else {
             await customerSignUp(email, pass);
         }
-        msg.style.color = '#00a844';
+        msg.style.color = '#000000';
         msg.innerText = authMode === 'signin' ? 'Berhasil masuk!' : 'Akun berhasil dibuat!';
         setTimeout(() => {
             closeAuthModal();
@@ -1814,7 +1814,7 @@ async function saveProfile() {
     const btn = document.getElementById('profSaveBtn');
 
     if (!namaEl.value.trim() || !noHpEl.value.trim() || !alamatEl.value.trim() || !provEl.value || !kotaEl.value || !kecEl.value || !kelEl.value) {
-        msgEl.style.color = '#ff3b3b';
+        msgEl.style.color = '#b3261e';
         msgEl.innerText = 'Lengkapi semua data (nama, no. HP, alamat, provinsi, kota, kecamatan, kelurahan).';
         return;
     }
@@ -1838,10 +1838,10 @@ async function saveProfile() {
     btn.innerText = 'SIMPAN PROFIL';
 
     if (ok) {
-        msgEl.style.color = '#00a844';
+        msgEl.style.color = '#000000';
         msgEl.innerText = 'Profil berhasil disimpan!';
     } else {
-        msgEl.style.color = '#ff3b3b';
+        msgEl.style.color = '#b3261e';
         msgEl.innerText = 'Gagal menyimpan profil. Coba lagi.';
     }
 }
