@@ -6,7 +6,7 @@ import {
 import {
   getAuth, signInWithEmailAndPassword, signOut,
   createUserWithEmailAndPassword, onAuthStateChanged,
-  GoogleAuthProvider, signInWithPopup
+  GoogleAuthProvider, signInWithPopup, signInWithCredential, sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -35,6 +35,42 @@ export const adminAuth = getAuth(adminApp);
 // (order, customer, produk, galeri, banner, voucher) pakai adminDb, bukan db.
 export const adminDb = getFirestore(adminApp);
 
+// ── JOURNAL APP (project Firebase jurnal: fvck-journal) — hanya untuk konten Berita & Diskusi.
+// Akun tetap akun toko (auth di atas). Rules Firestore jurnal tidak bisa membaca login project lain,
+// jadi tiap login/daftar juga masuk ke "akun bayangan" di project jurnal (email + password sama).
+// >>> TEMPEL config web app project fvck-journal (Firebase Console > Project settings > Your apps):
+const journalConfig = {
+    apiKey: "PASTE_API_KEY_FVCK_JOURNAL",
+    authDomain: "fvck-journal.firebaseapp.com",
+    projectId: "fvck-journal",
+    storageBucket: "fvck-journal.firebasestorage.app",
+    messagingSenderId: "PASTE",
+    appId: "PASTE"
+};
+export const journalConfigured = !String(journalConfig.apiKey).startsWith("PASTE");
+const JOURNAL_APP_NAME = 'fvckJournalApp';
+const journalApp = getApps().find(a => a.name === JOURNAL_APP_NAME) || initializeApp(journalConfig, JOURNAL_APP_NAME);
+export const journalDb = getFirestore(journalApp);
+export const journalAuth = getAuth(journalApp);
+
+// Masuk (atau buat otomatis) akun bayangan di project jurnal. Tidak pernah melempar error.
+// Mengembalikan { ok, reason }. reason "mismatch" = akun bayangan ada tapi password beda.
+export async function journalShadowSignIn(email, password) {
+    if (!journalConfigured) return { ok: false, reason: 'not-configured' };
+    try { await signInWithEmailAndPassword(journalAuth, email, password); return { ok: true }; }
+    catch (e) {
+        if (!['auth/invalid-credential', 'auth/user-not-found', 'auth/wrong-password'].includes(e.code)) return { ok: false, reason: e.code };
+    }
+    try { await createUserWithEmailAndPassword(journalAuth, email, password); return { ok: true }; }
+    catch (e) {
+        if (e.code === 'auth/email-already-in-use') {
+            try { await sendPasswordResetEmail(journalAuth, email); } catch {}
+            return { ok: false, reason: 'mismatch' };
+        }
+        return { ok: false, reason: e.code };
+    }
+}
+
 // Cloudinary config
 export const CLOUDINARY_BUKTI_CLOUD  = "dfbxrouwf";
 export const CLOUDINARY_BUKTI_PRESET = "underline-bukti";
@@ -52,6 +88,7 @@ export async function customerSignUp(email, password) {
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString()
     }, { merge: true });
+    journalShadowSignIn(email, password).catch(() => {});   // sambungkan ke akun Journal (tidak menghalangi login toko)
     return cred.user;
 }
 
@@ -63,10 +100,12 @@ export async function customerSignIn(email, password) {
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString()
     }, { merge: true });
+    await journalShadowSignIn(email, password);   // sambungkan ke akun Journal (tidak pernah gagal keras)
     return cred.user;
 }
 
 export async function customerSignOut() {
+    try { await signOut(journalAuth); } catch {}
     await signOut(auth);
 }
 
@@ -81,6 +120,10 @@ export async function customerSignInGoogle() {
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString()
     }, { merge: true });
+    try {   // coba sambungkan ke akun Journal; kalau tidak bisa, balasan Journal minta password sekali
+        const gc = GoogleAuthProvider.credentialFromResult(cred);
+        if (journalConfigured && gc) await signInWithCredential(journalAuth, gc);
+    } catch (e) { console.warn('Journal (Google) belum tersambung:', e.code || e); }
     return cred.user;
 }
 

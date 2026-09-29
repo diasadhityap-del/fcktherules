@@ -1,7 +1,8 @@
 // journal.js — Berita & Diskusi Journal, ditampilkan di web utama.
-// Data: koleksi "articles" dan "posts" (+ replies/reactions) di Firestore yang SAMA dengan toko.
-// Akun: Firebase Auth toko (koleksi "customers"), jadi tidak perlu akun terpisah.
-import { db, auth, onAuthStateChanged } from './firebase.js';
+// Data: koleksi "articles" dan "posts" (+ replies/reactions) di Firebase JURNAL (fvck-journal).
+// Akun: Firebase Auth toko (koleksi "customers"). Untuk menulis (balasan/reaksi) dipakai akun bayangan
+// di project jurnal dengan email + password yang sama (lihat journalShadowSignIn di firebase.js).
+import { db as mainDb, auth, onAuthStateChanged, journalDb as db, journalAuth, journalShadowSignIn, journalConfigured } from './firebase.js';
 import {
     collection, query, where, orderBy, limit, getDocs, getDoc, doc,
     setDoc, addDoc, deleteDoc, getCountFromServer, serverTimestamp
@@ -23,8 +24,8 @@ const emailName = (u) => u?.displayName || (u?.email || 'member').split('@')[0];
 function errBox(e) {
     let msg = 'Berita belum bisa dimuat. Muat ulang halaman dan coba lagi.';
     if (e?.code === 'failed-precondition') msg = 'Index database belum dibuat. Buka console browser (F12), klik link "create index" dari Firebase, lalu Create.';
-    else if (e?.code === 'permission-denied') msg = 'Rules Firestore belum mengizinkan Journal. Tempel isi firestore.rules dari repo jurnal ke Firebase toko (lihat README).';
-    return `<div class="j-notice bad" role="alert">${esc(msg)}</div>`;
+    else if (e?.code === 'permission-denied') msg = 'Rules Firestore project Journal belum dipasang. Publish isi firestore.rules dari repo jurnal ke project fvck-journal (lihat README).';
+    return `<div class="notice bad" role="alert">${esc(msg)}</div>`;
 }
 
 /* ---------- sampul: tiap berita tanpa foto dapat potongan lapangan berbeda ---------- */
@@ -39,18 +40,18 @@ function pitch(seed) {
   <rect x="0" y="24.84" width="5.5" height="18.32"/><rect x="99.5" y="24.84" width="5.5" height="18.32"/>
   <path d="M16.5 26.69A9.15 9.15 0 0 1 16.5 41.31"/><path d="M88.5 26.69A9.15 9.15 0 0 0 88.5 41.31"/></g></svg>`;
 }
-const coverHTML = (a) => `<div class="j-cover">${a.image ? `<img src="${esc(a.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="j-pitch">${pitch(a.id || a.title)}</div>`}</div>`;
-const tagHTML = (a) => `<span class="j-tag">${esc(catLabel(a.category))}</span>${a.generatedBy === 'AI' ? '<span class="j-tag ai">AI summary</span>' : ''}`;
-const rowHTML = (a) => `<article class="j-row"><div>
-  <div class="j-meta">${tagHTML(a)}<time>${fmtDate(a.publishedAt || a.createdAt)}</time></div>
+const coverHTML = (a) => `<div class="cover">${a.image ? `<img src="${esc(a.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : `<div class="pitch">${pitch(a.id || a.title)}</div>`}</div>`;
+const tagHTML = (a) => `<span class="tag">${esc(catLabel(a.category))}</span>${a.generatedBy === 'AI' ? '<span class="tag ai">AI summary</span>' : ''}`;
+const rowHTML = (a) => `<article class="row"><div>
+  <div class="meta">${tagHTML(a)}<time>${fmtDate(a.publishedAt || a.createdAt)}</time></div>
   <h3><a href="${articleUrl(a.id)}">${esc(a.title)}</a></h3><p>${esc(a.summary)}</p></div>
-  <a class="j-thumb" href="${articleUrl(a.id)}" tabindex="-1" aria-hidden="true">${coverHTML(a)}</a></article>`;
+  <a class="row-thumb" href="${articleUrl(a.id)}" tabindex="-1" aria-hidden="true">${coverHTML(a)}</a></article>`;
 
 /* ---------- state ---------- */
 let articles = [], articlesState = 'loading', articlesErr = null;   // loading | ok | error
 let latestPost = null;
 let cat = 'all';
-let user = null, isAdmin = false;
+let user = null, ju = null, isAdmin = false;   // user = akun toko, ju = akun bayangan di project jurnal
 let discLoaded = false, discToken = 0;
 const posts = new Map();
 
@@ -61,15 +62,16 @@ async function loadArticles() {
         articles = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         articlesState = 'ok';
     } catch (e) { console.warn('Journal: berita gagal dimuat', e); articlesState = 'error'; articlesErr = e; }
-    renderBerita(); renderSide();
+    renderBerita(); renderHome();
 }
 
 async function loadLatestPost() {
     try {
         const s = await getDocs(query(collection(db, 'posts'), where('status', '==', 'published'), orderBy('createdAt', 'desc'), limit(1)));
         latestPost = s.empty ? null : { id: s.docs[0].id, ...s.docs[0].data() };
+        if (latestPost) { try { await hydrate(latestPost); } catch { /* statistik opsional */ } }
     } catch (e) { console.warn('Journal: diskusi terbaru gagal dimuat', e); }
-    renderSide();
+    renderHome();
 }
 
 function renderBerita() {
@@ -79,43 +81,49 @@ function renderBerita() {
     if (articlesState === 'loading') return;
 
     if (chips) {
-        chips.innerHTML = [['all', 'Semua'], ...CATS].map(([k, l]) => `<button type="button" class="j-chip${cat === k ? ' on' : ''}" data-cat="${k}">${l}</button>`).join('');
+        chips.innerHTML = [['all', 'Semua'], ...CATS].map(([k, l]) => `<button type="button" class="chip${cat === k ? ' on' : ''}" data-cat="${k}">${l}</button>`).join('');
     }
     const items = cat === 'all' ? articles : articles.filter((a) => a.category === cat);
     if (!items.length) {
-        feed.innerHTML = `<div class="j-empty"><strong>Belum ada berita</strong>Berita baru muncul setelah editor menyetujuinya. Cek lagi sebentar lagi.</div>`;
+        feed.innerHTML = `<div class="empty"><strong>Belum ada berita</strong>Berita baru muncul setelah editor menyetujuinya. Cek lagi sebentar lagi.</div>`;
         return;
     }
     const [lead, ...rest] = items;
     feed.innerHTML = `
-    <a class="j-lead" href="${articleUrl(lead.id)}">${coverHTML(lead)}
-      <div class="j-lead-body"><div class="j-meta">${tagHTML(lead)}<time>${fmtDate(lead.publishedAt)}</time></div>
-      <h2>${esc(lead.title)}</h2><p>${esc(lead.summary)}</p></div></a>
+    <a class="feature" href="${articleUrl(lead.id)}">${coverHTML(lead)}
+      <div class="feature-body"><div class="meta">${tagHTML(lead)}<time>${fmtDate(lead.publishedAt)}</time></div>
+      <h3>${esc(lead.title)}</h3><p>${esc(lead.summary)}</p><span class="more-link">Baca selengkapnya →</span></div></a>
     ${rest.map(rowHTML).join('')}`;
 }
 
-/* ---------- sidebar (semua elemen [data-side]) ---------- */
-function renderSide() {
-    document.querySelectorAll('[data-side]').forEach((el) => {
-        const kind = el.dataset.side;
-        let html = '';
+/* ---------- cuplikan di beranda toko: 1 jurnal + 1 diskusi terbaru ---------- */
+function renderHome() {
+    const secJ = $('#homeJurnal'), bodyJ = $('#homeJurnalBody');
+    const secD = $('#homeDiskusi'), bodyD = $('#homeDiskusiBody');
 
-        if (kind === 'shop' && articlesState === 'ok' && articles.length) {
-            html += `<div class="j-box"><h3>Berita terbaru</h3><div class="j-list">${articles.slice(0, 4).map((a) =>
-                `<a href="${articleUrl(a.id)}">${esc(a.title)}<small>${esc(catLabel(a.category))} · ${fmtDate(a.publishedAt)}</small></a>`).join('')}</div>
-                <button type="button" class="j-btn sm" onclick="showPage('berita')">Semua berita</button></div>`;
-        }
+    if (secJ && bodyJ) {
+        if (articlesState === 'ok' && articles.length) {
+            const a = articles[0];
+            bodyJ.innerHTML = `<a class="feature" href="${articleUrl(a.id)}">${coverHTML(a)}
+                <div class="feature-body"><div class="meta">${tagHTML(a)}<time>${fmtDate(a.publishedAt || a.createdAt)}</time></div>
+                <h3>${esc(a.title)}</h3><p>${esc(a.summary)}</p><span class="more-link">Baca selengkapnya →</span></div></a>`;
+            secJ.hidden = false;
+        } else secJ.hidden = true;   // sedang memuat / gagal / belum ada berita: seksi disembunyikan
+    }
+
+    if (secD && bodyD) {
         if (latestPost) {
-            const lb = (latestPost.label || '').trim();
-            const txt = (lb ? lb + (/[.!?…]$/.test(lb) ? ' ' : '. ') : '') + (latestPost.content || '');
-            html += `<div class="j-box"><h3>Dari tribun</h3><p>${esc(txt.length > 200 ? txt.slice(0, 200) + '…' : txt)}</p>
-                <button type="button" class="j-btn sm" onclick="showPage('diskusi')">Ikut diskusi</button></div>`;
-        }
-        html += kind === 'news'
-            ? `<div class="j-box dark"><h3>The store</h3><p>Limited run, pre-order, dan arsip ada di toko FvcktheRules.</p><button type="button" class="j-btn light sm" onclick="showPage('katalog')">Lihat katalog</button></div>`
-            : `<div class="j-box dark"><h3>The journal</h3><p>Berita football, Indonesia, dan budaya jalanan, plus diskusi bareng komunitas.</p><a class="j-btn light sm" href="${JOURNAL_URL}/">Buka Journal ↗</a></div>`;
-        el.innerHTML = html;
-    });
+            const p = latestPost, txt = p.content || '';
+            const stats = p.counts ? `<div class="disc-stats"><span>💬 ${p.replyCount || 0} balasan</span><span>${TYPES.map(([t, e]) => `${e} ${p.counts[t] || 0}`).join('  ')}</span></div>` : '<div></div>';
+            bodyD.innerHTML = `<article class="disc">
+                <div class="disc-top"><span class="avatar" aria-hidden="true">F</span>
+                <div class="who"><strong>FvcktheRules</strong><span class="tag">Admin</span>${p.pinned ? '<span class="tag ai">Pinned</span>' : ''}<time>${fmtDateTime(p.createdAt)}</time></div></div>
+                ${p.label ? `<h3>${esc(p.label)}</h3>` : ''}
+                <p class="txt">${esc(txt.length > 220 ? txt.slice(0, 220) + '…' : txt)}</p>
+                <div class="disc-foot">${stats}<button type="button" class="btn sm" onclick="showPage('diskusi')">Buka diskusi</button></div></article>`;
+            secD.hidden = false;
+        } else secD.hidden = true;
+    }
 }
 
 /* ---------- diskusi ---------- */
@@ -130,7 +138,7 @@ async function hydrate(p) {
     p.replyCount = replies;
     p.counts = Object.fromEntries(TYPES.map(([t], i) => [t, rc[i]]));
     p.mine = null;
-    if (user) { try { const s = await getDoc(doc(col, user.uid)); p.mine = s.exists() ? s.data().type : null; } catch { /* abaikan */ } }
+    if (ju) { try { const s = await getDoc(doc(col, ju.uid)); p.mine = s.exists() ? s.data().type : null; } catch { /* abaikan */ } }
 }
 
 async function loadDiscussion() {
@@ -141,7 +149,7 @@ async function loadDiscussion() {
     try {
         const snap = await getDocs(query(collection(db, 'posts'), where('status', '==', 'published'), orderBy('createdAt', 'desc'), limit(20)));
         const items = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-        if (!items.length) { list.innerHTML = `<div class="j-empty"><strong>Belum ada post</strong>Post pertama dari tim akan muncul di sini.</div>`; return; }
+        if (!items.length) { list.innerHTML = `<div class="empty"><strong>Belum ada post</strong>Post pertama dari tim akan muncul di sini.</div>`; return; }
         await Promise.all(items.map(hydrate));
         if (my !== discToken) return;   // ada pemuatan yang lebih baru
         posts.clear(); items.forEach((p) => posts.set(p.id, p));
@@ -150,78 +158,94 @@ async function loadDiscussion() {
 }
 
 const reactBtns = (p) => TYPES.map(([t, e]) =>
-    `<button type="button" class="j-react${p.mine === t ? ' on' : ''}" data-react="${t}" aria-pressed="${p.mine === t}" aria-label="${t}">${e} <span>${p.counts[t]}</span></button>`).join('');
+    `<button type="button" class="react${p.mine === t ? ' on' : ''}" data-react="${t}" aria-pressed="${p.mine === t}" aria-label="${t}">${e} <span>${p.counts[t]}</span></button>`).join('');
 
 function postHTML(p) {
-    return `<article class="j-post" data-id="${esc(p.id)}">
-    <header><span class="j-avatar" aria-hidden="true">F</span><div><strong>FvcktheRules</strong><span class="j-tag">Admin</span>${p.pinned ? '<span class="j-tag ai">Pinned</span>' : ''}<time>${fmtDateTime(p.createdAt)}</time></div></header>
-    ${p.label ? `<h2 class="j-post-label">${esc(p.label)}</h2>` : ''}
-    <p class="j-post-text">${esc(p.content)}</p>
-    ${p.image ? `<img class="j-post-img" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
-    <div class="j-actions"><span class="j-reacts">${reactBtns(p)}</span><button type="button" class="j-btn ghost sm" data-toggle>Balasan (<span class="rc">${p.replyCount}</span>)</button></div>
-    <div class="j-replies" hidden></div></article>`;
+    return `<article class="post" data-id="${esc(p.id)}">
+    <header><span class="avatar" aria-hidden="true">F</span><div><strong>FvcktheRules</strong><span class="tag">Admin</span>${p.pinned ? '<span class="tag ai">Pinned</span>' : ''}<time>${fmtDateTime(p.createdAt)}</time></div></header>
+    ${p.label ? `<h2 class="post-label">${esc(p.label)}</h2>` : ''}
+    <p class="post-text">${esc(p.content)}</p>
+    ${p.image ? `<img class="post-img" src="${esc(p.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
+    <div class="actions"><span class="reacts">${reactBtns(p)}</span><button type="button" class="btn ghost sm" data-toggle>Balasan (<span class="rc">${p.replyCount}</span>)</button></div>
+    <div class="thread" hidden></div></article>`;
 }
 
 async function loadThread(el, p) {
-    const th = $('.j-replies', el);
-    th.innerHTML = `<div class="j-loading" style="padding:16px 0">Memuat balasan…</div>`;
+    const th = $('.thread', el);
+    th.innerHTML = `<div class="loading" style="padding:16px 0">Memuat balasan…</div>`;
     try {
         const s = await getDocs(query(collection(db, 'posts', p.id, 'replies'), orderBy('createdAt', 'asc'), limit(100)));
         const rows = s.docs.map((d) => {
-            const r = d.data(); const mine = user && r.uid === user.uid;
-            return `<div class="j-reply" data-rid="${d.id}"><strong>${esc(r.name)}</strong>${r.isAdmin ? '<span class="j-tag">Admin</span>' : ''}<time>${fmtDateTime(r.createdAt)}</time>${mine || isAdmin ? '<button type="button" class="j-link" data-del>Hapus</button>' : ''}<p>${esc(r.content)}</p></div>`;
+            const r = d.data(); const mine = ju && r.uid === ju.uid;
+            return `<div class="reply" data-rid="${d.id}"><strong>${esc(r.name)}</strong>${r.isAdmin ? '<span class="tag">Admin</span>' : ''}<time>${fmtDateTime(r.createdAt)}</time>${mine || isAdmin ? '<button type="button" class="linkbtn" data-del>Hapus</button>' : ''}<p>${esc(r.content)}</p></div>`;
         }).join('');
         p.replyCount = s.size; $('.rc', el).textContent = s.size;
-        th.innerHTML = (rows || `<p class="j-muted">Belum ada balasan. Jadi yang pertama.</p>`) + (user
-            ? `<div class="j-composer"><textarea maxlength="600" placeholder="Tulis balasan…" aria-label="Balasan kamu"></textarea><button type="button" class="j-btn sm" data-send>Kirim balasan</button><span class="j-err" role="alert"></span></div>`
-            : `<p class="j-signin">Masuk untuk ikut diskusi. <button type="button" class="j-btn sm" data-login>Sign in</button></p>`);
+        th.innerHTML = (rows || `<p class="muted">Belum ada balasan. Jadi yang pertama.</p>`) + (user
+            ? `<div class="composer"><textarea maxlength="600" placeholder="Tulis balasan…" aria-label="Balasan kamu"></textarea><button type="button" class="btn sm" data-send>Kirim balasan</button><span class="err" role="alert"></span></div>`
+            : `<p class="signin-note">Masuk untuk ikut diskusi. <button type="button" class="btn sm" data-login>Sign in</button></p>`);
     } catch (e) { th.innerHTML = errBox(e); }
 }
 
 async function currentName() {
-    try { const s = await getDoc(doc(db, 'customers', user.uid)); const n = (s.data()?.nama || '').trim(); if (n) return n; } catch { /* pakai fallback */ }
+    try { const s = await getDoc(doc(mainDb, 'customers', user.uid)); const n = (s.data()?.nama || '').trim(); if (n) return n; } catch { /* pakai fallback */ }
     return emailName(user);
+}
+
+/* Pastikan akun bayangan jurnal aktif. Kalau login toko sudah tersimpan dari sebelumnya, minta password sekali. */
+async function ensureShadow() {
+    if (!user) { window.openAuthModal?.(); return null; }
+    if (!journalConfigured) { alert('Koneksi ke Firebase Journal belum diatur (config fvck-journal belum ditempel).'); return null; }
+    if (ju && ju.email === user.email) return ju;
+    const pw = window.prompt('Masukkan password akunmu sekali lagi untuk mengaktifkan balasan dan reaksi di Journal:');
+    if (!pw) return null;
+    const r = await journalShadowSignIn(user.email, pw);
+    if (r.ok) return journalAuth.currentUser;
+    alert(r.reason === 'mismatch'
+        ? 'Password akun Journal belum sama dengan akun toko. Email reset sudah dikirim. Setel ke password yang sama, lalu coba lagi.'
+        : 'Belum bisa tersambung ke Journal. Coba keluar lalu masuk lagi dengan email dan password.');
+    return null;
 }
 
 function bindDiscussion() {
     const list = $('#diskusiList');
     if (!list) return;
     list.addEventListener('click', async (e) => {
-        const el = e.target.closest('.j-post'); if (!el) return;
+        const el = e.target.closest('.post'); if (!el) return;
         const p = posts.get(el.dataset.id); if (!p) return;
 
         if (e.target.closest('[data-login]')) return window.openAuthModal?.();
 
         if (e.target.closest('[data-toggle]')) {
-            const th = $('.j-replies', el);
+            const th = $('.thread', el);
             if (th.hidden) { th.hidden = false; await loadThread(el, p); } else th.hidden = true;
             return;
         }
 
         const rb = e.target.closest('[data-react]');
         if (rb) {
-            if (!user) return window.openAuthModal?.();
-            const t = rb.dataset.react, ref = doc(db, 'posts', p.id, 'reactions', user.uid);
+            const su = await ensureShadow(); if (!su) return;
+            const t = rb.dataset.react, ref = doc(db, 'posts', p.id, 'reactions', su.uid);
             const prev = p.mine;
             try {
                 if (prev === t) { await deleteDoc(ref); p.counts[t]--; p.mine = null; }
                 else {
-                    await setDoc(ref, { type: t, uid: user.uid, createdAt: serverTimestamp() });
+                    await setDoc(ref, { type: t, uid: su.uid, createdAt: serverTimestamp() });
                     if (prev) p.counts[prev]--; p.counts[t]++; p.mine = t;
                 }
-                $('.j-reacts', el).innerHTML = reactBtns(p);
+                $('.reacts', el).innerHTML = reactBtns(p);
             } catch (err) { console.warn(err); }
             return;
         }
 
         if (e.target.closest('[data-send]')) {
             const btn = e.target.closest('[data-send]');
-            const ta = $('textarea', el), errEl = $('.j-err', el), text = ta.value.trim();
+            const ta = $('textarea', el), errEl = $('.err', el), text = ta.value.trim();
             if (!text) { errEl.textContent = 'Tulis sesuatu dulu.'; return; }
             btn.disabled = true; errEl.textContent = '';
+            const su = await ensureShadow(); if (!su) { btn.disabled = false; return; }
             try {
                 await addDoc(collection(db, 'posts', p.id, 'replies'), {
-                    uid: user.uid, name: (await currentName()).slice(0, 60), content: text.slice(0, 600), isAdmin, createdAt: serverTimestamp(),
+                    uid: su.uid, name: (await currentName()).slice(0, 60), content: text.slice(0, 600), isAdmin, createdAt: serverTimestamp(),
                 });
                 await loadThread(el, p);
             } catch (err) { console.warn(err); errEl.textContent = 'Balasan gagal dikirim. Coba lagi.'; btn.disabled = false; }
@@ -230,7 +254,7 @@ function bindDiscussion() {
 
         const del = e.target.closest('[data-del]');
         if (del && confirm('Hapus balasan ini?')) {
-            try { await deleteDoc(doc(db, 'posts', p.id, 'replies', del.closest('.j-reply').dataset.rid)); await loadThread(el, p); } catch (err) { console.warn(err); }
+            try { await deleteDoc(doc(db, 'posts', p.id, 'replies', del.closest('.reply').dataset.rid)); await loadThread(el, p); } catch (err) { console.warn(err); }
         }
     });
 }
@@ -253,8 +277,14 @@ export function initJournal() {
     bindChips(); bindDiscussion();
     window.journalPageShown = pageShown;
 
-    onAuthStateChanged(auth, async (u) => {
-        user = u; isAdmin = false;
+    // akun toko: menentukan siapa yang login di web utama
+    onAuthStateChanged(auth, (u) => {
+        user = u;
+        if (!u && journalAuth.currentUser) journalAuth.signOut().catch(() => {});   // keluar dari toko = keluar dari Journal juga
+    });
+    // akun bayangan di project jurnal: uid untuk reaksi/balasan + cek admin
+    journalAuth.onAuthStateChanged(async (u) => {
+        ju = u; isAdmin = false;
         if (u) { try { isAdmin = (await getDoc(doc(db, 'admins', u.uid))).exists(); } catch { /* bukan admin */ } }
         if (discLoaded) loadDiscussion();   // muat ulang supaya reaksi "milikku" akurat
     });

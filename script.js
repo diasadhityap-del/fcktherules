@@ -129,7 +129,7 @@ function updateCartBadge() {
 }
 
 let cartToastTimer = null;
-const CART_TOAST_DEFAULT = '<i class="fas fa-check" style="margin-right:6px;"></i> Ditambahkan ke keranjang!';
+const CART_TOAST_DEFAULT = '<i class="fas fa-check"></i> Ditambahkan ke keranjang!';
 
 function showCartToast(msg) {
     const toast = document.getElementById('cartToast');
@@ -142,7 +142,7 @@ function showCartToast(msg) {
     }
 
     toast.innerHTML = msg
-        ? `<i class="fas fa-check" style="margin-right:6px;"></i> ${msg}`
+        ? `<i class="fas fa-check"></i> ${msg}`
         : CART_TOAST_DEFAULT;
 
     toast.classList.add('show');
@@ -177,10 +177,10 @@ function renderCartPage() {
 
     if (cartItems.length === 0) {
         container.innerHTML = `
-            <div style="text-align:center; padding:60px 20px; color:#444;">
-                <i class="fas fa-shopping-bag" style="font-size:48px; margin-bottom:20px; display:block;"></i>
-                <p style="font-weight:700; font-size:14px; letter-spacing:1px;">KERANJANG KOSONG</p>
-                <p style="font-size:12px; margin-top:8px; color:#333;">Tambahkan produk dulu yuk!</p>
+            <div class="cart-empty">
+                <i class="fas fa-shopping-bag"></i>
+                <p class="t">Keranjang kosong</p>
+                <p class="s">Tambahkan produk dulu yuk!</p>
             </div>`;
         const chkBtn = document.getElementById('cartCheckoutBtn');
         if (chkBtn) chkBtn.style.display = 'none';
@@ -192,14 +192,14 @@ function renderCartPage() {
     const total = totalKeranjang();
 
     container.innerHTML = cartItems.map(item => `
-        <div style="background:#ffffff; border:1px solid #eaeaea; border-radius:15px; padding:16px; margin-bottom:12px; display:flex; gap:14px; align-items:center;">
-            <img src="${item.prod.thumbnail}" style="width:70px; height:70px; object-fit:cover; border-radius:10px; flex-shrink:0;">
-            <div style="flex:1; min-width:0;">
-                <p style="font-weight:700; font-size:13px; margin:0 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#000;">${item.prod.name}</p>
-                <p style="font-size:11px; color:#888; margin:0 0 6px;">${item.color} | ${item.size}</p>
-                <p style="font-size:13px; color:#000000; font-weight:700; margin:0;">${formatRupiah(item.prod.price)}</p>
+        <div class="cart-item">
+            <img src="${item.prod.thumbnail}" alt="">
+            <div class="ci">
+                <p class="ci-name">${item.prod.name}</p>
+                <p class="ci-var">${item.color} | ${item.size}</p>
+                <p class="ci-price">${formatRupiah(item.prod.price)}</p>
             </div>
-            <button onclick="removeCartItem(${item.id})" style="background:#f9f9f9; border:1px solid #eaeaea; color:#000000; border-radius:8px; width:32px; height:32px; cursor:pointer; font-size:14px; flex-shrink:0; display:flex; align-items:center; justify-content:center;">
+            <button type="button" class="ci-del" onclick="removeCartItem(${item.id})" aria-label="Hapus">
                 <i class="fas fa-trash-alt"></i>
             </button>
         </div>
@@ -242,17 +242,17 @@ function validateCartForm() {
     } else {
         if (cartDpNote) {
             cartDpNote.style.display = 'block';
-            cartDpNote.innerHTML = '<p style="font-size:13px; color:#000; font-weight:700; margin:0; text-align:center; padding:15px; border:1px solid #eaeaea; border-radius:12px; background:#f9f9f9;"><i class="fas fa-info-circle" style="margin-right:5px;"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
+            cartDpNote.innerHTML = '<p class="info-note"><i class="fas fa-info-circle"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
         }
     }
 
     const itemsHTML = cartItems.map(item => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eaeaea;">
+        <div class="sum-item">
             <div>
-                <p style="font-size:13px; font-weight:700; margin:0 0 3px; color:#000;">${item.prod.name}</p>
-                <p style="font-size:11px; color:#888; margin:0;">${item.color} | ${item.size}</p>
+                <p class="n">${item.prod.name}</p>
+                <p class="v">${item.color} | ${item.size}</p>
             </div>
-            <p style="font-size:13px; color:#000000; font-weight:700; margin:0; flex-shrink:0; margin-left:10px;">${formatRupiah(item.prod.price)}</p>
+            <p class="pr">${formatRupiah(item.prod.price)}</p>
         </div>
     `).join('');
 
@@ -687,12 +687,14 @@ function renderList(items, containerId) {
         const isSold = p.badge === 'sold';
         container.innerHTML += `
             <div class="card ${isSold ? 'sold-out-display' : ''}">
-                <div class="badge ${p.badge}">${p.status}</div>
-                <img src="${p.thumbnail}">
+                <div class="card-media">
+                    <div class="badge ${p.badge}">${p.status}</div>
+                    <img src="${p.thumbnail}" alt="${String(p.name).replace(/"/g, '&quot;')}" loading="lazy">
+                </div>
                 <div class="card-body">
                     <h3>${p.name}</h3>
-                    <p style="opacity:0.5; font-weight:600;">${isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
-                    <button onclick="sessionStorage.setItem('lastPage', document.querySelector('.page.active') ? document.querySelector('.page.active').id : 'home'); vibrate(40); goDetail('${p.id}');" ${isSold ? 'disabled' : ''}>
+                    <p class="price">${isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
+                    <button type="button" onclick="sessionStorage.setItem('lastPage', document.querySelector('.page.active') ? document.querySelector('.page.active').id : 'home'); vibrate(40); goDetail('${p.id}');" ${isSold ? 'disabled' : ''}>
                         ${isSold ? 'SOLD' : 'SELECT'}
                     </button>
                 </div>
@@ -978,7 +980,7 @@ function validateForm() {
     } else {
         if (dpNote) {
             dpNote.style.display = 'block';
-            dpNote.innerHTML = '<p style="font-size:13px; color:#000; font-weight:700; margin:0; text-align:center; padding:15px; border:1px solid #eaeaea; border-radius:12px; background:#f9f9f9;"><i class="fas fa-info-circle" style="margin-right:5px;"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
+            dpNote.innerHTML = '<p class="info-note"><i class="fas fa-info-circle"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
         }
     }
 
@@ -1356,7 +1358,7 @@ function renderBannerSlider(banners) {
             <div class="banner-content">
                 ${b.title ? `<h3>${b.title}</h3>` : ''}
                 ${b.subtitle ? `<p>${b.subtitle}</p>` : ''}
-                ${b.link ? `<a onclick="navTo('${b.link}')" style="cursor:pointer;">READ MORE</a>` : ''}
+                ${b.link ? `<a onclick="navTo('${b.link}')">READ MORE</a>` : ''}
             </div>
         </div>
     `).join('');
@@ -1728,7 +1730,7 @@ async function openProfileModal() {
     alamatEl.value = '';
     if (kodePosEl) kodePosEl.value = '';
     msgEl.innerText = '';
-    orderListEl.innerHTML = '<p style="font-size:11px; color:#999; text-align:center;">Memuat riwayat pesanan...</p>';
+    orderListEl.innerHTML = '<p class="none">Memuat riwayat pesanan...</p>';
 
     // reset dropdown wilayah profil
     ['profProvinsi', 'profKota', 'profKecamatan', 'profKelurahan'].forEach((id, i) => {
@@ -1762,35 +1764,33 @@ async function renderProfileOrders() {
         const orders = await getCustomerOrders(currentCustomer.uid);
 
         if (!orders.length) {
-            orderListEl.innerHTML = '<p style="font-size:11px; color:#999; text-align:center;">Belum ada pesanan.</p>';
+            orderListEl.innerHTML = '<p class="none">Belum ada pesanan.</p>';
             return;
         }
 
         const statusLabel = { pending: 'DIPROSES', diproses: 'DIPROSES', dikirim: 'DIKIRIM', selesai: 'SELESAI', batal: 'DIBATALKAN' };
-        const statusColor = { pending: '#ff9800', diproses: '#ff9800', dikirim: '#2196f3', selesai: '#00a844', batal: '#ff3b3b' };
 
         orderListEl.innerHTML = orders.map(o => {
             const status = (o.status || 'pending').toLowerCase();
             const label = statusLabel[status] || status.toUpperCase();
-            const color = statusColor[status] || '#555';
             const produkText = o.produkText || o.produk || '-';
             const tanggal = o.createdAt ? new Date(o.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
             const total = typeof o.totalAkhir === 'number' ? 'Rp' + o.totalAkhir.toLocaleString('id-ID') : '-';
 
             return `
-                <div style="border:1px solid #eaeaea; border-radius:12px; padding:14px;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
-                        <span style="font-size:11px; font-weight:700; letter-spacing:0.5px;">${tanggal}</span>
-                        <span style="font-size:10px; font-weight:700; color:${color}; border:1px solid ${color}; border-radius:6px; padding:2px 8px; white-space:nowrap;">${label}</span>
+                <div class="order-item">
+                    <div class="order-head">
+                        <span class="d">${tanggal}</span>
+                        <span class="order-status st-${status}">${label}</span>
                     </div>
-                    <p style="font-size:12px; color:#333; margin:0 0 6px; line-height:1.5;">${produkText}</p>
-                    <p style="font-size:12px; font-weight:700; margin:0;">${total}</p>
+                    <p class="p">${produkText}</p>
+                    <p class="t">${total}</p>
                 </div>
             `;
         }).join('');
     } catch (e) {
         console.error(e);
-        orderListEl.innerHTML = '<p style="font-size:11px; color:#ff3b3b; text-align:center;">Gagal memuat riwayat pesanan.</p>';
+        orderListEl.innerHTML = '<p class="none bad">Gagal memuat riwayat pesanan.</p>';
     }
 }
 
