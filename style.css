@@ -610,55 +610,152 @@ h1, h2, h3, .page-title, .sec-title, .card h3 { font-weight: 700; letter-spacing
 
 
 /* =====================================================================
-   CLEAN · SIMPLE · ELEGAN
-   - Judul & kata penting: HURUF KAPITAL
-   - Garis pembatas: abu-abu tipis (ubah lewat --rule di bawah)
+   PLAYCHILL — santai, ceria, bulat, huruf kecil (gaya Couplet)
+   Ganti font judul / warna cukup di :root di bawah ini.
    ===================================================================== */
 :root {
-    --rule: #d6d6d4;          /* abu-abu garis pembatas antar bagian */
-    --rule-soft: #e6e6e4;     /* abu-abu garis di dalam daftar/kartu */
+    --font-fun: 'Gaegu', 'Patrick Hand', 'Comic Sans MS', 'Segoe Print', cursive;
+    --ink: #111111;
+    --lav: #e6b3ef;        /* ungu muda */
+    --mint: #5be39a;       /* hijau mint */
+    --sun: #ffd51e;        /* kuning */
+    --pop: #f26a35;        /* oranye aksen */
+    --paper: #fbf3fd;
+    --rule: #d6d6d4;       /* garis pembatas antar bagian (abu-abu) */
+    --rule-soft: #e6e6e4;
     --line: var(--rule-soft);
-    --line-2: #cfcfcd;
-    --paper: #f7f7f6;
-    --shadow: 0 12px 36px rgba(17, 17, 17, .08);
-    --shadow-sm: none;
+    --line-2: #111111;
+    --gold: #111111;
+    --muted: #6b6b68;
+    --r-sm: 12px; --r: 18px; --r-lg: 26px;
+    --shadow: 0 6px 0 #111;
+    --shadow-sm: 0 3px 0 #111;
+    --font-display: var(--font-fun);
 }
-body { letter-spacing: .005em; }
+::selection { background: var(--mint); color: var(--ink); }
+body { background: #fff; font-size: 15px; letter-spacing: 0; }
 
-/* ---------- KAPITAL untuk kata penting ---------- */
-h1, h2, h3,
-.page-title, .hero-title, .sec-title, .modal-title, .form-title, .det-name,
-.dlg-head h2, .drawer-head strong, .empty strong, .box h3, .about h2,
-.sources h2, .more h2, .adm h1, .sum-name {
-    text-transform: uppercase;
+/* ---------- judul: huruf tangan, kecil semua ---------- */
+h1, h2, h3, .page-title, .hero-title, .sec-title, .modal-title, .form-title,
+.det-name, .dlg-head h2, .drawer-head strong, .empty strong, .box h3, .about h2,
+.sources h2, .more h2, .adm h1, .sum-name, .card h3, .feature h3, .row h3,
+.disc h3, .post-label, .story h1, .prose h2, .prose h3, .arow h3, .check b, .tile b {
+    font-family: var(--font-fun);
+    text-transform: lowercase;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.1;
+}
+.page-title, .hero-title { font-size: clamp(38px, 9vw, 64px); }
+.sec-title { font-size: clamp(30px, 6vw, 40px); }
+.story h1 { font-size: clamp(34px, 7vw, 54px); }
+.feature h3 { font-size: clamp(28px, 5vw, 38px); }
+.row h3, .disc h3, .post-label, .box h3 { font-size: clamp(24px, 4vw, 30px); }
+.card h3 { font-size: 20px; line-height: 1.15; }
+.modal-title, .form-title, .det-name, .dlg-head h2, .about h2, .empty strong { font-size: clamp(26px, 6vw, 34px); }
+.prose h2, .more h2, .sources h2 { font-size: 1.9rem; }
+.prose h3 { font-size: 1.5rem; }
+.tile b { font-size: 3rem; }
+.dlink { font-family: var(--font-fun); font-size: clamp(26px, 7vw, 32px); font-weight: 700; text-transform: lowercase; letter-spacing: 0; }
+.dlink:hover, .dlink[aria-current="page"] { color: var(--ink); background: var(--mint); padding-left: 10px; border-radius: 12px; }
+.dlink.small { font-family: var(--font-ui); font-size: 14px; }
+
+/* teks kecil / label: sans polos, huruf kecil, renggang tipis */
+.cats a, .foot-cols a, .tag, .chip, .meta, .sec-link, .more-link, .eyebrow, .dgroup,
+.form-block, .footer-slogan, .copyright, .section-label, .badge, label.f,
+.input-group > label, .tbl th, .loading, .toast, .sign, .about .eco dt {
+    text-transform: lowercase;
     letter-spacing: .06em;
     font-weight: 600;
 }
-.page-title, .hero-title { letter-spacing: .05em; line-height: 1.15; }
-.sec-title { font-size: clamp(16px, 3vw, 20px); letter-spacing: .14em; }
-.card h3, .feature h3, .row h3, .disc h3, .post-label { text-transform: uppercase; letter-spacing: .04em; }
-/* judul artikel panjang & isi bacaan tetap normal supaya nyaman dibaca */
-.story h1, .prose h2, .prose h3, .arow h3, .check b { text-transform: none; letter-spacing: -.01em; }
-.dlink, .cats a, .foot-cols a, .tag, .chip, .meta, .logo,
-.sec-link, .more-link, .eyebrow, .dgroup, .form-block, .footer-slogan, .copyright {
-    text-transform: uppercase;
-}
-.dlink { letter-spacing: .1em; font-size: clamp(15px, 4.2vw, 18px); }
+.logo { font-family: var(--font-fun); font-size: clamp(24px, 6vw, 30px); font-weight: 700; letter-spacing: 0; text-transform: lowercase; }
+.logo i { font-family: var(--font-ui); letter-spacing: .04em; text-transform: lowercase; color: var(--ink); background: var(--sun); border: 2px solid var(--ink); }
 
-/* ---------- garis pembatas: abu-abu, tipis, rapi ---------- */
-.sec-head { border-bottom: 1px solid var(--rule); padding-bottom: 16px; margin-bottom: 26px; }
+/* ---------- header ---------- */
+.mast { background: #fff; border-bottom: 2px solid var(--ink); backdrop-filter: none; }
+.burger { border: 2px solid var(--ink); border-radius: 14px; }
+.burger:hover { background: var(--lav); }
+.cats a { color: var(--muted); font-size: 12px; border-bottom-width: 3px; }
+.cats a:hover { color: var(--ink); }
+.cats a[aria-current="page"] { color: var(--ink); border-color: var(--pop); }
+
+/* ---------- tombol: bulat, garis hitam, bayangan keras ---------- */
+button, .btn {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: lowercase;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    padding: 15px 24px;
+    box-shadow: var(--shadow-sm);
+    transition: transform .12s, box-shadow .12s, background .15s;
+}
+button:hover, .btn:hover { background: var(--ink); border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 5px 0 var(--mint); }
+button:active, .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+button:disabled, .btn:disabled { box-shadow: none; transform: none; }
+.btn.ghost, .btn-ghost, .btn-icon, .tabs button, .drawer-head button { background: #fff; color: var(--ink); border-color: var(--ink); }
+.btn.ghost:hover, .btn-ghost:hover, .btn-icon:hover, .tabs button:hover, .drawer-head button:hover { background: var(--lav); color: var(--ink); box-shadow: var(--shadow-sm); }
+.btn.light { background: #fff; color: var(--ink); border-color: var(--ink); }
+.btn.light:hover { background: var(--sun); color: var(--ink); }
+.btn.danger { background: #fff; border-color: var(--danger); box-shadow: 0 3px 0 var(--danger); }
+.btn.sm { padding: 10px 18px; font-size: 13px; }
+.link-btn, .linkbtn, .sec-link, .reply button { box-shadow: none; border-radius: 0; transform: none; }
+.link-btn:hover, .linkbtn:hover, .reply button:hover { box-shadow: none; transform: none; background: none; }
+.chip { border: 2px solid var(--ink); box-shadow: none; font-size: 13px; letter-spacing: .02em; }
+.chip:hover { background: var(--lav); color: var(--ink); transform: none; box-shadow: none; }
+.chip.on, .tabs button[aria-selected="true"], .tabs2 button[aria-selected="true"], .react.on { background: var(--mint); color: var(--ink); border-color: var(--ink); }
+.react { border: 2px solid var(--ink); box-shadow: none; }
+.react:hover { background: var(--lav); color: var(--ink); transform: none; box-shadow: none; }
+
+/* ---------- kartu & kotak: warna-warni, sudut besar ---------- */
+.box, .disc, .tile, .notice, .card-box, .modal-card, .specs-box, dialog, .umenu {
+    border: 2px solid var(--ink);
+    border-radius: var(--r-lg);
+    box-shadow: none;
+}
+.box { background: var(--lav); }
+.box.turf { background: var(--mint); color: var(--ink); border-color: var(--ink); }
+.box.turf p { color: var(--ink-2); }
+.box.turf .btn { background: var(--ink); color: #fff; border-color: var(--ink); }
+.box.turf .btn:hover { background: var(--ink); }
+.disc { background: var(--paper); }
+.tile:nth-child(3n+1) { background: var(--sun); }
+.tile:nth-child(3n+2) { background: var(--lav); }
+.tile:nth-child(3n+3) { background: var(--mint); }
+.cover, .card-media, .post-img, .row-thumb .cover { border-radius: var(--r-lg); }
+.cover { border: 2px solid var(--ink); }
+.tag { background: var(--sun); color: var(--ink); border: 2px solid var(--ink); font-size: 11px; }
+.badge { border: 2px solid var(--ink); background: #fff; font-size: 11px; }
+.avatar { background: var(--pop); border: 2px solid var(--ink); font-family: var(--font-fun); }
+.toast { background: var(--ink); color: var(--mint); }
+
+/* ---------- form ---------- */
+input, textarea, select { border: 2px solid var(--ink); border-radius: var(--r); font-size: 15px; }
+input:focus, textarea:focus, select:focus { border-color: var(--ink); box-shadow: 0 3px 0 var(--mint); outline: none; }
+input::placeholder, textarea::placeholder { color: #9a9a96; }
+label.f, .input-group > label { font-size: 12px; color: var(--ink); }
+
+/* ---------- garis pembatas: tetap abu-abu tipis ---------- */
+.sec-head { border-bottom: 1px solid var(--rule); padding-bottom: 14px; margin-bottom: 26px; }
 .home-sec { margin-top: 72px; }
-.mast, .foot, footer { border-color: var(--rule); }
 .row, .post, .reply, .sum-item, .sum-total, .dgroup, .form-block, .specs,
 .about .eco dt, .about .lead, .sources, .tabs, .tbl td { border-color: var(--rule-soft); }
 .divider::before, .divider::after { background: var(--rule); }
-.sec-link { border-bottom: 1px solid var(--rule); color: var(--muted); }
-.sec-link:hover { color: var(--ink); border-color: var(--ink); }
+.sec-link { color: var(--muted); border-bottom: 1px solid var(--rule); font-size: 13px; letter-spacing: .02em; }
+.sec-link:hover { color: var(--ink); border-color: var(--ink); background: none; }
+.thread { border-left: 2px solid var(--lav); }
 
-/* ---------- lebih lega & minim dekorasi ---------- */
-.card-box, .box, .disc, .tile, .notice { box-shadow: none; border-color: var(--rule-soft); }
-.box, .disc, .tile { background: var(--paper); }
-input, textarea, select { border-color: var(--line-2); }
-input:focus, textarea:focus, select:focus { box-shadow: none; border-color: var(--ink); }
-button:hover, .btn:hover { background: #333; border-color: #333; }
-.gallery-grid img:hover { transform: none; box-shadow: none; opacity: .92; }
+/* ---------- footer ---------- */
+footer, .foot { background: var(--lav); border-top: 2px solid var(--ink); }
+.foot-cols a { font-size: 13px; letter-spacing: .02em; }
+.foot-cols a:hover { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; }
+.foot b.ttl, .foot-cols b, .footer-contact-title { color: var(--ink); font-family: var(--font-fun); font-size: 20px; letter-spacing: 0; text-transform: lowercase; }
+.copyright, .footer-slogan { color: var(--ink-2); }
+
+/* ---------- galeri ---------- */
+.gallery-grid img { border: 2px solid var(--ink); border-radius: var(--r-lg); }
+.gallery-grid img:hover { transform: rotate(-1deg) scale(1.02); box-shadow: none; opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) { .gallery-grid img:hover { transform: none; } }
