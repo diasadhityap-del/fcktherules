@@ -1308,3 +1308,9 @@ label.upload:hover { background:#fff; border-color:var(--ink); }
 #sizeArea .option-box div.active:nth-child(n):focus {
   background:var(--ink) !important; color:#fff !important; border-color:var(--ink) !important;
 }
+
+
+/* v12: ikon keranjang terlihat di tombol hitam */
+.fab-cart { background: var(--ink); border: 0; box-shadow: none; }
+.fab-cart i,
+.fab-cart .fas { color: var(--cream); font-size: 20px; }
