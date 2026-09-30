@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fvcktherules-v14';
+const CACHE_NAME = 'fvcktherules-v15';
 const ASSETS = [
   'index.html',
   'style.css',
@@ -9,7 +9,7 @@ const ASSETS = [
 
 // Install Service Worker
 self.addEventListener('install', (e) => {
-  self.skipWaiting(); // langsung aktifkan versi baru tanpa nunggu tab ditutup
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS);
@@ -28,8 +28,7 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Fetch Assets: HTML/JS/CSS selalu coba ambil versi terbaru dari server dulu,
-// baru jatuh ke cache kalau offline. File lain tetap cache-first.
+// HTML/JS/CSS selalu coba ambil versi terbaru dulu, jatuh ke cache kalau offline
 self.addEventListener('fetch', (e) => {
   const isCoreFile = ASSETS.some((asset) => e.request.url.includes(asset));
 
