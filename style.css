@@ -1224,3 +1224,8 @@ label.upload:hover { background:#fff; border-color:var(--ink); }
 .size-img, .qris-img { border:0; border-radius:16px; }
 .order-item { background:#fff; border:0; border-radius:16px; }
 .order-status { border-width:1.5px; }
+
+/* v9 fixes: circle no longer touches headings; clean small labels */
+#home .home-sec::before { width:64px; height:64px; top:-32px; right:-14px; }
+#home #homeJurnal::before { left:-14px; right:auto; }
+.sec-title small { background:none; border:0; padding:0; transform:none; display:block; }
