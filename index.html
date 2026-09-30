@@ -45,7 +45,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css?v=pc5">
+    <link rel="stylesheet" href="/style.css?v=pc4">
 </head>
 <body>
 <noscript><p style="padding:24px;font-family:Arial,sans-serif">FvcktheRules — Soccer culture. Street attitude. Born to Disobey. Aktifkan JavaScript untuk membuka toko.</p></noscript>
@@ -113,8 +113,6 @@
 
     <div id="barBawah" style="display:none"></div>
 
-    <div class="band band-sun">soccer culture. <b>street attitude.</b> born to disobey.</div>
-
     <main class="wrap layout">
         <section class="feed">
             <h1 class="sr-only">FvcktheRules</h1>
@@ -122,47 +120,29 @@
             <section class="home-sec" id="homeProduk">
                 <div class="sec-head">
                     <h2 class="sec-title">Latest Release</h2>
-                    <a class="sec-link" href="/katalog" onclick="return navLink(event,'katalog')">Lihat katalog</a>
+                    <a class="sec-link" href="/katalog" onclick="return navLink(event,'katalog')">View catalog</a>
                 </div>
                 <div class="products" id="list-home"></div>
-            </section>
-
-            <section class="intro">
-                <h2>Hai, kami FvcktheRules</h2>
-                <p>Football culture yang bisa kamu pakai, baca, dan debatin. Pakaian, berita, jurnal, dan diskusi dalam satu tempat, tanpa gaya sok serius.</p>
-                <a class="btn ghost" href="/katalog" onclick="return navLink(event,'katalog')">Lihat katalog</a>
             </section>
 
             <!-- Jurnal & Diskusi: hanya cuplikan (top 1), diisi oleh journal.js -->
             <section class="home-sec" id="homeJurnal" hidden>
                 <div class="sec-head">
-                    <h2 class="sec-title"><small>Journal</small>Jurnal Terbaru</h2>
-                    <a class="sec-link" href="/berita" onclick="return navLink(event,'berita')">Semua berita</a>
+                    <h2 class="sec-title"><small>Journal</small>Latest Journal</h2>
+                    <a class="sec-link" href="/berita" onclick="return navLink(event,'berita')">All stories</a>
                 </div>
                 <div id="homeJurnalBody"></div>
             </section>
 
-            <div class="band band-blue">bola bukan cuma <b>soal skor</b></div>
-
             <section class="home-sec" id="homeDiskusi" hidden>
                 <div class="sec-head">
-                    <h2 class="sec-title"><small>Komunitas</small>Diskusi</h2>
-                    <a class="sec-link" href="/diskusi" onclick="return navLink(event,'diskusi')">Buka diskusi</a>
+                    <h2 class="sec-title"><small>Community</small>Discussion</h2>
+                    <a class="sec-link" href="/diskusi" onclick="return navLink(event,'diskusi')">Open discussion</a>
                 </div>
                 <div id="homeDiskusiBody"></div>
             </section>
         </section>
     </main>
-    <section class="closing">
-        <h2>born to disobey</h2>
-        <p>Kamu nggak perlu jadi ahli bola buat main santai. FvcktheRules untuk semua, terutama kamu.</p>
-        <svg viewBox="0 0 620 170" aria-hidden="true">
-            <path id="wv" d="M10,100 C130,30 230,160 330,95 S520,40 610,80"/>
-            <use href="#wv" transform="translate(0,-30)"/>
-            <use href="#wv" transform="translate(0,22)"/>
-            <text><textPath href="#wv" startOffset="4%" dy="-4">SOCCER CULTURE / BORN TO DISOBEY / STREET ATTITUDE</textPath></text>
-        </svg>
-    </section>
     <div id="footer-home"></div>
 </div>
 
