@@ -1083,7 +1083,17 @@ function titleCaseWilayah(str) {
         .join(' ');
 }
 
+const _wilCache = {};
 async function fetchWilayah(path) {
+    if (_wilCache[path]) return _wilCache[path];
+    try { const s = sessionStorage.getItem('wil:' + path); if (s) return (_wilCache[path] = JSON.parse(s)); } catch (e) {}
+    const data = await _fetchWilayahRaw(path);
+    _wilCache[path] = data;
+    try { sessionStorage.setItem('wil:' + path, JSON.stringify(data)); } catch (e) {}
+    return data;
+}
+
+async function _fetchWilayahRaw(path) {
     try {
         const res = await fetch(`${WILAYAH_API}${path}`);
         if (!res.ok) throw new Error('Response tidak ok');
@@ -1147,6 +1157,7 @@ function resetOngkirArea(modeInput) {
 }
 
 async function onProvinsiChange(modeInput) {
+    warmBiteship();
     const mode = normalizeMode(modeInput);
     const p = addrPrefix(mode);
 
@@ -1252,14 +1263,33 @@ async function onKecamatanChange(modeInput) {
     }
 }
 
+const _areaCache = {};
+let _gasWarm = false;
+function warmBiteship() {
+    if (_gasWarm) return;
+    _gasWarm = true;
+    cariAreaBiteship('10110').catch(() => {});
+}
+
 async function cariAreaBiteship(keyword) {
-    try {
-        const res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${encodeURIComponent(keyword)}`);
-        const data = await res.json();
-        return data.areas || [];
-    } catch (e) {
-        return [];
+    const key = String(keyword || '').trim().toLowerCase();
+    if (!key) return [];
+    if (_areaCache[key]) return _areaCache[key];
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 20000);
+        try {
+            const res = await fetch(`${URL_GAS_BITESHIP}?endpoint=search&input=${encodeURIComponent(keyword)}`, { signal: ctrl.signal });
+            const data = await res.json();
+            clearTimeout(timer);
+            const areas = data.areas || [];
+            _areaCache[key] = areas;
+            return areas;
+        } catch (e) {
+            clearTimeout(timer);
+        }
     }
+    return [];
 }
 
 async function onKelurahanChange(modeInput) {
@@ -1287,14 +1317,25 @@ async function onKelurahanChange(modeInput) {
     const areaId = document.getElementById(p + 'AreaId');
     const textId = mode === 'cart' ? 'cartTampilOngkir' : 'tampilOngkir';
 
+    if (kodePos && postalFromData) kodePos.value = postalFromData;
     document.getElementById(textId).innerText = "Mencari area pengiriman...";
     areaId.value = '';
     ongkirSaatIni = 0;
 
+    const token = (window._areaToken = (window._areaToken || 0) + 1);
+    const slowHint = setTimeout(() => {
+        if (token === window._areaToken && !areaId.value) document.getElementById(textId).innerText = "Server sedang lambat, mohon tunggu sebentar...";
+    }, 6000);
+
     try {
-        let areas = postalFromData ? await cariAreaBiteship(postalFromData) : [];
-        if (!areas.length) areas = await cariAreaBiteship(`${kelSel.value} ${kecSel.value}`);
-        if (!areas.length) areas = await cariAreaBiteship(kelSel.value);
+        const [byPostal, byName, byKel] = await Promise.all([
+            postalFromData ? cariAreaBiteship(postalFromData) : Promise.resolve([]),
+            cariAreaBiteship(`${kelSel.value} ${kecSel.value}`),
+            cariAreaBiteship(kelSel.value)
+        ]);
+        clearTimeout(slowHint);
+        if (token !== window._areaToken) return;
+        const areas = byPostal.length ? byPostal : (byName.length ? byName : byKel);
 
         if (!areas.length) {
             document.getElementById(textId).innerText = "Pengiriman ke area ini belum tersedia.";
@@ -1323,8 +1364,14 @@ async function hitungOngkirBiteship(destId, isCart) {
     document.getElementById(textId).innerText = "Menghitung ongkir...";
 
     try {
-        const res = await fetch(`${URL_GAS_BITESHIP}?endpoint=rates&dest=${destId}&weight=${berat}`);
-        const data = await res.json();
+        window._rateCache = window._rateCache || {};
+        const rk = destId + '|' + berat;
+        let data = window._rateCache[rk];
+        if (!data) {
+            const res = await fetch(`${URL_GAS_BITESHIP}?endpoint=rates&dest=${destId}&weight=${berat}`);
+            data = await res.json();
+            if (data && data.pricing && data.pricing.length) window._rateCache[rk] = data;
+        }
 
         if (data.pricing && data.pricing.length > 0) {
             ongkirSaatIni = data.pricing[0].price;

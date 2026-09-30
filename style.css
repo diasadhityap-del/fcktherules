@@ -1229,3 +1229,40 @@ label.upload:hover { background:#fff; border-color:var(--ink); }
 #home .home-sec::before { width:64px; height:64px; top:-32px; right:-14px; }
 #home #homeJurnal::before { left:-14px; right:auto; }
 .sec-title small { background:none; border:0; padding:0; transform:none; display:block; }
+
+/* =====================================================================
+   v10 — softer detail / address: pill colours, 3-per-row sizes,
+   rounded fields, outlined back button
+   ===================================================================== */
+/* colours: soft pills */
+#colorArea .option-box { display:flex; flex-wrap:wrap; gap:10px; }
+#colorArea .option-box div { border-radius:999px; padding:10px 22px; font-size:14px; background:#fff; border:1.5px solid transparent; box-shadow:0 1px 0 rgba(14,17,22,.08); }
+#colorArea .option-box div:nth-child(n):hover { background:#fff; border-color:var(--ink); }
+#colorArea .option-box div.active { background:var(--ink); color:var(--cream); border-color:var(--ink); }
+
+/* sizes: S M L / XL XXL XXXL */
+#sizeArea .option-box { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; max-width:360px; }
+#sizeArea .option-box div { border-radius:999px; padding:13px 6px; font-size:14px; background:#fff; border:1.5px solid transparent; box-shadow:0 1px 0 rgba(14,17,22,.08); }
+#sizeArea .option-box div:nth-child(n):hover { background:#fff; border-color:var(--ink); }
+#sizeArea .option-box div.active { background:var(--ink); color:var(--cream); border-color:var(--ink); }
+#sizeArea .option-box div.disabled { background:transparent; box-shadow:none; border:1.5px solid var(--soft); color:rgba(14,17,22,.3); }
+
+/* back button: outlined pill */
+.back-btn { background:rgba(255,255,255,.92); border:1.5px solid var(--ink); border-radius:999px; padding:9px 16px; box-shadow:none; font-size:12px; }
+.back-btn:hover { background:var(--ink); color:var(--cream); text-decoration:none; }
+
+/* address & data fields: soft, rounded, airy */
+.form-block:nth-of-type(n), .form-block.first { display:flex; align-items:center; gap:14px; margin:36px 0 18px; }
+.form-block::after { content:''; flex:1; height:1px; background:var(--line); }
+.detail-container .input-group { margin-bottom:18px; }
+.detail-container .input-group > label { padding-left:6px; font-size:12px; color:var(--muted); font-weight:600; margin-bottom:7px; }
+.detail-container .input-group input, .detail-container .input-group select { border-radius:999px; padding:15px 22px; background:#fff; border:1.5px solid transparent; box-shadow:0 1px 0 rgba(14,17,22,.08); }
+.detail-container .input-group textarea { border-radius:24px; padding:16px 22px; background:#fff; border:1.5px solid transparent; box-shadow:0 1px 0 rgba(14,17,22,.08); min-height:96px; }
+.detail-container .input-group select { padding-right:44px; }
+.detail-container .input-group input:focus, .detail-container .input-group textarea:focus, .detail-container .input-group select:focus { border-color:var(--ink); box-shadow:none; }
+.detail-container .input-group input[readonly] { background:rgba(255,255,255,.5); box-shadow:none; }
+.detail-container .row2 { gap:0 12px; }
+.ongkir { border-radius:999px; padding:14px 22px; text-align:center; background:#fff; box-shadow:0 1px 0 rgba(14,17,22,.08); }
+.hint { padding-left:6px; }
+
+.detail-container .input-group > label { color:rgba(14,17,22,.72); }
