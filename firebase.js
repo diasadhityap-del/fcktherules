@@ -40,12 +40,12 @@ export const adminDb = getFirestore(adminApp);
 // jadi tiap login/daftar juga masuk ke "akun bayangan" di project jurnal (email + password sama).
 // >>> TEMPEL config web app project fvck-journal (Firebase Console > Project settings > Your apps):
 const journalConfig = {
-    apiKey: "PASTE_API_KEY_FVCK_JOURNAL",
+    apiKey: "AIzaSyAsbMEwu-h28PsRO-h3tDbHqTp6Wgj44oI",
     authDomain: "fvck-journal.firebaseapp.com",
     projectId: "fvck-journal",
     storageBucket: "fvck-journal.firebasestorage.app",
-    messagingSenderId: "PASTE",
-    appId: "PASTE"
+    messagingSenderId: "681112457847",
+    appId: "1:681112457847:web:3365af3274eb6d03c8ac72"
 };
 export const journalConfigured = !String(journalConfig.apiKey).startsWith("PASTE");
 const JOURNAL_APP_NAME = 'fvckJournalApp';
