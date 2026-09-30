@@ -1266,3 +1266,37 @@ label.upload:hover { background:#fff; border-color:var(--ink); }
 .hint { padding-left:6px; }
 
 .detail-container .input-group > label { color:rgba(14,17,22,.72); }
+
+/* =====================================================================
+   v11 — detail: kolom warna = kolom ukuran (grid 3 kolom, bentuk sama),
+   tanpa animasi fade putih. Awal putih; hover / ditekan / aktif
+   langsung hitam + tulisan putih.
+   ===================================================================== */
+#colorArea .option-box,
+#sizeArea .option-box { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; max-width:360px; }
+
+#colorArea .option-box div,
+#sizeArea .option-box div {
+  border-radius:999px; padding:13px 6px; font-size:14px;
+  background:#fff; color:var(--ink);
+  border:1.5px solid transparent; box-shadow:0 1px 0 rgba(14,17,22,.08);
+  transition:none !important; animation:none !important; transform:none !important;
+  -webkit-tap-highlight-color:transparent; user-select:none;
+  overflow-wrap:anywhere; line-height:1.25;
+}
+#colorArea .option-box div:active,
+#colorArea .option-box div.active,
+#sizeArea .option-box div:not(.disabled):active,
+#sizeArea .option-box div.active {
+  background:var(--ink); color:#fff; border-color:var(--ink);
+}
+@media (hover:hover) {
+  #colorArea .option-box div:nth-child(n):hover,
+  #sizeArea .option-box div:nth-child(n):not(.disabled):hover {
+    background:var(--ink); color:#fff; border-color:var(--ink);
+  }
+}
+#sizeArea .option-box div.disabled:nth-child(n):hover,
+#sizeArea .option-box div.disabled:active {
+  background:transparent; color:rgba(14,17,22,.3); border:1.5px solid var(--soft); cursor:not-allowed;
+}
