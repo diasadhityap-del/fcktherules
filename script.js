@@ -1893,6 +1893,23 @@ async function saveProfile() {
     }
 }
 
+// ── EASTER EGG: klik logo header 5x cepat ──
+(() => {
+    let count = 0, timer = null;
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.logo')) return;
+        count++;
+        clearTimeout(timer);
+        timer = setTimeout(() => { count = 0; }, 600); // reset kalau jeda >0,6 detik
+        if (count >= 5) {
+            count = 0;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            window.location.href = 'https://fvcktherules3404-sketch.github.io/prediksi/';
+        }
+    }, true);
+})();
+
 // ── EXPORT KE WINDOW ────────────────────────────────────────
 window.toggleSidebar = toggleSidebar;
 window.navTo = navTo;
