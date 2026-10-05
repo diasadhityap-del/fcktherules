@@ -22,6 +22,7 @@ const PAGE_SLUGS = {
     tentang: '/tentang',
     berita: '/berita',
     diskusi: '/diskusi',
+    pantau: '/pantau',
     pelunasan: '/pelunasan'
 };
 
@@ -34,6 +35,7 @@ const SLUG_TO_PAGE = {
     'tentang': 'tentang',
     'berita': 'berita',
     'diskusi': 'diskusi',
+    'pantau': 'pantau',
     'pelunasan': 'pelunasan'
 };
 
@@ -67,6 +69,7 @@ const META = {
     galeri: { title: 'Galeri | FvcktheRules', desc: 'Galeri foto FvcktheRules Store.' },
     tentang: { title: 'Tentang Kami | FvcktheRules', desc: 'FvcktheRules: soccer culture, street attitude, born to disobey. Clothing label, media platform, publishing space, and community built around football culture.' },
     berita: { title: 'Berita | FvcktheRules Journal', desc: 'Berita football, Indonesia, dan budaya jalanan dari FvcktheRules.' },
+    pantau: { title: 'Pantau Pesanan | FvcktheRules', desc: 'Lacak status pesanan Pre Order kamu: masuk vendor, pelunasan, selesai, hingga dikirim.' },
     pelunasan: { title: 'Pelunasan | FvcktheRules', desc: 'Lunasi sisa pembayaran pesananmu dengan kode pelunasan.' },
     diskusi: { title: 'Diskusi | FvcktheRules Journal', desc: 'Diskusi komunitas FvcktheRules: post tim, reaksi, dan balasan.' }
 };
@@ -346,7 +349,10 @@ async function executeCheckout() {
                 tipeBayar: 'Cek Bukti Bayar',
                 dp: '', buktiURL: buktiURL,
                 dpEligible: cart.prod.dpAllowed !== 'no',
-                kodePrefix: cart.prod.kodePrefix || ''
+                kodePrefix: cart.prod.kodePrefix || '',
+                isPO: cart.prod.badge === 'pre',
+                poIds: cart.prod.badge === 'pre' ? [cart.prod.id] : [],
+                poNames: cart.prod.badge === 'pre' ? [cart.prod.name] : []
             };
 
             const orderId = await saveOrder(orderData);
@@ -403,7 +409,10 @@ async function executeCheckout() {
                 tipeBayar: 'Cek Bukti Bayar',
                 dp: '', buktiURL: buktiURL,
                 dpEligible: cartItems.some(i => i.prod.dpAllowed !== 'no'),
-                kodePrefix: (cartItems.find(i => i.prod.dpAllowed !== 'no' && i.prod.kodePrefix) || { prod: {} }).prod.kodePrefix || ''
+                kodePrefix: (cartItems.find(i => i.prod.kodePrefix) || { prod: {} }).prod.kodePrefix || '',
+                isPO: cartItems.some(i => i.prod.badge === 'pre'),
+                poIds: [...new Set(cartItems.filter(i => i.prod.badge === 'pre').map(i => i.prod.id))],
+                poNames: [...new Set(cartItems.filter(i => i.prod.badge === 'pre').map(i => i.prod.name))]
             };
 
             const orderId = await saveOrder(orderData);
@@ -798,7 +807,7 @@ function navTo(pageId) {
 function showPage(id) {
     if (META[id]) updateMeta(META[id].title, META[id].desc);
     const menuBtn = document.getElementById('mast');
-    const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang', 'berita', 'diskusi', 'pelunasan'];
+    const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang', 'berita', 'diskusi', 'pantau', 'pelunasan'];
 
     if (PRODUCT_PAGES.includes(id) && !cart.prod) {
         history.pushState({ page: 'home' }, '', '/');
@@ -1844,7 +1853,8 @@ async function renderProfileOrders() {
                     </div>
                     <p class="p">${produkText}</p>
                     <p class="t">${total}</p>
-                    ${o.kodePelunasan && status !== 'lunas' ? `<p class="p">Kode pelunasan: <b>${o.kodePelunasan}</b></p>` : ''}
+                    ${o.kodePelunasan ? `<p class="p">ID Pesanan: <b style="user-select:all">${escH(o.kodePelunasan)}</b></p>` : ''}
+                    ${o.kodePelunasan && o.isPO ? `<p class="p"><a href="#" onclick="lacakDariRiwayat('${escH(o.kodePelunasan)}');return false" style="text-decoration:underline">Pantau pesanan →</a></p>` : ''}
                 </div>
             `;
         }).join('');
@@ -2078,3 +2088,94 @@ window.kirimPelunasan = kirimPelunasan;
 window.closeKodeModal = closeKodeModal;
 window.salinKodePelunasan = salinKodePelunasan;
 window.tampilKodePelunasan = tampilKodePelunasan;
+
+
+/* ================= PANTAU PESANAN (PRE ORDER) ================= */
+function fmtWaktu(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':').replace(',', ' ·');
+}
+function pantauStepHTML(s, last) {
+    const garis = last ? '' : '<span style="width:2px;flex:1;min-height:30px;background:currentColor;opacity:.25"></span>';
+    return `
+    <div style="display:flex;gap:14px;${s.done ? '' : 'opacity:.45'}">
+        <div style="display:flex;flex-direction:column;align-items:center">
+            <span style="width:14px;height:14px;border-radius:50%;border:2px solid currentColor;flex:none;margin-top:3px;${s.done ? 'background:currentColor' : ''}"></span>${garis}
+        </div>
+        <div style="padding-bottom:18px;min-width:0">
+            <div style="font-weight:600;font-size:14px">${escH(s.t)}</div>
+            ${s.at ? `<div style="font-size:12px;opacity:.75;margin-top:2px">${escH(fmtWaktu(s.at))}</div>` : ''}
+            ${s.sub ? `<div style="font-size:12px;opacity:.75;margin-top:3px;line-height:1.5">${s.sub}</div>` : ''}
+        </div>
+    </div>`;
+}
+function pantauPayStep(d) {
+    if (d.pay === 'lunas') return { t: 'Pelunasan', done: true, at: d.payAt, sub: 'Pembayaran lunas ✓' };
+    if (d.pay === 'dp') return { t: 'Pelunasan', done: false, at: d.payAt, sub: `DP diterima. Sisa <b>${rpFmt(d.sisa)}</b> — lunasi di menu <a href="/pelunasan" onclick="return navLink(event,'pelunasan')" style="text-decoration:underline">Pelunasan</a> dengan ID ini.` };
+    if (d.pay === 'ditolak') return { t: 'Pelunasan', done: false, sub: 'Pembayaran bermasalah, silakan hubungi admin.' };
+    return { t: 'Pelunasan', done: false, sub: 'Menunggu konfirmasi pembayaran dari admin.' };
+}
+function renderPantau(list) {
+    const out = document.getElementById('pantauResult');
+    if (!list.length) {
+        out.innerHTML = '<div class="card-box"><span class="cap">Pesanan tidak ditemukan</span><p style="margin:8px 0 0;font-size:13px;line-height:1.6">Periksa kembali ID, no. HP, atau email yang kamu pakai saat checkout. Pelacakan hanya untuk pesanan <b>Pre Order</b> yang masih berjalan.</p></div>';
+        return;
+    }
+    out.innerHTML = list.map(d => {
+        const ids = d.poIds || [];
+        const blok = ids.map((id, i) => {
+            const t = d.po[id] || { events: {} };
+            const ev = t.events || {};
+            const steps = [
+                { t: 'Pesanan dibuat', done: true, at: d.createdAt, sub: 'Pesanan Pre Order kamu sudah kami terima.' },
+                { t: 'Masuk vendor / produksi', done: !!ev.vendor, at: ev.vendor && ev.vendor.at },
+                pantauPayStep(d),
+                { t: 'Pesanan sudah jadi', done: !!ev.jadi, at: ev.jadi && ev.jadi.at },
+                { t: 'Pesanan dikirim', done: !!ev.kirim, at: ev.kirim && ev.kirim.at, sub: ev.kirim && ev.kirim.note ? 'Resi / catatan: <b>' + escH(ev.kirim.note) + '</b>' : '' }
+            ];
+            const doneList = steps.filter(s => s.done);
+            const now = doneList[doneList.length - 1];
+            return `
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid currentColor;border-top-color:rgba(128,128,128,.35)">
+                <p style="margin:0 0 4px;font-weight:600">${escH((d.poNames && d.poNames[i]) || t.nama || 'Pre Order')}</p>
+                <p style="margin:0 0 14px;font-size:12px;opacity:.75">Status saat ini: <b>${escH(now.t)}</b></p>
+                ${steps.map((s, k) => pantauStepHTML(s, k === steps.length - 1)).join('')}
+            </div>`;
+        }).join('');
+        return `
+        <div class="card-box" style="margin-top:14px">
+            <span class="cap">ID Pesanan</span>
+            <p style="margin:8px 0 2px;font-size:20px;font-weight:700;letter-spacing:.08em;word-break:break-all">${escH(d.kode)}</p>
+            <p style="margin:0;font-size:12px;opacity:.75">Atas nama ${escH(d.nama)} · ${escH(d.produk)}</p>
+            ${blok}
+        </div>`;
+    }).join('');
+}
+async function cekPantau() {
+    const kode = document.getElementById('pantauId').value.trim();
+    const hp = document.getElementById('pantauHp').value.trim();
+    const email = document.getElementById('pantauEmail').value.trim();
+    const out = document.getElementById('pantauResult');
+    if (!kode && !hp && !email) return triggerAlert('ISI SALAH SATU DULU!');
+    const btn = document.getElementById('pantauBtn');
+    btn.disabled = true; btn.innerText = 'MENCARI...';
+    try {
+        const { cariLacak } = await import('./firebase.js');
+        renderPantau(await cariLacak({ kode, hp, email }));
+    } catch (e) {
+        console.error(e);
+        out.innerHTML = '<div class="card-box"><span class="cap">Gagal memuat</span><p style="margin:8px 0 0;font-size:13px">Coba lagi sebentar lagi.</p></div>';
+    }
+    btn.disabled = false; btn.innerText = 'LACAK PESANAN';
+}
+function lacakDariRiwayat(kode) {
+    showPage('pantau');
+    document.getElementById('pantauId').value = kode;
+    document.getElementById('pantauHp').value = '';
+    document.getElementById('pantauEmail').value = '';
+    cekPantau();
+}
+window.cekPantau = cekPantau;
+window.lacakDariRiwayat = lacakDariRiwayat;

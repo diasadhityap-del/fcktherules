@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc,
-  query, orderBy, onSnapshot, setDoc, where, getDoc
+  query, orderBy, onSnapshot, setDoc, where, getDoc, deleteField, arrayUnion
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut,
@@ -234,11 +234,13 @@ export async function adminSimpanDP(o, dpNominal, kode, orderNo) {
     if (ex.exists()) await updateDoc(ref, base);
     else await setDoc(ref, { ...base, status: 'dp', createdAt: new Date().toISOString() });
     await updateDoc(doc(adminDb, "orders", o.id), { status: 'dp', dpNominal, sisaBayar: sisa, kodePelunasan: kode, orderNo });
+    await adminSyncPay(kode, 'dp', sisa);
     return { sisa, total };
 }
 export async function adminTandaiLunas(orderId, kode) {
     if (kode) { try { await updateDoc(doc(adminDb, "pelunasan", kode), { status: 'lunas' }); } catch (e) { console.error(e); } }
     await updateDoc(doc(adminDb, "orders", orderId), { status: 'lunas', sisaBayar: 0 });
+    await adminSyncPay(kode, 'lunas', 0);
     return true;
 }
 
@@ -247,12 +249,17 @@ export async function saveOrder(orderData) {
     try {
         // ID admin yang mudah dibaca (mirip slug artikel) + kode pelunasan untuk customer (beda dari ID dokumen)
         if (!orderData.orderNo) orderData.orderNo = buatOrderNo(namaProdukUtama(orderData));
-        if (orderData.dpEligible && !orderData.kodePelunasan) orderData.kodePelunasan = buatKodePelunasan(orderData.kodePrefix);
+        // ID pesanan (kodePelunasan) dibuat untuk semua order Pre Order, plus order DP biasa
+        if ((orderData.dpEligible || orderData.isPO) && !orderData.kodePelunasan) orderData.kodePelunasan = buatKodePelunasan(orderData.kodePrefix);
         const docRef = await addDoc(collection(db, "orders"), {
             ...orderData,
             status: "pending",
             createdAt: new Date().toISOString()
         });
+        // Order Pre Order: buat dokumen pelacakan (gagal di sini tidak membatalkan order)
+        if (orderData.isPO && orderData.kodePelunasan) {
+            try { await buatLacak(docRef.id, orderData); } catch (e) { console.error("Gagal buat pelacakan:", e); }
+        }
         return docRef.id;
     } catch (err) { console.error("Gagal simpan order:", err); return null; }
 }
@@ -360,3 +367,98 @@ export async function updateVoucherKuota(id, kuotaBaru) {
 }
 
 export { onAuthStateChanged };
+
+/* ============== PANTAU PESANAN (PRE ORDER) ============== */
+// lacak/{kode}     : 1 dokumen per order PO (doc ID = ID pesanan). Dibaca publik per-ID saja.
+// lacakIdx/{hash}  : indeks pencarian via no HP / email (di-hash SHA-256, isinya hanya daftar ID)
+// poTrack/{produk} : status per ARTIKEL PO (masuk vendor / jadi / dikirim) + flag selesai. Diisi admin.
+function normHP(v) {
+    let d = String(v || '').replace(/\D/g, '');
+    if (d.startsWith('0')) d = '62' + d.slice(1);
+    else if (d.startsWith('8')) d = '62' + d;
+    return d;
+}
+function normEmail(v) { return String(v || '').trim().toLowerCase(); }
+async function sha256Hex(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+}
+async function buatLacak(orderId, o) {
+    const kode = o.kodePelunasan;
+    await setDoc(doc(db, "lacak", kode), {
+        kode, orderId, orderNo: o.orderNo || '',
+        nama: maskNama(o.nama),
+        produk: o.produkText || namaProdukUtama(o),
+        poIds: o.poIds || [], poNames: o.poNames || [],
+        pay: 'pending', payAt: null, sisa: null,
+        createdAt: new Date().toISOString()
+    });
+    const keys = [];
+    if (o.wa) keys.push('hp:' + normHP(o.wa));
+    if (o.email) keys.push('em:' + normEmail(o.email));
+    for (const k of keys) {
+        try {
+            const ref = doc(db, "lacakIdx", await sha256Hex(k));
+            const ex = await getDoc(ref);
+            if (ex.exists()) await updateDoc(ref, { kodes: arrayUnion(kode) });
+            else await setDoc(ref, { kodes: [kode] });
+        } catch (e) { console.error("Gagal indeks lacak:", e); }
+    }
+}
+// Customer: cari lewat ID, no HP, dan/atau email. Order yang artikel PO-nya sudah "selesai" tidak ditemukan.
+export async function cariLacak({ kode, hp, email }) {
+    let kodes = [];
+    if (kode) kodes.push(String(kode).toUpperCase().replace(/[^A-Z0-9-]/g, ''));
+    if (hp) {
+        const s = await getDoc(doc(db, "lacakIdx", await sha256Hex('hp:' + normHP(hp))));
+        if (s.exists()) kodes.push(...(s.data().kodes || []));
+    }
+    if (email) {
+        const s = await getDoc(doc(db, "lacakIdx", await sha256Hex('em:' + normEmail(email))));
+        if (s.exists()) kodes.push(...(s.data().kodes || []));
+    }
+    kodes = [...new Set(kodes)].filter(Boolean).slice(0, 30);
+    const out = [];
+    for (const k of kodes) {
+        const s = await getDoc(doc(db, "lacak", k));
+        if (!s.exists()) continue;
+        const d = s.data();
+        const po = {};
+        for (const id of (d.poIds || [])) {
+            const p = await getDoc(doc(db, "poTrack", id));
+            po[id] = p.exists() ? p.data() : { events: {}, closed: false };
+        }
+        const ids = d.poIds || [];
+        if (ids.length && ids.every(id => po[id].closed)) continue;   // artikel PO sudah diselesaikan admin
+        out.push({ ...d, po });
+    }
+    return out;
+}
+// Admin: sinkron langkah "Pelunasan" otomatis dari status order
+export async function adminSyncPay(kode, status, sisa) {
+    if (!kode) return;
+    const pay = status === 'lunas' ? 'lunas' : status === 'dp' ? 'dp' : status === 'rejected' ? 'ditolak' : 'pending';
+    try {
+        await updateDoc(doc(adminDb, "lacak", kode), {
+            pay,
+            payAt: (pay === 'lunas' || pay === 'dp') ? new Date().toISOString() : null,
+            sisa: pay === 'dp' ? Number(sisa || 0) : 0
+        });
+    } catch (e) { console.warn("Lacak tidak ada / gagal sync:", kode, e.code || e.message); }
+}
+export async function adminHapusLacak(kode) {
+    if (!kode) return;
+    try { await deleteDoc(doc(adminDb, "lacak", kode)); } catch (e) { console.warn(e); }
+}
+export function listenPoTrack(cb) {
+    return onSnapshot(collection(adminDb, "poTrack"), s => cb(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+}
+export async function adminSetPoStep(produkId, nama, key, atISO, note) {
+    await setDoc(doc(adminDb, "poTrack", produkId), { nama, events: { [key]: { at: atISO, note: note || '' } } }, { merge: true });
+}
+export async function adminHapusPoStep(produkId, key) {
+    await updateDoc(doc(adminDb, "poTrack", produkId), { ['events.' + key]: deleteField() });
+}
+export async function adminTutupPo(produkId, nama, closed) {
+    await setDoc(doc(adminDb, "poTrack", produkId), { nama, closed: !!closed, closedAt: closed ? new Date().toISOString() : null }, { merge: true });
+}

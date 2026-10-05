@@ -6,7 +6,8 @@ import {
     listenBannerText, saveBannerText,
     listenVouchers, saveVoucher, deleteVoucher,
     listenCustomers, deleteCustomer,
-    listenPelunasan, adminSimpanDP, adminTandaiLunas, buatKodePelunasan, buatOrderNo, bersihkanPrefix
+    listenPelunasan, adminSimpanDP, adminTandaiLunas, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
+    listenPoTrack, adminSetPoStep, adminHapusPoStep, adminTutupPo, adminSyncPay, adminHapusLacak
 } from './firebase.js';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
@@ -20,6 +21,7 @@ let allBanners = [];
 let allVouchers = [];
 let allCustomers = [];
 let allPelunasan = [];
+let allPoTrack = [];
 const pelByOrder = () => Object.fromEntries(allPelunasan.map(p => [p.orderId, p]));
 const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rp = n => 'Rp' + Number(n || 0).toLocaleString('id-ID');
@@ -46,6 +48,7 @@ onAuthStateChanged(adminAuth, async (user) => {
         ]);
         loadCustomersList();
         listenPelunasan(data => { allPelunasan = data; renderOrders(); renderPelunasanAdmin(); });
+        listenPoTrack(data => { allPoTrack = data; renderPoAdmin(); });
     } else {
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('adminPage').style.display = 'none';
@@ -99,6 +102,7 @@ async function loadOrders() {
     allOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     isiFilterProduk();
     renderOrders();
+    renderPoAdmin();
     // Render ulang tab Member/Pembeli HANYA kalau data customer dari Firebase
     // sudah pernah berhasil dimuat sebelumnya (bukan array kosong bawaan).
     // Sebelumnya kondisi ini selalu true, jadi bisa nge-render "Belum ada member"
@@ -187,6 +191,7 @@ function renderOrders() {
                 <div>
                     <div class="order-name">${o.nama}</div>
                     <div class="order-time">ID: <b style="user-select:all">${esc(o.orderNo || o.id)}</b></div>
+                    ${o.kodePelunasan ? `<div class="order-time" style="color:var(--green)">ID PESANAN: <b style="user-select:all;letter-spacing:.08em">${esc(o.kodePelunasan)}</b>${o.isPO ? ' · PRE ORDER' : ''}</div>` : ''}
                     <div class="order-time">${date}</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -204,7 +209,7 @@ function renderOrders() {
                 ${voucherHTML}
                 <div class="info-item">WhatsApp <span>${o.wa}</span></div>
                 <div class="info-item">Alamat <span>${o.alamat}</span></div>
-                ${o.kodePelunasan ? `<div class="info-item">Kode Pelunasan <span style="user-select:all">${esc(o.kodePelunasan)}</span></div>` : ''}
+                ${o.kodePelunasan ? `<div class="info-item">ID Pesanan (customer) <span style="user-select:all">${esc(o.kodePelunasan)}</span></div>` : ''}
                 ${o.dpNominal ? `<div class="info-item">DP Dibayar <span>${rp(o.dpNominal)}</span></div><div class="info-item">Sisa <span>${rp(o.sisaBayar)}</span></div>` : ''}
                 <div class="info-item" style="grid-column: 1 / -1; font-size:14px; color:var(--green)">TOTAL AKHIR <span>${totalAkhirDisp}</span></div>
             </div>
@@ -229,6 +234,8 @@ function renderOrders() {
 window.gantiStatusOrder = async (id, statusBaru) => {
     const ok = await updateOrderStatus(id, statusBaru);
     if (ok) {
+        const oLama = allOrders.find(x => x.id === id);
+        if (oLama) await adminSyncPay(oLama.kodePelunasan, statusBaru, oLama.sisaBayar);   // langkah "Pelunasan" di Pantau Pesanan ikut otomatis
         allOrders = allOrders.map(o => o.id === id ? {...o, status: statusBaru} : o);
         renderOrders();
         showToast('STATUS DIPERBARUI ✓');
@@ -240,7 +247,9 @@ window.gantiStatusOrder = async (id, statusBaru) => {
 window.hapusOrder = async (id) => {
     if (!confirm("Hapus order ini?")) return;
     try {
+        const oHapus = allOrders.find(x => x.id === id);
         await deleteDoc(doc(adminDb, "orders", id));
+        if (oHapus && oHapus.kodePelunasan) await adminHapusLacak(oHapus.kodePelunasan);
         allOrders = allOrders.filter(o => o.id !== id);
         isiFilterProduk();
         renderOrders();
@@ -275,6 +284,7 @@ window.hapusProdukOrder = async () => {
 async function loadProduk() {
     allProduk = await getProduk();
     renderProduk();
+    renderPoAdmin();
 }
 
 function renderProduk() {
@@ -1068,6 +1078,143 @@ window.tandaiLunas = async (id) => {
         renderOrders();
         renderPelunasanAdmin();
         showToast('ORDER LUNAS ✓');
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL: ' + (e.code || e.message), true);
+    }
+};
+
+
+/* ================= LACAK PRE ORDER (per artikel) ================= */
+const PO_STEPS = [
+    ['vendor', '2 · Kaos masuk vendor'],
+    ['jadi',   '4 · Kaos sudah jadi'],
+    ['kirim',  '5 · Kaos dikirim']
+];
+function nowLocalInput() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+}
+function fmtAdminWaktu(iso) {
+    const d = new Date(iso);
+    return isNaN(d) ? '-' : d.toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function ordersUntukPO(p) {
+    return allOrders.filter(o => o.status !== 'rejected' &&
+        (Array.isArray(o.poIds) ? o.poIds.includes(p.id) : (o.isPO && namaProdukText(o).includes(p.nama))));
+}
+window.renderPoAdmin = () => {
+    const box = document.getElementById('poList');
+    if (!box) return;
+    // jangan timpa input yang sedang diketik
+    const ae = document.activeElement;
+    if (ae && ae.closest && ae.closest('#poList') && ae.tagName === 'INPUT') return;
+
+    const tm = Object.fromEntries(allPoTrack.map(t => [t.id, t]));
+    const prods = allProduk
+        .filter(p => p.badge === 'pre' || tm[p.id])
+        .sort((a, b) => Number(!!(tm[a.id] && tm[a.id].closed)) - Number(!!(tm[b.id] && tm[b.id].closed)));
+
+    if (!prods.length) {
+        box.innerHTML = `<div class="empty"><i class="fas fa-route"></i><p>Belum ada artikel Pre Order</p></div>`;
+        return;
+    }
+
+    const inputCss = 'width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:11px;border-radius:8px;font-size:13px;color-scheme:dark;';
+    box.innerHTML = prods.map(p => {
+        const t = tm[p.id] || {};
+        const ev = t.events || {};
+        const closed = !!t.closed;
+        const ords = ordersUntukPO(p);
+        const lunasN = ords.filter(o => o.status === 'lunas').length;
+
+        const stepRows = PO_STEPS.map(([key, label]) => {
+            const e = ev[key];
+            if (e) {
+                return `
+                <div style="padding:12px 0;border-top:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                    <div>
+                        <div style="font-size:13px;font-weight:700;color:var(--green)">✓ ${label}</div>
+                        <div style="font-size:12px;color:#aaa;margin-top:3px">${esc(fmtAdminWaktu(e.at))}${e.note ? ' · ' + esc(e.note) : ''}</div>
+                    </div>
+                    <button onclick="hapusPoStep('${p.id}','${key}')" title="Hapus langkah ini" style="width:38px;height:38px;flex:none;border:1px solid rgba(255,59,59,0.15);border-radius:10px;background:rgba(255,59,59,0.08);color:#ff4d4d;cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </div>`;
+            }
+            return `
+            <div style="padding:12px 0;border-top:1px solid #1a1a1a;">
+                <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#ccc">${label}</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <input type="datetime-local" id="po-${p.id}-${key}" value="${nowLocalInput()}" style="${inputCss}flex:1;min-width:190px;width:auto;">
+                    ${key === 'kirim' ? `<input type="text" id="pon-${p.id}" placeholder="No. resi / catatan (opsional)" style="${inputCss}flex:1;min-width:190px;width:auto;">` : ''}
+                    <button onclick="setPoStep('${p.id}','${key}')" class="btn-sm btn-approve" style="cursor:pointer;padding:0 18px;"><i class="fas fa-check"></i> UPDATE</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        const ordRows = ords.length ? ords.map(o => `
+            <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #1a1a1a;font-size:12px;">
+                <span><b style="user-select:all">${esc(o.kodePelunasan || o.orderNo || o.id)}</b> · ${esc(o.nama)}</span>
+                <span style="color:${o.status === 'lunas' ? 'var(--green)' : '#aaa'}">${esc((o.status || 'pending').toUpperCase())}</span>
+            </div>`).join('') : '<div style="font-size:12px;color:#777;padding-top:8px">Belum ada pesanan.</div>';
+
+        return `
+        <div class="order-card" style="${closed ? 'opacity:.6' : ''}">
+            <div class="order-top">
+                <div>
+                    <div class="order-name">${esc(p.nama)}</div>
+                    <div class="order-time">${ords.length} pesanan · ${lunasN} lunas</div>
+                </div>
+                <div class="status-badge ${closed ? 's-rejected' : 's-approved'}">${closed ? 'SELESAI' : 'BERJALAN'}</div>
+            </div>
+            <div style="padding:10px 0;font-size:12px;color:#888;">1 · Pesanan dibuat &amp; 3 · Pelunasan: <b>otomatis</b> (dari order &amp; status LUNAS)</div>
+            ${stepRows}
+            <details style="margin-top:6px;border-top:1px solid #1a1a1a;padding-top:10px;">
+                <summary style="cursor:pointer;font-size:12px;color:#aaa;letter-spacing:.08em;">DAFTAR ID PESANAN (${ords.length})</summary>
+                ${ordRows}
+            </details>
+            <div style="margin-top:14px;border-top:1px solid #1a1a1a;padding-top:14px;">
+                ${closed
+                    ? `<button onclick="tutupPo('${p.id}', false)" class="btn-sm btn-bukti" style="width:100%;cursor:pointer;"><i class="fas fa-undo"></i> BUKA LAGI PELACAKAN</button>`
+                    : `<button onclick="tutupPo('${p.id}', true)" class="btn-sm btn-approve" style="width:100%;cursor:pointer;"><i class="fas fa-flag-checkered"></i> SELESAIKAN ARTIKEL PRE ORDER INI</button>`}
+            </div>
+        </div>`;
+    }).join('');
+};
+
+window.setPoStep = async (pid, key) => {
+    const p = allProduk.find(x => x.id === pid);
+    const inp = document.getElementById(`po-${pid}-${key}`);
+    if (!p || !inp || !inp.value) return showToast('ISI TANGGAL & JAM DULU!', true);
+    const note = key === 'kirim' ? ((document.getElementById('pon-' + pid) || {}).value || '').trim() : '';
+    try {
+        await adminSetPoStep(pid, p.nama, key, new Date(inp.value).toISOString(), note);
+        showToast('STATUS DIUPDATE ✓');
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL: ' + (e.code || e.message), true);
+    }
+};
+window.hapusPoStep = async (pid, key) => {
+    if (!confirm('Hapus langkah ini? (pelanggan tidak akan melihatnya lagi)')) return;
+    try {
+        await adminHapusPoStep(pid, key);
+        showToast('LANGKAH DIHAPUS');
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL: ' + (e.code || e.message), true);
+    }
+};
+window.tutupPo = async (pid, closed) => {
+    const p = allProduk.find(x => x.id === pid);
+    if (!p) return;
+    const msg = closed
+        ? `Selesaikan PO "${p.nama}"?\n\nSetelah ini semua pesanan artikel ini TIDAK bisa dilacak lagi oleh pelanggan (ID, no HP, maupun email). Bisa dibuka lagi kapan saja.`
+        : `Buka lagi pelacakan "${p.nama}"?`;
+    if (!confirm(msg)) return;
+    try {
+        await adminTutupPo(pid, p.nama, closed);
+        showToast(closed ? 'ARTIKEL PO DISELESAIKAN ✓' : 'PELACAKAN DIBUKA LAGI');
     } catch (e) {
         console.error(e);
         showToast('GAGAL: ' + (e.code || e.message), true);

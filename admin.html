@@ -43,6 +43,9 @@
         <div class="nav-item active" id="nav-order" onclick="switchTab('order')">
             <i class="fas fa-box"></i> ORDER
         </div>
+        <div class="nav-item" id="nav-lacak" onclick="switchTab('lacak')">
+            <i class="fas fa-route"></i> LACAK PO
+        </div>
         <div class="nav-item" id="nav-pelunasan" onclick="switchTab('pelunasan')">
             <i class="fas fa-money-check-alt"></i> PELUNASAN
         </div>
@@ -106,6 +109,15 @@
                     <i class="fas fa-spinner fa-spin"></i> Memuat...
                 </div>
             </div>
+        </div>
+
+        <!-- TAB LACAK PO -->
+        <div class="tab-content" id="tab-lacak">
+            <div class="page-header">
+                <div class="page-title">LACAK PRE ORDER</div>
+                <div class="page-desc">Update status per artikel PO (seperti resi). Langkah 1 (Pesanan) dan 3 (Pelunasan) otomatis. Atur tanggal &amp; jam, lalu tekan UPDATE. Salah isi? Hapus dengan ikon tong sampah.</div>
+            </div>
+            <div id="poList"></div>
         </div>
 
         <!-- TAB PELUNASAN -->
@@ -213,6 +225,9 @@
     <div class="mobile-nav">
         <div class="mob-nav-item active" id="mob-order" onclick="switchTab('order')">
             <i class="fas fa-box"></i> ORDER
+        </div>
+        <div class="mob-nav-item" id="mob-lacak" onclick="switchTab('lacak')">
+            <i class="fas fa-route"></i> LACAK PO
         </div>
         <div class="mob-nav-item" id="mob-pelunasan" onclick="switchTab('pelunasan')">
             <i class="fas fa-money-check-alt"></i> PELUNASAN

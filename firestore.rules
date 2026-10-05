@@ -88,6 +88,37 @@ service cloud.firestore {
     }
 
     // ============================================================
+    // PANTAU PESANAN (PRE ORDER)
+    // - lacak/{kode}: get publik (harus tahu ID persis). Create oleh pembeli saat checkout
+    //   (pay wajib 'pending'). Update/hapus/list hanya admin.
+    // - lacakIdx/{hash}: indeks no HP / email (SHA-256). get publik; pembeli hanya boleh
+    //   membuat atau MENAMBAH tepat 1 ID. Tidak ada list.
+    // - poTrack/{produkId}: status per artikel PO. get publik, tulis hanya admin.
+    // ============================================================
+    match /lacak/{kode} {
+      allow get: if true;
+      allow list, update, delete: if isAdmin();
+      allow create: if request.resource.data.pay == 'pending'
+                    && request.resource.data.kode == kode;
+    }
+    match /lacakIdx/{h} {
+      allow get: if true;
+      allow list, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['kodes'])
+                    && request.resource.data.kodes is list
+                    && request.resource.data.kodes.size() == 1;
+      allow update: if isAdmin()
+        || (request.resource.data.keys().hasOnly(['kodes'])
+            && request.resource.data.kodes.size() == resource.data.kodes.size() + 1
+            && request.resource.data.kodes.size() <= 100
+            && request.resource.data.kodes.hasAll(resource.data.kodes));
+    }
+    match /poTrack/{produkId} {
+      allow get: if true;
+      allow list, write: if isAdmin();
+    }
+
+    // ============================================================
     // CUSTOMERS
     // - Customer hanya bisa akses datanya sendiri (doc ID = uid)
     // - Admin bisa read & delete semua
