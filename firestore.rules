@@ -71,6 +71,23 @@ service cloud.firestore {
     }
 
     // ============================================================
+    // PELUNASAN (doc ID = kode pelunasan milik customer, mis. SLMN-7K2QX)
+    // - get: publik, tapi hanya kalau tahu kode persis (tidak bisa list/menebak daftar)
+    // - list/create/delete: admin
+    // - update: admin, ATAU customer hanya untuk mengirim bukti pelunasan
+    // ============================================================
+    match /pelunasan/{kode} {
+      allow get: if true;
+      allow list, create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (resource.data.status in ['dp', 'menunggu_verifikasi']
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['buktiPelunasanURL', 'buktiPelunasanAt', 'status'])
+            && request.resource.data.status == 'menunggu_verifikasi'
+            && request.resource.data.buktiPelunasanURL is string);
+    }
+
+    // ============================================================
     // CUSTOMERS
     // - Customer hanya bisa akses datanya sendiri (doc ID = uid)
     // - Admin bisa read & delete semua

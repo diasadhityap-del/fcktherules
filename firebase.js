@@ -180,9 +180,74 @@ export async function logoutAdmin() {
     await signOut(adminAuth);
 }
 
+/* ============== KODE & ID (ORDER / PELUNASAN) ============== */
+const KODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // tanpa I, O, 0, 1 supaya tidak membingungkan
+function randStr(n, chars = KODE_CHARS) {
+    const a = new Uint32Array(n);
+    crypto.getRandomValues(a);
+    return Array.from(a, x => chars[x % chars.length]).join('');
+}
+export function bersihkanPrefix(p) { return String(p || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); }
+// Kode untuk customer: PREFIX-XXXXX (acak, tidak menunjukkan ID dokumen)
+export function buatKodePelunasan(prefix) { return (bersihkanPrefix(prefix) || 'FVCK') + '-' + randStr(5); }
+function namaProdukUtama(o) {
+    if (Array.isArray(o.produk)) return (o.produk[0] && o.produk[0].nama) || '';
+    return o.produk || o.produkText || '';
+}
+// ID untuk admin: NAMA-PRODUK-DDMM-XXX, contoh ELEMEN-JERSEY-0510-K7F
+export function buatOrderNo(namaProduk) {
+    const slug = String(namaProduk || 'ORDER').toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 16).replace(/-+$/, '') || 'ORDER';
+    const d = new Date();
+    const ddmm = String(d.getDate()).padStart(2, '0') + String(d.getMonth() + 1).padStart(2, '0');
+    return `${slug}-${ddmm}-${randStr(3)}`;
+}
+function maskNama(n) {
+    const w = String(n || '').trim().split(/\s+/)[0] || '';
+    return w.length > 2 ? w.slice(0, 2) + '*'.repeat(Math.min(w.length - 2, 4)) : w;
+}
+
+/* ============== PELUNASAN ============== */
+// Customer: ambil data pelunasan dari kode (doc ID = kode; hanya bisa 'get' kalau tahu kodenya persis)
+export async function getPelunasan(kode) {
+    const snap = await getDoc(doc(db, "pelunasan", kode));
+    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+export async function kirimBuktiPelunasan(kode, url) {
+    await updateDoc(doc(db, "pelunasan", kode), {
+        buktiPelunasanURL: url,
+        buktiPelunasanAt: new Date().toISOString(),
+        status: 'menunggu_verifikasi'
+    });
+    return true;
+}
+// Admin
+export function listenPelunasan(cb) {
+    return onSnapshot(collection(adminDb, "pelunasan"), s => cb(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+}
+export async function adminSimpanDP(o, dpNominal, kode, orderNo) {
+    const total = Number(o.totalAkhir || o.hargaKaos || 0);
+    const sisa = total - dpNominal;
+    const produkText = o.produkText || (Array.isArray(o.produk) ? o.produk.map(p => p.nama).join(', ') : (o.produk || ''));
+    const ref = doc(adminDb, "pelunasan", kode);
+    const base = { kode, orderId: o.id, orderNo, nama: maskNama(o.nama), produk: produkText, totalAkhir: total, dpNominal, sisa };
+    const ex = await getDoc(ref);
+    if (ex.exists()) await updateDoc(ref, base);
+    else await setDoc(ref, { ...base, status: 'dp', createdAt: new Date().toISOString() });
+    await updateDoc(doc(adminDb, "orders", o.id), { status: 'dp', dpNominal, sisaBayar: sisa, kodePelunasan: kode, orderNo });
+    return { sisa, total };
+}
+export async function adminTandaiLunas(orderId, kode) {
+    if (kode) { try { await updateDoc(doc(adminDb, "pelunasan", kode), { status: 'lunas' }); } catch (e) { console.error(e); } }
+    await updateDoc(doc(adminDb, "orders", orderId), { status: 'lunas', sisaBayar: 0 });
+    return true;
+}
+
 /* ============== ORDER ============== */
 export async function saveOrder(orderData) {
     try {
+        // ID admin yang mudah dibaca (mirip slug artikel) + kode pelunasan untuk customer (beda dari ID dokumen)
+        if (!orderData.orderNo) orderData.orderNo = buatOrderNo(namaProdukUtama(orderData));
+        if (orderData.dpEligible && !orderData.kodePelunasan) orderData.kodePelunasan = buatKodePelunasan(orderData.kodePrefix);
         const docRef = await addDoc(collection(db, "orders"), {
             ...orderData,
             status: "pending",

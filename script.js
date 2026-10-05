@@ -21,7 +21,8 @@ const PAGE_SLUGS = {
     galeri: '/galeri',
     tentang: '/tentang',
     berita: '/berita',
-    diskusi: '/diskusi'
+    diskusi: '/diskusi',
+    pelunasan: '/pelunasan'
 };
 
 const SLUG_TO_PAGE = {
@@ -32,7 +33,8 @@ const SLUG_TO_PAGE = {
     'galeri': 'galeri',
     'tentang': 'tentang',
     'berita': 'berita',
-    'diskusi': 'diskusi'
+    'diskusi': 'diskusi',
+    'pelunasan': 'pelunasan'
 };
 
 const PRODUCT_PAGES = ['detail', 'form', 'summary'];
@@ -65,6 +67,7 @@ const META = {
     galeri: { title: 'Galeri | FvcktheRules', desc: 'Galeri foto FvcktheRules Store.' },
     tentang: { title: 'Tentang Kami | FvcktheRules', desc: 'FvcktheRules: soccer culture, street attitude, born to disobey. Clothing label, media platform, publishing space, and community built around football culture.' },
     berita: { title: 'Berita | FvcktheRules Journal', desc: 'Berita football, Indonesia, dan budaya jalanan dari FvcktheRules.' },
+    pelunasan: { title: 'Pelunasan | FvcktheRules', desc: 'Lunasi sisa pembayaran pesananmu dengan kode pelunasan.' },
     diskusi: { title: 'Diskusi | FvcktheRules Journal', desc: 'Diskusi komunitas FvcktheRules: post tim, reaksi, dan balasan.' }
 };
 
@@ -309,6 +312,7 @@ async function executeCheckout() {
     const loader = document.getElementById('loader');
     if (loader) loader.classList.remove('hide');
 
+    let kodeBaru = null;
     try {
         const { saveOrder } = await import('./firebase.js');
 
@@ -340,11 +344,14 @@ async function executeCheckout() {
                 voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "",
                 totalAkhir: totalAkhir,
                 tipeBayar: 'Cek Bukti Bayar',
-                dp: '', buktiURL: buktiURL
+                dp: '', buktiURL: buktiURL,
+                dpEligible: cart.prod.dpAllowed !== 'no',
+                kodePrefix: cart.prod.kodePrefix || ''
             };
 
             const orderId = await saveOrder(orderData);
             if (!orderId) throw new Error('saveOrder gagal');
+            kodeBaru = orderData.kodePelunasan || null;
 
             if (appliedVoucher) {
                 try {
@@ -394,11 +401,14 @@ async function executeCheckout() {
                 voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "",
                 totalAkhir: totalAkhir,
                 tipeBayar: 'Cek Bukti Bayar',
-                dp: '', buktiURL: buktiURL
+                dp: '', buktiURL: buktiURL,
+                dpEligible: cartItems.some(i => i.prod.dpAllowed !== 'no'),
+                kodePrefix: (cartItems.find(i => i.prod.dpAllowed !== 'no' && i.prod.kodePrefix) || { prod: {} }).prod.kodePrefix || ''
             };
 
             const orderId = await saveOrder(orderData);
             if (!orderId) throw new Error('saveOrder gagal');
+            kodeBaru = orderData.kodePelunasan || null;
 
             if (appliedVoucher) {
                 try {
@@ -424,6 +434,7 @@ async function executeCheckout() {
         showPage('home');
         setTimeout(() => {
             triggerAlert("PESANAN BERHASIL DITERIMA!");
+            if (kodeBaru) setTimeout(() => tampilKodePelunasan(kodeBaru), 900);
         }, 500);
 
     } catch (err) {
@@ -617,6 +628,7 @@ window.onload = async () => {
                 specs: p.specs || '',
                 showcase: p.showcase || 'no',
                 dpAllowed: p.dpAllowed || 'yes',
+                kodePrefix: p.kodePrefix || '',
                 order: p.order || 0
             }));
 
@@ -786,7 +798,7 @@ function navTo(pageId) {
 function showPage(id) {
     if (META[id]) updateMeta(META[id].title, META[id].desc);
     const menuBtn = document.getElementById('mast');
-    const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang', 'berita', 'diskusi'];
+    const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang', 'berita', 'diskusi', 'pelunasan'];
 
     if (PRODUCT_PAGES.includes(id) && !cart.prod) {
         history.pushState({ page: 'home' }, '', '/');
@@ -1815,7 +1827,7 @@ async function renderProfileOrders() {
             return;
         }
 
-        const statusLabel = { pending: 'DIPROSES', diproses: 'DIPROSES', dikirim: 'DIKIRIM', selesai: 'SELESAI', batal: 'DIBATALKAN' };
+        const statusLabel = { pending: 'DIPROSES', diproses: 'DIPROSES', dikirim: 'DIKIRIM', selesai: 'SELESAI', batal: 'DIBATALKAN', dp: 'DP', lunas: 'LUNAS' };
 
         orderListEl.innerHTML = orders.map(o => {
             const status = (o.status || 'pending').toLowerCase();
@@ -1832,6 +1844,7 @@ async function renderProfileOrders() {
                     </div>
                     <p class="p">${produkText}</p>
                     <p class="t">${total}</p>
+                    ${o.kodePelunasan && status !== 'lunas' ? `<p class="p">Kode pelunasan: <b>${o.kodePelunasan}</b></p>` : ''}
                 </div>
             `;
         }).join('');
@@ -1948,3 +1961,120 @@ window.submitAuth = submitAuth;
 window.openProfileModal = openProfileModal;
 window.closeProfileModal = closeProfileModal;
 window.saveProfile = saveProfile;
+
+
+/* ================= PELUNASAN ================= */
+const rpFmt = n => 'Rp' + Number(n || 0).toLocaleString('id-ID');
+const escH = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let pelData = null;
+let pelBuktiURL = null;
+
+function tampilKodePelunasan(kode) {
+    const m = document.getElementById('kodeModal');
+    document.getElementById('kodeModalValue').innerText = kode;
+    m.style.display = 'flex';
+}
+function closeKodeModal() { document.getElementById('kodeModal').style.display = 'none'; }
+async function salinKodePelunasan() {
+    const kode = document.getElementById('kodeModalValue').innerText;
+    try { await navigator.clipboard.writeText(kode); triggerAlert('KODE DISALIN!'); }
+    catch { triggerAlert('TAHAN & SALIN KODE MANUAL'); }
+}
+
+async function cekKodePelunasan() {
+    const kode = document.getElementById('pelKode').value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    const out = document.getElementById('pelResult');
+    if (!kode) return triggerAlert('MASUKKAN KODE DULU!');
+    const btn = document.getElementById('pelBtnCek');
+    btn.disabled = true; btn.innerText = 'MENGECEK...';
+    pelBuktiURL = null;
+    try {
+        const { getPelunasan } = await import('./firebase.js');
+        pelData = await getPelunasan(kode);
+    } catch (e) { console.error(e); pelData = null; }
+    btn.disabled = false; btn.innerText = 'CEK KODE';
+
+    if (!pelData) {
+        out.innerHTML = '<div class="card-box"><span class="cap">Kode tidak ditemukan</span><p style="margin:8px 0 0;font-size:13px;line-height:1.6">Periksa kembali penulisan kode. Jika baru checkout, tunggu admin mengonfirmasi DP kamu terlebih dahulu.</p></div>';
+        return;
+    }
+    renderPelunasan();
+}
+
+function renderPelunasan() {
+    const out = document.getElementById('pelResult');
+    const d = pelData;
+    const ringkas = `
+        <div class="card-box">
+            <span class="cap">Ringkasan pesanan</span>
+            <p style="margin:10px 0 4px;font-weight:600">${escH(d.produk)}</p>
+            <p style="margin:0 0 12px;font-size:12px;opacity:.7">Atas nama ${escH(d.nama)}</p>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>Total</span><b>${rpFmt(d.totalAkhir)}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>DP dibayar</span><b>- ${rpFmt(d.dpNominal)}</b></div>
+            <div style="display:flex;justify-content:space-between;font-size:16px;padding:10px 0 0;margin-top:6px;border-top:1px solid currentColor"><span>Sisa pelunasan</span><b>${rpFmt(d.sisa)}</b></div>
+        </div>`;
+
+    if (d.status === 'lunas') {
+        out.innerHTML = ringkas + '<div class="card-box"><span class="cap">Status</span><p style="margin:8px 0 0;font-weight:600">Pesananmu sudah LUNAS. Terima kasih!</p></div>';
+        return;
+    }
+    const menunggu = d.status === 'menunggu_verifikasi';
+    out.innerHTML = ringkas + `
+        <div class="card-box">
+            <span class="cap">Rekening pembayaran</span>
+            <div class="pay-lines">
+                MANDIRI: 1370023790229<br>
+                GOPAY: 081910421976<br>
+                <span class="pay-name">A.N Dias Adhitya Purnama Putra</span>
+            </div>
+            <button type="button" class="qris-link" onclick="vibrate(30); openQRIS()"><i class="fas fa-qrcode"></i> Atau lihat QRIS pembayaran</button>
+        </div>
+        ${menunggu ? '<p class="info-note" style="margin-top:14px"><i class="fas fa-info-circle"></i> Bukti pelunasan sudah terkirim dan menunggu verifikasi admin. Salah upload? Kirim ulang di bawah.</p>' : ''}
+        <div class="upload-title">Upload bukti pelunasan (${rpFmt(d.sisa)})</div>
+        <label for="pelInputBukti" class="upload">
+            <i class="fas fa-camera"></i>
+            <span id="pelLabelBukti">Tap untuk upload foto bukti</span>
+        </label>
+        <input type="file" id="pelInputBukti" accept="image/*" style="display:none;" onchange="previewPelBukti(this)">
+        <div class="btn-container" style="margin-top:16px;">
+            <button type="button" id="pelBtnKirim" onclick="kirimPelunasan()">KIRIM BUKTI PELUNASAN</button>
+        </div>`;
+}
+
+async function previewPelBukti(input) {
+    const file = input.files[0];
+    const lbl = document.getElementById('pelLabelBukti');
+    if (!file) return;
+    lbl.innerText = 'Mengunggah...';
+    pelBuktiURL = null;
+    const { uploadGambar } = await import('./firebase.js');
+    pelBuktiURL = await uploadGambar(file, 'bukti');
+    if (pelBuktiURL) lbl.innerText = '✓ ' + file.name;
+    else { lbl.innerText = 'Gagal upload, coba lagi'; input.value = ''; }
+}
+
+async function kirimPelunasan() {
+    if (!pelData) return;
+    if (!pelBuktiURL) return triggerAlert('UPLOAD BUKTI DULU!');
+    const btn = document.getElementById('pelBtnKirim');
+    btn.disabled = true; btn.innerText = 'MENGIRIM...';
+    try {
+        const { kirimBuktiPelunasan } = await import('./firebase.js');
+        await kirimBuktiPelunasan(pelData.kode, pelBuktiURL);
+        pelData.status = 'menunggu_verifikasi';
+        pelBuktiURL = null;
+        renderPelunasan();
+        triggerAlert('BUKTI PELUNASAN TERKIRIM!');
+    } catch (e) {
+        console.error(e);
+        btn.disabled = false; btn.innerText = 'KIRIM BUKTI PELUNASAN';
+        triggerAlert('GAGAL MENGIRIM! COBA LAGI.');
+    }
+}
+
+window.cekKodePelunasan = cekKodePelunasan;
+window.previewPelBukti = previewPelBukti;
+window.kirimPelunasan = kirimPelunasan;
+window.closeKodeModal = closeKodeModal;
+window.salinKodePelunasan = salinKodePelunasan;
+window.tampilKodePelunasan = tampilKodePelunasan;

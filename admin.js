@@ -5,7 +5,8 @@ import {
     listenBanners, saveBanner, updateBanner, deleteBanner,
     listenBannerText, saveBannerText,
     listenVouchers, saveVoucher, deleteVoucher,
-    listenCustomers, deleteCustomer
+    listenCustomers, deleteCustomer,
+    listenPelunasan, adminSimpanDP, adminTandaiLunas, buatKodePelunasan, buatOrderNo, bersihkanPrefix
 } from './firebase.js';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
@@ -18,6 +19,10 @@ let allGaleri = [];
 let allBanners = [];
 let allVouchers = [];
 let allCustomers = [];
+let allPelunasan = [];
+const pelByOrder = () => Object.fromEntries(allPelunasan.map(p => [p.orderId, p]));
+const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rp = n => 'Rp' + Number(n || 0).toLocaleString('id-ID');
 
 let currentFilter = 'semua';
 let currentProdukFilter = 'semua';
@@ -40,6 +45,7 @@ onAuthStateChanged(adminAuth, async (user) => {
             loadVouchers()
         ]);
         loadCustomersList();
+        listenPelunasan(data => { allPelunasan = data; renderOrders(); renderPelunasanAdmin(); });
     } else {
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('adminPage').style.display = 'none';
@@ -141,6 +147,7 @@ function renderOrders() {
         return;
     }
 
+    const pelMap = pelByOrder();
     list.innerHTML = filtered.map(o => {
         const date = new Date(o.createdAt).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
@@ -179,6 +186,7 @@ function renderOrders() {
             <div class="order-top">
                 <div>
                     <div class="order-name">${o.nama}</div>
+                    <div class="order-time">ID: <b style="user-select:all">${esc(o.orderNo || o.id)}</b></div>
                     <div class="order-time">${date}</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -196,12 +204,17 @@ function renderOrders() {
                 ${voucherHTML}
                 <div class="info-item">WhatsApp <span>${o.wa}</span></div>
                 <div class="info-item">Alamat <span>${o.alamat}</span></div>
+                ${o.kodePelunasan ? `<div class="info-item">Kode Pelunasan <span style="user-select:all">${esc(o.kodePelunasan)}</span></div>` : ''}
+                ${o.dpNominal ? `<div class="info-item">DP Dibayar <span>${rp(o.dpNominal)}</span></div><div class="info-item">Sisa <span>${rp(o.sisaBayar)}</span></div>` : ''}
                 <div class="info-item" style="grid-column: 1 / -1; font-size:14px; color:var(--green)">TOTAL AKHIR <span>${totalAkhirDisp}</span></div>
             </div>
             <div class="order-actions" style="display:flex; gap:10px; align-items:center; margin-top:15px; border-top:1px solid #1a1a1a; padding-top:15px;">
                 <a href="${o.buktiURL}" target="_blank" class="btn-sm btn-bukti" style="flex:1; text-align:center;">
-                    <i class="fas fa-image"></i> BUKTI
+                    <i class="fas fa-image"></i> BUKTI 1
                 </a>
+                ${(pelMap[o.id] && pelMap[o.id].buktiPelunasanURL) ? `<a href="${esc(pelMap[o.id].buktiPelunasanURL)}" target="_blank" class="btn-sm btn-bukti" style="flex:1; text-align:center;">
+                    <i class="fas fa-image"></i> BUKTI 2
+                </a>` : ''}
                 <select onchange="gantiStatusOrder('${o.id}', this.value)" style="flex:1; background:#111; color:#fff; border:1px solid #333; padding:10px; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer; outline:none;">
                     <option value="pending" ${o.status === 'pending' || !o.status ? 'selected' : ''}>⏳ PENDING</option>
                     <option value="dp" ${o.status === 'dp' ? 'selected' : ''}>💳 DP</option>
@@ -305,6 +318,8 @@ window.openModalProduk = () => {
     document.getElementById('pSpecs').value = '';
     document.getElementById('pShowcase').value = 'yes';
     document.getElementById('pDP').value = 'yes';
+    document.getElementById('pKode').value = '';
+    toggleKodeProduk();
     document.getElementById('prevThumb').style.display = 'none';
     [0,1,2,3,4].forEach(i => {
         const img = document.getElementById('prevDet'+i);
@@ -330,6 +345,8 @@ window.editProduk = (id) => {
     document.getElementById('pSpecs').value = p.specs || '';
     document.getElementById('pShowcase').value = p.showcase || 'yes';
     document.getElementById('pDP').value = p.dpAllowed || 'yes';
+    document.getElementById('pKode').value = p.kodePrefix || '';
+    toggleKodeProduk();
 
     const thumb = document.getElementById('prevThumb');
     if (p.thumbnail) { thumb.src = p.thumbnail; thumb.style.display = 'block'; }
@@ -377,6 +394,7 @@ window.saveProdukData = async () => {
             specs: document.getElementById('pSpecs').value,
             showcase: document.getElementById('pShowcase').value,
             dpAllowed: document.getElementById('pDP').value,
+            kodePrefix: document.getElementById('pDP').value === 'yes' ? bersihkanPrefix(document.getElementById('pKode').value) : '',
             thumbnail: thumbnailURL,
             details
         };
@@ -914,3 +932,144 @@ window.addEventListener('DOMContentLoaded', () => {
         e.target.setSelectionRange(cursor, cursor);
     });
 });
+
+// ===== PELUNASAN =====
+window.toggleKodeProduk = () => {
+    const bisaDP = document.getElementById('pDP').value === 'yes';
+    document.getElementById('pKodeWrap').style.display = bisaDP ? 'block' : 'none';
+    const v = bersihkanPrefix(document.getElementById('pKode').value) || 'FVCK';
+    document.getElementById('pKodeContoh').innerText = v;
+};
+window.addEventListener('DOMContentLoaded', () => {
+    const k = document.getElementById('pKode');
+    if (k) k.addEventListener('input', () => window.toggleKodeProduk());
+});
+
+function totalOrder(o) { return Number(o.totalAkhir || o.hargaKaos || 0); }
+function namaProdukText(o) {
+    return o.produkText || (Array.isArray(o.produk) ? o.produk.map(p => p.nama).join(', ') : (o.produk || ''));
+}
+function prefixUntukOrder(o) {
+    if (o.kodePrefix) return o.kodePrefix;
+    const namaList = Array.isArray(o.produk) ? o.produk.map(p => p.nama) : [o.produk];
+    for (const n of namaList) {
+        const p = allProduk.find(x => x.nama === n && x.kodePrefix);
+        if (p) return p.kodePrefix;
+    }
+    return '';
+}
+
+window.renderPelunasanAdmin = () => {
+    const box = document.getElementById('pelList');
+    if (!box) return;
+    // jangan timpa input DP yang sedang diketik
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#pelList') && document.activeElement.tagName === 'INPUT') return;
+
+    const q = (document.getElementById('pelSearch').value || '').trim().toLowerCase();
+    const pm = pelByOrder();
+    const list = allOrders.filter(o => {
+        if (o.status === 'rejected') return false;
+        if (q) return [o.orderNo, o.id, o.nama, o.kodePelunasan, o.wa, namaProdukText(o)].some(v => String(v || '').toLowerCase().includes(q));
+        return o.status === 'dp' || (pm[o.id] && pm[o.id].status !== 'lunas');
+    });
+
+    if (!list.length) {
+        box.innerHTML = `<div class="empty"><i class="fas fa-money-check-alt"></i><p>${q ? 'Order tidak ditemukan' : 'Tidak ada order DP yang menunggu pelunasan'}</p></div>`;
+        return;
+    }
+
+    box.innerHTML = list.map(o => {
+        const pel = pm[o.id];
+        const total = totalOrder(o);
+        const stLabel = !pel ? (o.status === 'lunas' ? 'LUNAS' : 'KODE BELUM AKTIF')
+            : pel.status === 'lunas' ? 'LUNAS'
+            : pel.status === 'menunggu_verifikasi' ? 'BUKTI PELUNASAN MASUK' : 'MENUNGGU PELUNASAN';
+        const warna = (pel && pel.status === 'menunggu_verifikasi') ? 'var(--yellow)' : 'var(--green)';
+        return `
+        <div class="order-card">
+            <div class="order-top">
+                <div>
+                    <div class="order-name">${esc(o.nama)}</div>
+                    <div class="order-time">ID: <b style="user-select:all">${esc(o.orderNo || o.id)}</b></div>
+                </div>
+                <div class="status-badge s-pending" style="color:${warna}">${stLabel}</div>
+            </div>
+            <div class="order-info">
+                <div class="info-item">Produk <span>${esc(namaProdukText(o))}</span></div>
+                <div class="info-item">Status Order <span>${esc((o.status || 'pending').toUpperCase())}</span></div>
+                <div class="info-item" style="grid-column:1/-1;font-size:14px;color:var(--green)">TOTAL <span>${rp(total)}</span></div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-end;margin-top:14px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:150px;">
+                    <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">NOMINAL DP DIBAYAR (Rp)</div>
+                    <input type="text" inputmode="numeric" id="dp-${o.id}" value="${o.dpNominal ? Number(o.dpNominal).toLocaleString('id-ID') : ''}" placeholder="mis. 70.000"
+                        oninput="hitungSisa('${o.id}')" style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;">
+                </div>
+                <div style="flex:1;min-width:150px;">
+                    <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">SISA PELUNASAN</div>
+                    <div id="sisa-${o.id}" data-total="${total}" style="padding:12px 0;font-weight:700;font-size:16px;color:var(--green)">${o.dpNominal ? rp(total - o.dpNominal) : '-'}</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+                <button onclick="simpanDP('${o.id}')" class="btn-sm btn-approve" style="flex:1;cursor:pointer;">
+                    <i class="fas fa-save"></i> ${o.kodePelunasan && pel ? 'UPDATE DP' : 'SIMPAN DP & AKTIFKAN KODE'}
+                </button>
+            </div>
+            ${o.kodePelunasan && pel ? `
+            <div class="info-item" style="margin-top:14px;">Kode untuk customer <span style="user-select:all;font-size:15px;letter-spacing:.1em">${esc(o.kodePelunasan)}</span></div>
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;border-top:1px solid #1a1a1a;padding-top:14px;">
+                <a href="${esc(o.buktiURL)}" target="_blank" class="btn-sm btn-bukti" style="flex:1;text-align:center;"><i class="fas fa-image"></i> BUKTI 1 (DP)</a>
+                ${pel.buktiPelunasanURL ? `<a href="${esc(pel.buktiPelunasanURL)}" target="_blank" class="btn-sm btn-bukti" style="flex:1;text-align:center;"><i class="fas fa-image"></i> BUKTI 2 (LUNAS)</a>` : `<span class="btn-sm btn-bukti" style="flex:1;text-align:center;opacity:.5;">BUKTI 2 BELUM ADA</span>`}
+                ${pel.status !== 'lunas' ? `<button onclick="tandaiLunas('${o.id}')" class="btn-sm btn-approve" style="flex:1;cursor:pointer;"><i class="fas fa-check"></i> TANDAI LUNAS</button>` : ''}
+            </div>` : ''}
+        </div>`;
+    }).join('');
+};
+
+window.hitungSisa = (id) => {
+    const inp = document.getElementById('dp-' + id);
+    const out = document.getElementById('sisa-' + id);
+    if (!inp || !out) return;
+    const nom = Number(inp.value.replace(/\D/g, '')) || 0;
+    inp.value = nom ? nom.toLocaleString('id-ID') : '';
+    const total = Number(out.dataset.total) || 0;
+    out.innerText = nom ? rp(total - nom) : '-';
+    out.style.color = (total - nom) < 0 ? 'var(--red)' : 'var(--green)';
+};
+
+window.simpanDP = async (id) => {
+    const o = allOrders.find(x => x.id === id);
+    if (!o) return;
+    const nom = Number((document.getElementById('dp-' + id).value || '').replace(/\D/g, '')) || 0;
+    const total = totalOrder(o);
+    if (nom <= 0) return showToast('ISI NOMINAL DP DULU!', true);
+    if (nom >= total) return showToast('DP TIDAK BOLEH >= TOTAL. Kalau sudah full, set status LUNAS.', true);
+    try {
+        const kode = o.kodePelunasan || buatKodePelunasan(prefixUntukOrder(o));
+        const orderNo = o.orderNo || buatOrderNo(namaProdukText(o));
+        const { sisa } = await adminSimpanDP(o, nom, kode, orderNo);
+        allOrders = allOrders.map(x => x.id === id ? { ...x, status: 'dp', dpNominal: nom, sisaBayar: sisa, kodePelunasan: kode, orderNo } : x);
+        renderOrders();
+        document.activeElement && document.activeElement.blur();
+        renderPelunasanAdmin();
+        showToast('DP DISIMPAN. KODE: ' + kode);
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL SIMPAN DP: ' + (e.code || e.message), true);
+    }
+};
+
+window.tandaiLunas = async (id) => {
+    const o = allOrders.find(x => x.id === id);
+    if (!o || !confirm('Tandai order ini LUNAS?')) return;
+    try {
+        await adminTandaiLunas(id, o.kodePelunasan);
+        allOrders = allOrders.map(x => x.id === id ? { ...x, status: 'lunas', sisaBayar: 0 } : x);
+        renderOrders();
+        renderPelunasanAdmin();
+        showToast('ORDER LUNAS ✓');
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL: ' + (e.code || e.message), true);
+    }
+};

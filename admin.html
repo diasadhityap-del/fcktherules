@@ -43,6 +43,9 @@
         <div class="nav-item active" id="nav-order" onclick="switchTab('order')">
             <i class="fas fa-box"></i> ORDER
         </div>
+        <div class="nav-item" id="nav-pelunasan" onclick="switchTab('pelunasan')">
+            <i class="fas fa-money-check-alt"></i> PELUNASAN
+        </div>
         <div class="nav-item" id="nav-produk" onclick="switchTab('produk')">
             <i class="fas fa-tshirt"></i> PRODUK
         </div>
@@ -103,6 +106,17 @@
                     <i class="fas fa-spinner fa-spin"></i> Memuat...
                 </div>
             </div>
+        </div>
+
+        <!-- TAB PELUNASAN -->
+        <div class="tab-content" id="tab-pelunasan">
+            <div class="page-header">
+                <div class="page-title">PELUNASAN</div>
+                <div class="page-desc">Ketik ID order (mis. ELEMEN-JERSEY-0510-K7F), nama, atau kode untuk mencari. Isi nominal DP, sisa otomatis dihitung.</div>
+            </div>
+            <input type="text" id="pelSearch" placeholder="Cari ID order / nama / kode pelunasan..." oninput="renderPelunasanAdmin()"
+                style="width:100%; background:#111; color:#fff; border:1px solid #333; padding:14px; border-radius:10px; font-size:14px; margin-bottom:18px; box-sizing:border-box;">
+            <div id="pelList"></div>
         </div>
 
         <!-- TAB PRODUK -->
@@ -200,6 +214,9 @@
         <div class="mob-nav-item active" id="mob-order" onclick="switchTab('order')">
             <i class="fas fa-box"></i> ORDER
         </div>
+        <div class="mob-nav-item" id="mob-pelunasan" onclick="switchTab('pelunasan')">
+            <i class="fas fa-money-check-alt"></i> PELUNASAN
+        </div>
         <div class="mob-nav-item" id="mob-produk" onclick="switchTab('produk')">
             <i class="fas fa-tshirt"></i> PRODUK
         </div>
@@ -267,10 +284,15 @@
         </div>
         <div class="form-group">
             <label>BISA DP?</label>
-            <select id="pDP">
+            <select id="pDP" onchange="toggleKodeProduk()">
                 <option value="yes">Bisa DP</option>
                 <option value="no">Tidak Bisa DP</option>
             </select>
+        </div>
+        <div class="form-group" id="pKodeWrap">
+            <label>KODE PELUNASAN (AWALAN)</label>
+            <input type="text" id="pKode" maxlength="8" placeholder="mis. SLMN" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+            <small style="color:#888; font-size:11px; display:block; margin-top:6px;">Customer akan dapat kode seperti <b id="pKodeContoh">SLMN</b>-XXXXX (XXXXX acak). Kosong = FVCK-XXXXX.</small>
         </div>
 
         <div class="form-group">
