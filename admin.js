@@ -10,11 +10,11 @@ import {
     listenPoTrack, adminTutupPo, adminHapusLacak,
     adminBackfillOrder, turunanPO, tsMillis,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js';
+} from './firebase.js?v=20261006';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js";
+import { adminDb } from "./firebase.js?v=20261006";
 
 let allOrders = [];
 let allProduk = [];

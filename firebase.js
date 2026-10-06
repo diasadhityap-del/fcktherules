@@ -719,3 +719,10 @@ export async function adminBackfillOrder(o, ctx = {}) {
     }
     return r;
 }
+
+/* ----- Shim kompatibilitas: admin.js lama yang masih tersimpan di cache browser tetap bisa tersambung (tidak mati total).
+   Fungsi lama ini sudah digantikan; bila terpanggil, minta muat ulang. ----- */
+const _usang = () => { throw new Error('Versi halaman lama (cache). Muat ulang halaman admin (tarik ke bawah / hapus cache).'); };
+export async function adminTandaiLunas(orderId) { return adminLunaskan(orderId); }
+export async function adminSetPoStep() { _usang(); }
+export async function adminHapusPoStep() { _usang(); }
