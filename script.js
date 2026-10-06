@@ -2160,9 +2160,17 @@ function resiBoxHTML(d, mode) {
             <span class="cap">Resi Anda</span>
             <p style="margin:6px 0 4px;font-size:18px;font-weight:700;letter-spacing:.06em;word-break:break-all;user-select:all">${escH(d.resi)}</p>
             <p style="margin:0;font-size:12px;opacity:.8;line-height:1.5">Paket sudah diserahkan ke pihak pengirim. Cek progres pengiriman melalui resi ini.</p>
+            <a class="btn-ghost" href="https://jet.co.id/track" target="_blank" rel="noopener" data-resi="${escH(d.resi)}" onclick="salinResiJnt(this)" style="display:inline-block;margin-top:12px;padding:10px 16px;border:1px solid currentColor;border-radius:999px;font-size:13px;font-weight:600;text-decoration:none;color:inherit">LACAK DI J&amp;T ↗</a>
+            <p style="margin:8px 0 0;font-size:11px;opacity:.7">Resi otomatis tersalin, tinggal tempel di kolom pelacakan J&amp;T.</p>
         </div>`;
     return mode === 'resi' ? `<p style="margin:0 0 14px;font-size:14px;font-weight:600">Pesanan anda belum dikirim.</p>` : '';
 }
+async function salinResiJnt(el) {
+    const resi = el.getAttribute('data-resi') || '';
+    try { await navigator.clipboard.writeText(resi); triggerAlert('RESI DISALIN!'); }
+    catch { triggerAlert('SALIN RESI MANUAL: ' + resi); }
+}
+window.salinResiJnt = salinResiJnt;
 function renderPantauDetail(d, timeline, mode) {
     const items = (d.items && d.items.length) ? d.items : [{ nama: d.produk || '', warna: '', size: '' }];
     const artikel = (d.poNames && d.poNames.length) ? d.poNames.join(', ') : (d.produk || '');
