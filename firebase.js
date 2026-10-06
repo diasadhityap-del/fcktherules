@@ -1,7 +1,8 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc,
-  query, orderBy, onSnapshot, setDoc, where, getDoc, deleteField, arrayUnion
+  query, orderBy, onSnapshot, setDoc, where, getDoc, deleteField, arrayUnion,
+  runTransaction, serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 import {
   getAuth, signInWithEmailAndPassword, signOut,
@@ -188,8 +189,10 @@ function randStr(n, chars = KODE_CHARS) {
     return Array.from(a, x => chars[x % chars.length]).join('');
 }
 export function bersihkanPrefix(p) { return String(p || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); }
-// Kode untuk customer: PREFIX-XXXXX (acak, tidak menunjukkan ID dokumen)
-export function buatKodePelunasan(prefix) { return (bersihkanPrefix(prefix) || 'FVCK') + '-' + randStr(5); }
+// ID PEMESANAN (identitas utama order, permanen): PREFIX-XXXXXX. Disimpan di field `kodePelunasan`
+// (nama field lama dipertahankan supaya pelunasan/lacak/riwayat existing tidak putus).
+// Order lama dengan 5 karakter acak tetap valid dan tidak diubah.
+export function buatKodePelunasan(prefix) { return (bersihkanPrefix(prefix) || 'FVCK') + '-' + randStr(6); }
 function namaProdukUtama(o) {
     if (Array.isArray(o.produk)) return (o.produk[0] && o.produk[0].nama) || '';
     return o.produk || o.produkText || '';
@@ -200,6 +203,15 @@ export function buatOrderNo(namaProduk) {
     const d = new Date();
     const ddmm = String(d.getDate()).padStart(2, '0') + String(d.getMonth() + 1).padStart(2, '0');
     return `${slug}-${ddmm}-${randStr(3)}`;
+}
+function maskEmail(e) {
+    const [u, d] = String(e || '').trim().split('@');
+    if (!u || !d) return '';
+    return u.slice(0, 2) + '***@' + d;
+}
+function maskHP(h) {
+    const d = String(h || '').replace(/\D/g, '');
+    return d.length > 6 ? d.slice(0, 4) + '****' + d.slice(-3) : (d ? '****' : '');
 }
 function maskNama(n) {
     const w = String(n || '').trim().split(/\s+/)[0] || '';
@@ -234,34 +246,85 @@ export async function adminSimpanDP(o, dpNominal, kode, orderNo) {
     if (ex.exists()) await updateDoc(ref, base);
     else await setDoc(ref, { ...base, status: 'dp', createdAt: new Date().toISOString() });
     await updateDoc(doc(adminDb, "orders", o.id), { status: 'dp', dpNominal, sisaBayar: sisa, kodePelunasan: kode, orderNo });
-    await adminSyncPay(kode, 'dp', sisa);
+    await adminSyncPay(kode, 'dp', sisa, dpNominal);
     return { sisa, total };
 }
-export async function adminTandaiLunas(orderId, kode) {
-    if (kode) { try { await updateDoc(doc(adminDb, "pelunasan", kode), { status: 'lunas' }); } catch (e) { console.error(e); } }
-    await updateDoc(doc(adminDb, "orders", orderId), { status: 'lunas', sisaBayar: 0 });
-    await adminSyncPay(kode, 'lunas', 0);
+
+// PELUNASAN (DP -> Lunas). Dipanggil saat admin memverifikasi bukti pelunasan (satu-satunya "verifikasi payment"
+// yang ada di sistem ini: pembayaran manual transfer/QRIS, tidak ada gateway/webhook).
+// Transaksi + ID dokumen timeline tetap ('pelunasan') => idempotent: dipanggil berkali-kali (klik ganda, 2 tab admin)
+// tetap hanya membuat SATU event "Pelunasan". Waktu = waktu server.
+export async function adminLunaskan(orderId) {
+    const oRef = doc(adminDb, "orders", orderId);
+    return await runTransaction(adminDb, async (tx) => {
+        const oSnap = await tx.get(oRef);
+        if (!oSnap.exists()) throw new Error('Order tidak ditemukan');
+        const o = oSnap.data();
+        const kode = o.kodePelunasan || '';
+        const pRef = kode ? doc(adminDb, "pelunasan", kode) : null;
+        const lRef = kode ? doc(adminDb, "lacak", kode) : null;
+        const tRef = kode ? doc(adminDb, "lacak", kode, "timeline", "pelunasan") : null;
+        const pSnap = pRef ? await tx.get(pRef) : null;
+        const lSnap = lRef ? await tx.get(lRef) : null;
+        const tSnap = tRef ? await tx.get(tRef) : null;
+
+        if (o.status === 'lunas') return { changed: false, event: !!(tSnap && tSnap.exists()) };
+
+        const wasDP = o.status === 'dp';
+        tx.update(oRef, { status: 'lunas', sisaBayar: 0 });
+        if (pSnap && pSnap.exists()) tx.update(pRef, { status: 'lunas' });
+        if (lSnap && lSnap.exists()) tx.update(lRef, { pay: 'lunas', payAt: new Date().toISOString(), sisa: 0 });
+        let event = !!(tSnap && tSnap.exists());
+        if (wasDP && o.isPO && kode && !event) {
+            tx.set(tRef, { kode, orderId, text: 'Pelunasan', type: 'automatic', kind: 'pelunasan', createdAt: serverTimestamp() });
+            event = true;
+        }
+        return { changed: true, event, wasDP };
+    });
+}
+// Status selain DP/Lunas (pending, ditolak): update order + sinkron ke data pelacakan
+export async function adminSetStatus(o, status) {
+    await updateDoc(doc(adminDb, "orders", o.id), { status });
+    await adminSyncPay(o.kodePelunasan, status, o.sisaBayar, o.dpNominal);
     return true;
 }
 
 /* ============== ORDER ============== */
 export async function saveOrder(orderData) {
     try {
-        // ID admin yang mudah dibaca (mirip slug artikel) + kode pelunasan untuk customer (beda dari ID dokumen)
-        if (!orderData.orderNo) orderData.orderNo = buatOrderNo(namaProdukUtama(orderData));
-        // ID pesanan (kodePelunasan) dibuat untuk semua order Pre Order, plus order DP biasa
-        if ((orderData.dpEligible || orderData.isPO) && !orderData.kodePelunasan) orderData.kodePelunasan = buatKodePelunasan(orderData.kodePrefix);
-        const docRef = await addDoc(collection(db, "orders"), {
-            ...orderData,
-            status: "pending",
-            createdAt: new Date().toISOString()
-        });
-        // Order Pre Order: buat dokumen pelacakan (gagal di sini tidak membatalkan order)
-        if (orderData.isPO && orderData.kodePelunasan) {
-            try { await buatLacak(docRef.id, orderData); } catch (e) { console.error("Gagal buat pelacakan:", e); }
+        // Artikel Pre Order yang sudah "Diselesaikan" admin tidak menerima order baru
+        if (orderData.isPO) {
+            for (const pid of (orderData.poIds || [])) {
+                const ps = await getDoc(doc(db, "produk", pid));
+                if (ps.exists() && ps.data().poClosed) {
+                    const e = new Error('po-closed'); e.code = 'po-closed'; throw e;
+                }
+            }
         }
-        return docRef.id;
-    } catch (err) { console.error("Gagal simpan order:", err); return null; }
+        if (!orderData.orderNo) orderData.orderNo = buatOrderNo(namaProdukUtama(orderData));
+
+        // ID Pemesanan: dibuat di sini (saat order dibuat), prefix dari artikel, dipastikan belum dipakai (lacak/{kode}),
+        // lalu disimpan permanen di dokumen order. Tidak pernah dibuat/diubah di tampilan.
+        let kode = null;
+        for (let i = 0; i < 10 && !kode; i++) {
+            const c = buatKodePelunasan(orderData.kodePrefix);
+            const ex = await getDoc(doc(db, "lacak", c));
+            if (!ex.exists()) kode = c;
+        }
+        if (!kode) throw new Error('Gagal membuat ID pemesanan unik');
+        orderData.kodePelunasan = kode;
+
+        const ref = doc(collection(db, "orders"));
+        await setDoc(ref, { ...orderData, status: "pending", createdAt: new Date().toISOString() });
+
+        // Dokumen pelacakan + event "Pesanan dibuat" (gagal di sini tidak membatalkan order; admin bisa "Sinkronkan")
+        try { await buatLacak(ref.id, orderData); } catch (e) { console.error("Gagal buat pelacakan:", e); }
+        return ref.id;
+    } catch (err) {
+        console.error("Gagal simpan order:", err);
+        if (err && err.code === 'po-closed') throw err;
+        return null;
+    }
 }
 
 export async function uploadGambar(file, tipe = "bukti") {
@@ -383,29 +446,61 @@ async function sha256Hex(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
 }
-async function buatLacak(orderId, o) {
-    const kode = o.kodePelunasan;
-    await setDoc(doc(db, "lacak", kode), {
-        kode, orderId, orderNo: o.orderNo || '',
-        nama: maskNama(o.nama),
-        produk: o.produkText || namaProdukUtama(o),
-        poIds: o.poIds || [], poNames: o.poNames || [],
-        pay: 'pending', payAt: null, sisa: null,
-        createdAt: new Date().toISOString()
-    });
+function itemsDariOrder(o) {
+    return Array.isArray(o.produk)
+        ? o.produk.map(p => ({ nama: p.nama || '', warna: p.warna || '', size: p.size || '' }))
+        : [{ nama: o.produk || '', warna: o.warna || '', size: o.size || '' }];
+}
+function totalDariOrder(o) { return Number(o.totalAkhir || o.hargaKaos || 0); }
+const payDariStatus = st => st === 'lunas' ? 'lunas' : st === 'dp' ? 'dp' : st === 'rejected' ? 'ditolak' : 'pending';
+
+// Indeks pencarian no HP / email (hash). Hanya untuk order Pre Order.
+async function indeksLacak(dbx, o, kode) {
     const keys = [];
     if (o.wa) keys.push('hp:' + normHP(o.wa));
     if (o.email) keys.push('em:' + normEmail(o.email));
     for (const k of keys) {
         try {
-            const ref = doc(db, "lacakIdx", await sha256Hex(k));
+            const ref = doc(dbx, "lacakIdx", await sha256Hex(k));
             const ex = await getDoc(ref);
-            if (ex.exists()) await updateDoc(ref, { kodes: arrayUnion(kode) });
-            else await setDoc(ref, { kodes: [kode] });
+            if (!ex.exists()) await setDoc(ref, { kodes: [kode] });
+            else if (!(ex.data().kodes || []).includes(kode)) await updateDoc(ref, { kodes: arrayUnion(kode) });
         } catch (e) { console.error("Gagal indeks lacak:", e); }
     }
 }
-// Customer: cari lewat ID, no HP, dan/atau email. Order yang artikel PO-nya sudah "selesai" tidak ditemukan.
+// lacak/{kode}: 1 dokumen per order (semua order; ID tidak boleh kembar). Detail publik = data tersamar (nama/email/HP dimask).
+// lacak/{kode}/timeline/{id}: timeline order (hanya order Pre Order).
+async function buatLacak(orderId, o) {
+    const kode = o.kodePelunasan;
+    await setDoc(doc(db, "lacak", kode), {
+        kode, orderId, orderNo: o.orderNo || '', isPO: !!o.isPO,
+        nama: maskNama(o.nama), email: maskEmail(o.email), hp: maskHP(o.wa),
+        produk: o.produkText || namaProdukUtama(o), items: itemsDariOrder(o),
+        poIds: o.poIds || [], poNames: o.poNames || [],
+        total: totalDariOrder(o), dpNominal: null, sisa: null,
+        pay: 'pending', payAt: null,
+        createdAt: new Date().toISOString()
+    });
+    if (!o.isPO) return;   // Ready Stock: tanpa tracking/timeline Pre Order
+    await setDoc(doc(db, "lacak", kode, "timeline", "created"), {
+        kode, orderId, text: 'Pesanan dibuat', type: 'automatic', kind: 'created', createdAt: serverTimestamp()
+    });
+    await indeksLacak(db, o, kode);
+}
+
+export function tsMillis(v) {
+    if (!v) return 0;
+    if (typeof v.toMillis === 'function') return v.toMillis();
+    if (typeof v.seconds === 'number') return v.seconds * 1000;
+    const t = new Date(v).getTime();
+    return isNaN(t) ? 0 : t;
+}
+function urutTimeline(list) {
+    return list.sort((a, b) => (tsMillis(a.createdAt) - tsMillis(b.createdAt)) || (a.kind === 'created' ? -1 : b.kind === 'created' ? 1 : 0) || String(a.id).localeCompare(String(b.id)));
+}
+
+// Customer: cari lewat ID / no HP / email. Hasil terbaru -> terlama. Hanya order Pre Order. Order lama tetap bisa dilacak
+// walaupun artikel PO-nya sudah diselesaikan.
 export async function cariLacak({ kode, hp, email }) {
     let kodes = [];
     if (kode) kodes.push(String(kode).toUpperCase().replace(/[^A-Z0-9-]/g, ''));
@@ -417,48 +512,148 @@ export async function cariLacak({ kode, hp, email }) {
         const s = await getDoc(doc(db, "lacakIdx", await sha256Hex('em:' + normEmail(email))));
         if (s.exists()) kodes.push(...(s.data().kodes || []));
     }
-    kodes = [...new Set(kodes)].filter(Boolean).slice(0, 30);
+    kodes = [...new Set(kodes)].filter(Boolean).slice(0, 50);
     const out = [];
     for (const k of kodes) {
         const s = await getDoc(doc(db, "lacak", k));
         if (!s.exists()) continue;
         const d = s.data();
-        const po = {};
-        for (const id of (d.poIds || [])) {
-            const p = await getDoc(doc(db, "poTrack", id));
-            po[id] = p.exists() ? p.data() : { events: {}, closed: false };
-        }
-        const ids = d.poIds || [];
-        if (ids.length && ids.every(id => po[id].closed)) continue;   // artikel PO sudah diselesaikan admin
-        out.push({ ...d, po });
+        if (d.isPO === false) continue;   // Ready Stock tidak memakai tracking Pre Order
+        out.push({ id: s.id, ...d });
     }
+    out.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
     return out;
 }
-// Admin: sinkron langkah "Pelunasan" otomatis dari status order
-export async function adminSyncPay(kode, status, sisa) {
+export async function getTimeline(kode) {
+    const s = await getDocs(collection(db, "lacak", kode, "timeline"));
+    return urutTimeline(s.docs.map(d => ({ id: d.id, ...d.data() })));
+}
+
+/* ----- Admin: timeline per order ----- */
+export function listenTimeline(kode, cb, onErr) {
+    return onSnapshot(collection(adminDb, "lacak", kode, "timeline"),
+        s => cb(urutTimeline(s.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })))),
+        e => { console.error(e); if (onErr) onErr(e); });
+}
+// Update manual: waktu SELALU waktu server (admin tidak bisa mengetik tanggal/jam).
+export async function adminTambahUpdate(o, text) {
+    const t = String(text || '').trim().slice(0, 500);
+    if (!t) throw new Error('Isi update kosong');
+    if (!o.kodePelunasan) throw new Error('Order belum punya ID');
+    const lk = await getDoc(doc(adminDb, "lacak", o.kodePelunasan));
+    if (!lk.exists()) throw new Error('Pelacakan order belum disinkronkan (tekan SINKRONKAN)');
+    await addDoc(collection(adminDb, "lacak", o.kodePelunasan, "timeline"), {
+        kode: o.kodePelunasan, orderId: o.id, text: t, type: 'manual', kind: 'manual', createdAt: serverTimestamp()
+    });
+}
+// Hanya update manual yang bisa dihapus (rules juga menolak event otomatis). Hanya menyentuh 1 dokumen timeline.
+export async function adminHapusUpdate(kode, eventId) {
+    await deleteDoc(doc(adminDb, "lacak", kode, "timeline", eventId));
+}
+
+// Admin: sinkron status bayar ke data pelacakan
+export async function adminSyncPay(kode, status, sisa, dpNominal) {
     if (!kode) return;
-    const pay = status === 'lunas' ? 'lunas' : status === 'dp' ? 'dp' : status === 'rejected' ? 'ditolak' : 'pending';
+    const pay = payDariStatus(status);
     try {
         await updateDoc(doc(adminDb, "lacak", kode), {
             pay,
             payAt: (pay === 'lunas' || pay === 'dp') ? new Date().toISOString() : null,
-            sisa: pay === 'dp' ? Number(sisa || 0) : 0
+            sisa: pay === 'dp' ? Number(sisa || 0) : 0,
+            dpNominal: dpNominal ? Number(dpNominal) : null
         });
     } catch (e) { console.warn("Lacak tidak ada / gagal sync:", kode, e.code || e.message); }
 }
 export async function adminHapusLacak(kode) {
     if (!kode) return;
-    try { await deleteDoc(doc(adminDb, "lacak", kode)); } catch (e) { console.warn(e); }
+    try {
+        const tl = await getDocs(collection(adminDb, "lacak", kode, "timeline"));
+        for (const d of tl.docs) await deleteDoc(d.ref);
+        await deleteDoc(doc(adminDb, "lacak", kode));
+    } catch (e) { console.warn(e); }
+}
+
+/* ----- Admin: Selesaikan / buka lagi artikel Pre Order -----
+   Menutup artikel HANYA menghentikan order baru (flag poClosed di dokumen produk). Order, payment, timeline lama tidak disentuh. */
+export async function adminTutupPo(produkId, nama, closed) {
+    await updateDoc(doc(adminDb, "produk", produkId), { poClosed: !!closed, poClosedAt: closed ? new Date().toISOString() : null });
+    try { await setDoc(doc(adminDb, "poTrack", produkId), { nama, closed: !!closed, closedAt: closed ? new Date().toISOString() : null }, { merge: true }); } catch (e) { console.warn(e); }
 }
 export function listenPoTrack(cb) {
     return onSnapshot(collection(adminDb, "poTrack"), s => cb(s.docs.map(d => ({ id: d.id, ...d.data() }))));
 }
-export async function adminSetPoStep(produkId, nama, key, atISO, note) {
-    await setDoc(doc(adminDb, "poTrack", produkId), { nama, events: { [key]: { at: atISO, note: note || '' } } }, { merge: true });
-}
-export async function adminHapusPoStep(produkId, key) {
-    await updateDoc(doc(adminDb, "poTrack", produkId), { ['events.' + key]: deleteField() });
-}
-export async function adminTutupPo(produkId, nama, closed) {
-    await setDoc(doc(adminDb, "poTrack", produkId), { nama, closed: !!closed, closedAt: closed ? new Date().toISOString() : null }, { merge: true });
+
+/* ----- Admin: backfill / sinkron order lama (aman diulang) -----
+   - beri ID bila belum punya (prefix dari artikel, fallback FVCK) -- ID yang sudah ada TIDAK diubah
+   - buat/lengkapi lacak/{kode}
+   - Pre Order: buat event "Pesanan dibuat" (waktu order asli), "Pelunasan" bila sudah lunas setelah DP,
+     dan salin langkah lama per-artikel (vendor/jadi/kirim) jadi update manual di timeline order tsb.
+   Tidak membuat order baru, tidak menghapus apa pun. Semua dokumen memakai ID tetap => tidak pernah dobel. */
+const LEGACY_LABEL = { vendor: 'Kaos masuk vendor', jadi: 'Kaos sudah jadi', kirim: 'Kaos dikirim' };
+export async function adminBackfillOrder(o, ctx = {}) {
+    const produkList = ctx.produkList || [];
+    const poTrackMap = ctx.poTrackMap || {};
+    const r = { idBaru: false, lacakBaru: false, events: 0 };
+    let kode = o.kodePelunasan;
+    if (!kode) {
+        let prefix = o.kodePrefix || '';
+        if (!prefix) {
+            const namaList = Array.isArray(o.produk) ? o.produk.map(p => p.nama) : [o.produk];
+            const p = produkList.find(x => namaList.includes(x.nama) && x.kodePrefix);
+            if (p) prefix = p.kodePrefix;
+        }
+        for (let i = 0; i < 10 && !kode; i++) {
+            const c = buatKodePelunasan(prefix);
+            if (!(await getDoc(doc(adminDb, "lacak", c))).exists()) kode = c;
+        }
+        if (!kode) throw new Error('Gagal membuat ID unik');
+        await updateDoc(doc(adminDb, "orders", o.id), { kodePelunasan: kode });
+        o = { ...o, kodePelunasan: kode };
+        r.idBaru = true;
+    }
+    const lRef = doc(adminDb, "lacak", kode);
+    const lSnap = await getDoc(lRef);
+    const isPO = o.isPO === true;
+    const pay = payDariStatus(o.status);
+    const dpN = Number(o.dpNominal || 0);
+    const data = {
+        kode, orderId: o.id, orderNo: o.orderNo || '', isPO,
+        nama: maskNama(o.nama), email: maskEmail(o.email), hp: maskHP(o.wa),
+        produk: o.produkText || namaProdukUtama(o), items: itemsDariOrder(o),
+        poIds: o.poIds || [], poNames: o.poNames || [],
+        total: totalDariOrder(o), dpNominal: dpN || null,
+        sisa: pay === 'dp' ? Number(o.sisaBayar || 0) : 0, pay
+    };
+    if (!lSnap.exists()) {
+        await setDoc(lRef, { ...data, payAt: (pay === 'lunas' || pay === 'dp') ? (o.createdAt || null) : null, createdAt: o.createdAt || new Date().toISOString() });
+        r.lacakBaru = true;
+    } else {
+        await setDoc(lRef, data, { merge: true });
+    }
+    if (!isPO) return r;
+
+    const tl = collection(adminDb, "lacak", kode, "timeline");
+    const bikin = async (id, payload) => {
+        const ref = doc(tl, id);
+        if ((await getDoc(ref)).exists()) return;
+        await setDoc(ref, { kode, orderId: o.id, ...payload });
+        r.events++;
+    };
+    await bikin('created', { text: 'Pesanan dibuat', type: 'automatic', kind: 'created', createdAt: Timestamp.fromDate(new Date(o.createdAt || Date.now())) });
+    if (o.status === 'lunas' && dpN > 0) {
+        const t = (lSnap.exists() && lSnap.data().payAt) ? new Date(lSnap.data().payAt) : new Date();
+        await bikin('pelunasan', { text: 'Pelunasan', type: 'automatic', kind: 'pelunasan', createdAt: Timestamp.fromDate(isNaN(t) ? new Date() : t) });
+    }
+    for (const pid of (o.poIds || [])) {
+        const ev = (poTrackMap[pid] && poTrackMap[pid].events) || {};
+        for (const key of Object.keys(LEGACY_LABEL)) {
+            if (!ev[key] || !ev[key].at) continue;
+            const at = new Date(ev[key].at);
+            if (isNaN(at)) continue;
+            const label = LEGACY_LABEL[key] + (key === 'kirim' && ev[key].note ? ' — ' + ev[key].note : '');
+            await bikin(`legacy-${pid}-${key}`, { text: label, type: 'manual', kind: 'legacy', createdAt: Timestamp.fromDate(at) });
+        }
+    }
+    if (lSnap.exists() === false) await indeksLacak(adminDb, o, kode);
+    return r;
 }

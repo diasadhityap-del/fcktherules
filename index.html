@@ -403,19 +403,11 @@
     <article class="about">
         <p class="eyebrow">Pre Order</p>
         <h1 class="page-title">Pantau Pesanan</h1>
-        <p class="page-sub">Lacak pesanan Pre Order kamu. Isi salah satu: ID pesanan, no. HP, atau email yang dipakai saat checkout.</p>
+        <p class="page-sub">Lacak pesanan Pre Order kamu dengan ID Order, email, atau nomor HP yang dipakai saat checkout.</p>
 
         <div class="input-group" style="margin-top:22px">
-            <label>ID pesanan</label>
-            <input type="text" id="pantauId" placeholder="contoh: SLMN-7K2QX" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase" onkeydown="if(event.key==='Enter'){cekPantau()}">
-        </div>
-        <div class="input-group">
-            <label>No. HP / WhatsApp</label>
-            <input type="tel" id="pantauHp" placeholder="contoh: 08123456789" autocomplete="off" onkeydown="if(event.key==='Enter'){cekPantau()}">
-        </div>
-        <div class="input-group">
-            <label>Email</label>
-            <input type="email" id="pantauEmail" placeholder="contoh: nama@email.com" autocomplete="off" onkeydown="if(event.key==='Enter'){cekPantau()}">
+            <label>ID Order / Email / Nomor HP</label>
+            <input type="text" id="pantauInput" placeholder="contoh: FVCK-A82K91 atau email@gmail.com atau 08123456789" autocomplete="off" onkeydown="if(event.key==='Enter'){cekPantau()}">
         </div>
         <div class="btn-container" style="margin-top:14px;">
             <button type="button" id="pantauBtn" onclick="cekPantau()">LACAK PESANAN</button>
@@ -448,8 +440,9 @@
 <div id="kodeModal" class="modal-overlay" style="display:none;">
     <div class="modal-card center">
         <i class="fas fa-key modal-icon"></i>
-        <h3 class="modal-title">ID Pesanan</h3>
-        <p class="modal-desc" style="margin-bottom:14px">Simpan ID ini. Pakai di menu <b>Pantau Pesanan</b> untuk melacak status pesanan, dan di menu <b>Pelunasan</b> untuk melunasi sisa pembayaran (jika DP).</p>
+        <h3 class="modal-title">Order Berhasil</h3>
+        <p class="modal-desc" style="margin:0 0 6px;font-weight:700">ID Pemesanan</p>
+        <p class="modal-desc" style="margin-bottom:14px">Catat atau salin ID ini. Pakai di menu <b>Pantau Pesanan</b> (khusus Pre Order) dan di menu <b>Pelunasan</b> untuk melunasi sisa pembayaran jika DP.</p>
         <div id="kodeModalValue" style="font-size:26px;font-weight:700;letter-spacing:.12em;padding:14px;border:2px dashed currentColor;border-radius:12px;word-break:break-all;user-select:all"></div>
         <div class="modal-actions">
             <button type="button" class="btn-ghost" onclick="salinKodePelunasan()">SALIN</button>

@@ -44,10 +44,7 @@
             <i class="fas fa-box"></i> ORDER
         </div>
         <div class="nav-item" id="nav-lacak" onclick="switchTab('lacak')">
-            <i class="fas fa-route"></i> LACAK PO
-        </div>
-        <div class="nav-item" id="nav-pelunasan" onclick="switchTab('pelunasan')">
-            <i class="fas fa-money-check-alt"></i> PELUNASAN
+            <i class="fas fa-flag-checkered"></i> ARTIKEL PO
         </div>
         <div class="nav-item" id="nav-produk" onclick="switchTab('produk')">
             <i class="fas fa-tshirt"></i> PRODUK
@@ -85,7 +82,7 @@
         <div class="tab-content active" id="tab-order">
             <div class="page-header">
                 <div class="page-title">ORDER</div>
-                <div class="page-desc">Kelola dan approve pesanan masuk</div>
+                <div class="page-desc">Pilih satu order. Status bayar, DP, pelunasan, dan timeline ada di detail order.</div>
             </div>
 
             <div class="filter-bar">
@@ -104,31 +101,27 @@
                 </button>
             </div>
 
-            <div id="orderList">
+            <div id="orderPickWrap" style="margin-bottom:16px">
+                <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">PILIH ORDER (ID — ARTIKEL, TERBARU DI ATAS)</div>
+                <select id="orderPicker" onchange="pilihOrder(this.value)" style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:14px;border-radius:10px;font-size:14px;font-weight:600;"></select>
+            </div>
+            <div id="orderDetail">
                 <div class="loading">
                     <i class="fas fa-spinner fa-spin"></i> Memuat...
                 </div>
+            </div>
+            <div style="margin-top:22px;border-top:1px solid #1a1a1a;padding-top:14px;">
+                <button onclick="sinkronSemuaOrder()" class="btn-sm btn-bukti" style="cursor:pointer;width:100%;padding:12px"><i class="fas fa-sync"></i> SINKRONKAN ORDER LAMA (beri ID & timeline)</button>
             </div>
         </div>
 
         <!-- TAB LACAK PO -->
         <div class="tab-content" id="tab-lacak">
             <div class="page-header">
-                <div class="page-title">LACAK PRE ORDER</div>
-                <div class="page-desc">Update status per artikel PO (seperti resi). Langkah 1 (Pesanan) dan 3 (Pelunasan) otomatis. Atur tanggal &amp; jam, lalu tekan UPDATE. Salah isi? Hapus dengan ikon tong sampah.</div>
+                <div class="page-title">ARTIKEL PRE ORDER</div>
+                <div class="page-desc">Selesaikan artikel PO agar tidak menerima order baru. Order lama tetap tersimpan, bisa dilihat admin, dicari, dan dilacak customer. Timeline diisi per order di menu ORDER.</div>
             </div>
             <div id="poList"></div>
-        </div>
-
-        <!-- TAB PELUNASAN -->
-        <div class="tab-content" id="tab-pelunasan">
-            <div class="page-header">
-                <div class="page-title">PELUNASAN</div>
-                <div class="page-desc">Ketik ID order (mis. ELEMEN-JERSEY-0510-K7F), nama, atau kode untuk mencari. Isi nominal DP, sisa otomatis dihitung.</div>
-            </div>
-            <input type="text" id="pelSearch" placeholder="Cari ID order / nama / kode pelunasan..." oninput="renderPelunasanAdmin()"
-                style="width:100%; background:#111; color:#fff; border:1px solid #333; padding:14px; border-radius:10px; font-size:14px; margin-bottom:18px; box-sizing:border-box;">
-            <div id="pelList"></div>
         </div>
 
         <!-- TAB PRODUK -->
@@ -227,10 +220,7 @@
             <i class="fas fa-box"></i> ORDER
         </div>
         <div class="mob-nav-item" id="mob-lacak" onclick="switchTab('lacak')">
-            <i class="fas fa-route"></i> LACAK PO
-        </div>
-        <div class="mob-nav-item" id="mob-pelunasan" onclick="switchTab('pelunasan')">
-            <i class="fas fa-money-check-alt"></i> PELUNASAN
+            <i class="fas fa-flag-checkered"></i> ARTIKEL PO
         </div>
         <div class="mob-nav-item" id="mob-produk" onclick="switchTab('produk')">
             <i class="fas fa-tshirt"></i> PRODUK
@@ -262,13 +252,18 @@
             <label>NAMA PRODUK</label>
             <input type="text" id="pNama" placeholder="Soccer Madness...">
         </div>
+        <div class="form-group" id="pKodeWrap">
+            <label>KODE AWAL ID ORDER</label>
+            <input type="text" id="pKode" maxlength="8" placeholder="mis. FVCK" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+            <small style="color:#888; font-size:11px; display:block; margin-top:6px;">Order baru jadi <b id="pKodeContoh">FVCK</b>-XXXXXX. Wajib untuk artikel Pre Order. Mengubahnya hanya berlaku untuk order baru; ID order lama tidak berubah.</small>
+        </div>
         <div class="form-group">
             <label>HARGA (tanpa titik)</label>
             <input type="number" id="pHarga" placeholder="150000">
         </div>
         <div class="form-group">
             <label>STATUS BADGE</label>
-            <select id="pBadge">
+            <select id="pBadge" onchange="toggleKodeProduk()">
                 <option value="pre">PRE ORDER</option>
                 <option value="ready">READY</option>
                 <option value="sold">SOLD OUT</option>
@@ -304,12 +299,6 @@
                 <option value="no">Tidak Bisa DP</option>
             </select>
         </div>
-        <div class="form-group" id="pKodeWrap">
-            <label>KODE PELUNASAN (AWALAN)</label>
-            <input type="text" id="pKode" maxlength="8" placeholder="mis. SLMN" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-            <small style="color:#888; font-size:11px; display:block; margin-top:6px;">Customer akan dapat kode seperti <b id="pKodeContoh">SLMN</b>-XXXXX (XXXXX acak). Kosong = FVCK-XXXXX.</small>
-        </div>
-
         <div class="form-group">
             <label>FOTO THUMBNAIL</label>
             <div class="img-slot" onclick="document.getElementById('inputThumb').click()" style="width:120px; height:120px;">

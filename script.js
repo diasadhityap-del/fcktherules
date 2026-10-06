@@ -101,6 +101,7 @@ let addToCartLock = false;
 function addToCart() {
     if (addToCartLock) return; // cegah double-tap memicu berkali-kali
     if (!cart.prod) return triggerAlert("PRODUK TIDAK DITEMUKAN!");
+    if (cart.prod.badge === 'pre' && cart.prod.poClosed) return triggerAlert("PRE ORDER ARTIKEL INI SUDAH DITUTUP");
     if (!cart.color) return triggerAlert("PILIH WARNA DULU!");
     if (!cart.size) return triggerAlert("PILIH UKURAN DULU!");
 
@@ -409,7 +410,7 @@ async function executeCheckout() {
                 tipeBayar: 'Cek Bukti Bayar',
                 dp: '', buktiURL: buktiURL,
                 dpEligible: cartItems.some(i => i.prod.dpAllowed !== 'no'),
-                kodePrefix: (cartItems.find(i => i.prod.kodePrefix) || { prod: {} }).prod.kodePrefix || '',
+                kodePrefix: (cartItems.find(i => i.prod.badge === 'pre' && i.prod.kodePrefix) || cartItems.find(i => i.prod.kodePrefix) || { prod: {} }).prod.kodePrefix || '',
                 isPO: cartItems.some(i => i.prod.badge === 'pre'),
                 poIds: [...new Set(cartItems.filter(i => i.prod.badge === 'pre').map(i => i.prod.id))],
                 poNames: [...new Set(cartItems.filter(i => i.prod.badge === 'pre').map(i => i.prod.name))]
@@ -448,7 +449,7 @@ async function executeCheckout() {
 
     } catch (err) {
         console.error(err);
-        triggerAlert("GAGAL MENYIMPAN! COBA LAGI.");
+        triggerAlert(err && err.code === 'po-closed' ? "PRE ORDER ARTIKEL INI SUDAH DITUTUP" : "GAGAL MENYIMPAN! COBA LAGI.");
     } finally {
         if (loader) loader.classList.add('hide');
     }
@@ -638,6 +639,7 @@ window.onload = async () => {
                 showcase: p.showcase || 'no',
                 dpAllowed: p.dpAllowed || 'yes',
                 kodePrefix: p.kodePrefix || '',
+                poClosed: !!p.poClosed,
                 order: p.order || 0
             }));
 
@@ -705,7 +707,8 @@ function renderList(items, containerId) {
     if (!container) return;
     container.innerHTML = '';
     items.forEach(p => {
-        const isSold = p.badge === 'sold';
+        const poTutup = p.badge === 'pre' && p.poClosed;   // artikel PO sudah diselesaikan admin
+        const isSold = p.badge === 'sold' || poTutup;
         container.innerHTML += `
             <div class="card ${isSold ? 'sold-out-display' : ''}">
                 <div class="card-media">
@@ -714,9 +717,9 @@ function renderList(items, containerId) {
                 </div>
                 <div class="card-body">
                     <h3>${p.name}</h3>
-                    <p class="price">${isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
+                    <p class="price">${poTutup ? 'PO DITUTUP' : isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
                     <button type="button" onclick="sessionStorage.setItem('lastPage', document.querySelector('.page.active') ? document.querySelector('.page.active').id : 'home'); vibrate(40); goDetail('${p.id}');" ${isSold ? 'disabled' : ''}>
-                        ${isSold ? 'SOLD' : 'SELECT'}
+                        ${poTutup ? 'CLOSED' : isSold ? 'SOLD' : 'SELECT'}
                     </button>
                 </div>
             </div>`;
@@ -916,6 +919,7 @@ function renderDetailContent(p, selectedColor) {
 function goDetail(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
+    if (p.badge === 'pre' && p.poClosed) return triggerAlert("PRE ORDER ARTIKEL INI SUDAH DITUTUP");
 
     if (document.getElementById('sidebar')?.classList.contains('open')) {
         toggleSidebar();
@@ -1836,7 +1840,7 @@ async function renderProfileOrders() {
             return;
         }
 
-        const statusLabel = { pending: 'DIPROSES', diproses: 'DIPROSES', dikirim: 'DIKIRIM', selesai: 'SELESAI', batal: 'DIBATALKAN', dp: 'DP', lunas: 'LUNAS' };
+        const statusLabel = { pending: 'DIPROSES', diproses: 'DIPROSES', dikirim: 'DIKIRIM', selesai: 'SELESAI', batal: 'DIBATALKAN', dp: 'DP', lunas: 'LUNAS', rejected: 'DITOLAK' };
 
         orderListEl.innerHTML = orders.map(o => {
             const status = (o.status || 'pending').toLowerCase();
@@ -1851,9 +1855,10 @@ async function renderProfileOrders() {
                         <span class="d">${tanggal}</span>
                         <span class="order-status st-${status}">${label}</span>
                     </div>
-                    <p class="p">${produkText}</p>
+                    ${o.kodePelunasan ? `<p class="p">ID Pemesanan: <b style="user-select:all;letter-spacing:.06em">${escH(o.kodePelunasan)}</b></p>` : ''}
+                    <p class="p">${escH(produkText)}</p>
                     <p class="t">${total}</p>
-                    ${o.kodePelunasan ? `<p class="p">ID Pesanan: <b style="user-select:all">${escH(o.kodePelunasan)}</b></p>` : ''}
+                    ${status === 'dp' && o.dpNominal ? `<p class="p">DP ${rpFmt(o.dpNominal)} · Sisa ${rpFmt(o.sisaBayar)}</p>` : ''}
                     ${o.kodePelunasan && o.isPO ? `<p class="p"><a href="#" onclick="lacakDariRiwayat('${escH(o.kodePelunasan)}');return false" style="text-decoration:underline">Pantau pesanan →</a></p>` : ''}
                 </div>
             `;
@@ -2091,79 +2096,110 @@ window.tampilKodePelunasan = tampilKodePelunasan;
 
 
 /* ================= PANTAU PESANAN (PRE ORDER) ================= */
+function tsMillis(v) {
+    if (!v) return 0;
+    if (typeof v.toMillis === 'function') return v.toMillis();
+    if (typeof v.seconds === 'number') return v.seconds * 1000;
+    const t = new Date(v).getTime();
+    return isNaN(t) ? 0 : t;
+}
+let pantauList = [];
 function fmtWaktu(iso) {
     if (!iso) return '';
     const d = new Date(iso);
     if (isNaN(d)) return '';
-    return d.toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':').replace(',', ' ·');
+    return d.toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':').replace(',', ' —');
 }
 function pantauStepHTML(s, last) {
     const garis = last ? '' : '<span style="width:2px;flex:1;min-height:30px;background:currentColor;opacity:.25"></span>';
     return `
-    <div style="display:flex;gap:14px;${s.done ? '' : 'opacity:.45'}">
+    <div style="display:flex;gap:14px">
         <div style="display:flex;flex-direction:column;align-items:center">
-            <span style="width:14px;height:14px;border-radius:50%;border:2px solid currentColor;flex:none;margin-top:3px;${s.done ? 'background:currentColor' : ''}"></span>${garis}
+            <span style="width:14px;height:14px;border-radius:50%;border:2px solid currentColor;flex:none;margin-top:3px;background:currentColor"></span>${garis}
         </div>
         <div style="padding-bottom:18px;min-width:0">
-            <div style="font-weight:600;font-size:14px">${escH(s.t)}</div>
-            ${s.at ? `<div style="font-size:12px;opacity:.75;margin-top:2px">${escH(fmtWaktu(s.at))}</div>` : ''}
-            ${s.sub ? `<div style="font-size:12px;opacity:.75;margin-top:3px;line-height:1.5">${s.sub}</div>` : ''}
+            <div style="font-weight:600;font-size:14px;word-break:break-word">${escH(s.text)}</div>
+            <div style="font-size:12px;opacity:.75;margin-top:2px">${escH(fmtWaktu(s.at))}</div>
         </div>
     </div>`;
 }
-function pantauPayStep(d) {
-    if (d.pay === 'lunas') return { t: 'Pelunasan', done: true, at: d.payAt, sub: 'Pembayaran lunas ✓' };
-    if (d.pay === 'dp') return { t: 'Pelunasan', done: false, at: d.payAt, sub: `DP diterima. Sisa <b>${rpFmt(d.sisa)}</b> — lunasi di menu <a href="/pelunasan" onclick="return navLink(event,'pelunasan')" style="text-decoration:underline">Pelunasan</a> dengan ID ini.` };
-    if (d.pay === 'ditolak') return { t: 'Pelunasan', done: false, sub: 'Pembayaran bermasalah, silakan hubungi admin.' };
-    return { t: 'Pelunasan', done: false, sub: 'Menunggu konfirmasi pembayaran dari admin.' };
+const PAY_LABEL = { pending: 'Pending', dp: 'DP', lunas: 'Lunas', ditolak: 'Ditolak' };
+const baris = (k, v) => `<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0"><span style="opacity:.7">${k}</span><b style="text-align:right;word-break:break-word">${v}</b></div>`;
+
+function renderPantauDetail(d, timeline) {
+    const items = (d.items && d.items.length) ? d.items : [{ nama: d.produk || '', warna: '', size: '' }];
+    const artikel = (d.poNames && d.poNames.length) ? d.poNames.join(', ') : (d.produk || '');
+    const events = timeline.length ? timeline.map(e => ({ text: e.text, at: tsMillis(e.createdAt) ? new Date(tsMillis(e.createdAt)).toISOString() : '' }))
+                                   : [{ text: 'Pesanan dibuat', at: d.createdAt }];
+    const pay = d.pay || 'pending';
+    return `
+    <div class="card-box" style="margin-top:14px">
+        <span class="cap">ID Pemesanan</span>
+        <p style="margin:8px 0 2px;font-size:20px;font-weight:700;letter-spacing:.08em;word-break:break-all;user-select:all">${escH(d.kode)}</p>
+        <p style="margin:0 0 12px;font-size:13px;opacity:.85">${escH(artikel)}</p>
+        ${baris('Nama', escH(d.nama || '-'))}
+        ${d.email ? baris('Email', escH(d.email)) : ''}
+        ${d.hp ? baris('Nomor HP', escH(d.hp)) : ''}
+        ${items.map(i => baris('Produk', escH(i.nama)) + (i.warna || i.size ? baris('Warna / Size', escH(i.warna) + ' / ' + escH(i.size)) : '')).join('')}
+        <div style="border-top:1px solid rgba(128,128,128,.35);margin:8px 0"></div>
+        ${d.total ? baris('Total', rpFmt(d.total)) : ''}
+        ${pay === 'dp' && d.dpNominal ? baris('DP', rpFmt(d.dpNominal)) + baris('Sisa', rpFmt(d.sisa)) : ''}
+        ${baris('Status', escH(PAY_LABEL[pay] || pay))}
+        ${pay === 'dp' ? `<p style="margin:8px 0 0;font-size:12px;opacity:.8">Lunasi sisa di menu <a href="/pelunasan" onclick="return navLink(event,'pelunasan')" style="text-decoration:underline">Pelunasan</a> dengan ID ini.</p>` : ''}
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(128,128,128,.35)">
+            <p style="margin:0 0 14px;font-weight:600">Timeline</p>
+            ${events.map((e, k) => pantauStepHTML(e, k === events.length - 1)).join('')}
+        </div>
+    </div>`;
+}
+async function tampilPantau(kode) {
+    const d = pantauList.find(x => x.kode === kode);
+    const box = document.getElementById('pantauDetail');
+    if (!d || !box) return;
+    box.innerHTML = '<p style="font-size:13px;opacity:.7;margin-top:14px">Memuat...</p>';
+    let tl = [];
+    try { const { getTimeline } = await import('./firebase.js'); tl = await getTimeline(kode); } catch (e) { console.error(e); }
+    box.innerHTML = renderPantauDetail(d, tl);
 }
 function renderPantau(list) {
     const out = document.getElementById('pantauResult');
+    pantauList = list;
     if (!list.length) {
-        out.innerHTML = '<div class="card-box"><span class="cap">Pesanan tidak ditemukan</span><p style="margin:8px 0 0;font-size:13px;line-height:1.6">Periksa kembali ID, no. HP, atau email yang kamu pakai saat checkout. Pelacakan hanya untuk pesanan <b>Pre Order</b> yang masih berjalan.</p></div>';
+        out.innerHTML = '<div class="card-box"><span class="cap">Pesanan tidak ditemukan</span><p style="margin:8px 0 0;font-size:13px;line-height:1.6">Periksa kembali ID Order, email, atau no. HP yang kamu pakai saat checkout. Pelacakan hanya untuk pesanan <b>Pre Order</b>.</p></div>';
         return;
     }
-    out.innerHTML = list.map(d => {
-        const ids = d.poIds || [];
-        const blok = ids.map((id, i) => {
-            const t = d.po[id] || { events: {} };
-            const ev = t.events || {};
-            const steps = [
-                { t: 'Pesanan dibuat', done: true, at: d.createdAt, sub: 'Pesanan Pre Order kamu sudah kami terima.' },
-                { t: 'Masuk vendor / produksi', done: !!ev.vendor, at: ev.vendor && ev.vendor.at },
-                pantauPayStep(d),
-                { t: 'Pesanan sudah jadi', done: !!ev.jadi, at: ev.jadi && ev.jadi.at },
-                { t: 'Pesanan dikirim', done: !!ev.kirim, at: ev.kirim && ev.kirim.at, sub: ev.kirim && ev.kirim.note ? 'Resi / catatan: <b>' + escH(ev.kirim.note) + '</b>' : '' }
-            ];
-            const doneList = steps.filter(s => s.done);
-            const now = doneList[doneList.length - 1];
-            return `
-            <div style="margin-top:16px;padding-top:14px;border-top:1px solid currentColor;border-top-color:rgba(128,128,128,.35)">
-                <p style="margin:0 0 4px;font-weight:600">${escH((d.poNames && d.poNames[i]) || t.nama || 'Pre Order')}</p>
-                <p style="margin:0 0 14px;font-size:12px;opacity:.75">Status saat ini: <b>${escH(now.t)}</b></p>
-                ${steps.map((s, k) => pantauStepHTML(s, k === steps.length - 1)).join('')}
-            </div>`;
-        }).join('');
-        return `
-        <div class="card-box" style="margin-top:14px">
-            <span class="cap">ID Pesanan</span>
-            <p style="margin:8px 0 2px;font-size:20px;font-weight:700;letter-spacing:.08em;word-break:break-all">${escH(d.kode)}</p>
-            <p style="margin:0;font-size:12px;opacity:.75">Atas nama ${escH(d.nama)} · ${escH(d.produk)}</p>
-            ${blok}
-        </div>`;
-    }).join('');
+    if (list.length === 1) {
+        out.innerHTML = '<div id="pantauDetail"></div>';
+        tampilPantau(list[0].kode);
+        return;
+    }
+    out.innerHTML = `
+    <div class="card-box" style="margin-top:14px">
+        <span class="cap">Pilih Pesanan</span>
+        <select id="pantauPilih" onchange="if(this.value)tampilPantau(this.value)" style="width:100%;margin-top:10px;padding:12px;font-size:14px">
+            <option value="">— pilih salah satu (${list.length} pesanan) —</option>
+            ${list.map(d => `<option value="${escH(d.kode)}">${escH(d.kode)} — ${escH((d.poNames && d.poNames.length) ? d.poNames.join(', ') : d.produk)}</option>`).join('')}
+        </select>
+    </div>
+    <div id="pantauDetail"></div>`;
+}
+// Satu kolom input: ID Order / Email / Nomor HP
+function klasifikasiPantau(v) {
+    v = String(v || '').trim();
+    if (v.includes('@')) return { email: v };
+    if (/[A-Za-z]/.test(v) && v.includes('-')) return { kode: v };
+    if (/^[\d+\s().-]{6,}$/.test(v)) return { hp: v };
+    return { kode: v };
 }
 async function cekPantau() {
-    const kode = document.getElementById('pantauId').value.trim();
-    const hp = document.getElementById('pantauHp').value.trim();
-    const email = document.getElementById('pantauEmail').value.trim();
+    const val = document.getElementById('pantauInput').value.trim();
     const out = document.getElementById('pantauResult');
-    if (!kode && !hp && !email) return triggerAlert('ISI SALAH SATU DULU!');
+    if (!val) return triggerAlert('ISI ID ORDER / EMAIL / NO HP DULU!');
     const btn = document.getElementById('pantauBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
         const { cariLacak } = await import('./firebase.js');
-        renderPantau(await cariLacak({ kode, hp, email }));
+        renderPantau(await cariLacak(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);
         out.innerHTML = '<div class="card-box"><span class="cap">Gagal memuat</span><p style="margin:8px 0 0;font-size:13px">Coba lagi sebentar lagi.</p></div>';
@@ -2172,10 +2208,9 @@ async function cekPantau() {
 }
 function lacakDariRiwayat(kode) {
     showPage('pantau');
-    document.getElementById('pantauId').value = kode;
-    document.getElementById('pantauHp').value = '';
-    document.getElementById('pantauEmail').value = '';
+    document.getElementById('pantauInput').value = kode;
     cekPantau();
 }
 window.cekPantau = cekPantau;
+window.tampilPantau = tampilPantau;
 window.lacakDariRiwayat = lacakDariRiwayat;

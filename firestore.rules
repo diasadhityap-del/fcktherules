@@ -67,7 +67,11 @@ service cloud.firestore {
                          resource.data.customerUid == request.auth.uid
                          || resource.data.email == request.auth.token.email
                        ));
-      allow update, delete: if isAdmin();
+      // ID Pemesanan (kodePelunasan) permanen: boleh diisi sekali (backfill order lama), tidak boleh diubah
+      allow update: if isAdmin()
+                    && (!('kodePelunasan' in resource.data)
+                        || request.resource.data.kodePelunasan == resource.data.kodePelunasan);
+      allow delete: if isAdmin();
     }
 
     // ============================================================
@@ -100,6 +104,21 @@ service cloud.firestore {
       allow list, update, delete: if isAdmin();
       allow create: if request.resource.data.pay == 'pending'
                     && request.resource.data.kode == kode;
+    }
+    // Timeline per order: lacak/{kode}/timeline/{id}
+    // - baca publik (path memuat ID order, lacak tidak bisa di-list)
+    // - "Pesanan dibuat" (id 'created') dibuat sekali oleh sistem saat checkout, waktu = waktu server
+    // - admin: tambah update manual; hanya update manual yang boleh diubah/dihapus (event otomatis permanen)
+    match /lacak/{kode}/timeline/{eid} {
+      allow get, list: if true;
+      allow create: if isAdmin()
+        || (eid == 'created'
+            && request.resource.data.type == 'automatic'
+            && request.resource.data.kind == 'created'
+            && request.resource.data.text == 'Pesanan dibuat'
+            && request.resource.data.createdAt == request.time
+            && exists(/databases/$(database)/documents/lacak/$(kode)));
+      allow update, delete: if isAdmin() && resource.data.type == 'manual';
     }
     match /lacakIdx/{h} {
       allow get: if true;
