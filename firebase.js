@@ -698,6 +698,31 @@ export function listenPoTrack(cb) {
    - Pre Order: buat event "Pesanan dibuat" (waktu order asli), "Pelunasan" bila sudah lunas setelah DP,
      dan salin langkah lama per-artikel (vendor/jadi/kirim) jadi update manual di timeline order tsb.
    Tidak membuat order baru, tidak menghapus apa pun. Semua dokumen memakai ID tetap => tidak pernah dobel. */
+// Admin: isi/ubah harga order (untuk order lama yang belum punya harga kaos / ongkir).
+// total = harga kaos + ongkir - diskon. Bila status DP: sisa dihitung ulang (total - DP) dan halaman Pelunasan ikut. Data pelacakan ikut diperbarui.
+export async function adminEditHarga(o, hargaKaos, ongkir, diskon) {
+    const total = Number(hargaKaos) + Number(ongkir) - Number(diskon);
+    if (!(total > 0)) throw new Error('Total harus lebih dari 0');
+    const isDP = o.status === 'dp';
+    const dpN = Number(o.dpNominal || 0);
+    const sisa = isDP ? total - dpN : null;
+    if (isDP && sisa <= 0) throw new Error('Total harus lebih besar dari DP (' + dpN + ')');
+    const upd = { hargaKaos: Number(hargaKaos), ongkir: Number(ongkir), diskon: Number(diskon), totalAkhir: total };
+    if (isDP) upd.sisaBayar = sisa;
+    await updateDoc(doc(adminDb, "orders", o.id), upd);
+    const kode = o.kodePelunasan;
+    if (kode) {
+        try {
+            const pRef = doc(adminDb, "pelunasan", kode);
+            if ((await getDoc(pRef)).exists() && isDP) await updateDoc(pRef, { totalAkhir: total, sisa });
+        } catch (e) { console.error('pelunasan', e); }
+        try {
+            const lRef = doc(adminDb, "lacak", kode);
+            if ((await getDoc(lRef)).exists()) await updateDoc(lRef, isDP ? { total, sisa } : { total });
+        } catch (e) { console.error('lacak', e); }
+    }
+    return { total, sisa };
+}
 // Admin: daftar ID order yang sudah punya dokumen pelacakan (lacak/{kode}). Dipakai untuk menemukan order yang belum bisa dicek pelanggan.
 export async function adminKodeLacakAda() {
     const s = await getDocs(collection(adminDb, "lacak"));

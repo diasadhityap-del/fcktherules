@@ -6,15 +6,15 @@ import {
     listenBannerText, saveBannerText,
     listenVouchers, saveVoucher, deleteVoucher,
     listenCustomers, deleteCustomer,
-    listenPelunasan, adminSimpanResi, adminKodeLacakAda, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
+    listenPelunasan, adminSimpanResi, adminKodeLacakAda, adminEditHarga, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
     listenPoTrack, adminTutupPo, adminHapusLacak,
     adminBackfillOrder, turunanPO, tsMillis,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js?v=20261012';
+} from './firebase.js?v=20261013';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js?v=20261012";
+import { adminDb } from "./firebase.js?v=20261013";
 
 let allOrders = [];
 let allProduk = [];
@@ -138,6 +138,7 @@ window.filterProdukOrder = (produk) => {
     renderOrders();
 };
 
+const uiHarga = {};         // orderId -> true: form edit harga terbuka
 const uiDP = {};            // orderId -> true: admin memilih status DP, nominal belum disimpan
 const poUpd = {}, poUpdUnsub = {};    // update per ARTIKEL: produkId -> daftar update
 function ensurePoUpdSubs(pids) {
@@ -213,6 +214,25 @@ function orderCardHTML(o, pel) {
             <button onclick="lunaskanOrder('${o.id}')" class="btn-sm btn-approve" style="width:100%;cursor:pointer;"><i class="fas fa-check"></i> VERIFIKASI &amp; LUNASKAN</button>
         </div>` : '';
 
+    const hargaBlock = uiHarga[o.id] ? `
+        <div style="margin-top:14px;border-top:1px solid #1a1a1a;padding-top:14px;">
+            <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:10px;">EDIT HARGA ORDER</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:120px;"><div style="font-size:10px;color:#888;margin-bottom:6px;">HARGA KAOS (Rp)</div>
+                    <input type="text" inputmode="numeric" id="hgKaos-${o.id}" value="${o.hargaKaos ? Number(o.hargaKaos).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')" style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;"></div>
+                <div style="flex:1;min-width:120px;"><div style="font-size:10px;color:#888;margin-bottom:6px;">ONGKIR (Rp)</div>
+                    <input type="text" inputmode="numeric" id="hgOngkir-${o.id}" value="${o.ongkir ? Number(o.ongkir).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')" style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;"></div>
+                <div style="flex:1;min-width:120px;"><div style="font-size:10px;color:#888;margin-bottom:6px;">DISKON (Rp, opsional)</div>
+                    <input type="text" inputmode="numeric" id="hgDiskon-${o.id}" value="${o.diskon ? Number(o.diskon).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')" style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;"></div>
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:#888;">TOTAL (OTOMATIS): <b id="hgTotal-${o.id}" style="color:var(--green);font-size:16px;">${total ? rp(total) : '-'}</b>${status === 'dp' ? ` · DP ${rp(dpNom)}` : ''}</div>
+            <div style="display:flex;gap:10px;margin-top:12px;">
+                <button onclick="simpanHarga('${o.id}')" class="btn-sm btn-approve" style="flex:1;cursor:pointer;"><i class="fas fa-save"></i> SIMPAN HARGA</button>
+                <button onclick="tutupEditHarga('${o.id}')" class="btn-sm" style="cursor:pointer;background:#111;color:#ccc;border:1px solid #333;">BATAL</button>
+            </div>
+        </div>` : `
+        <div style="margin-top:14px;"><button onclick="bukaEditHarga('${o.id}')" class="btn-sm btn-bukti" style="cursor:pointer;width:100%;padding:11px;"><i class="fas fa-pen"></i> EDIT HARGA / ONGKIR</button></div>`;
+
     const resiBlock = (status === 'dp' || status === 'lunas') ? `
         <div style="margin-top:14px;border-top:1px solid #1a1a1a;padding-top:14px;">
             <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">NOMOR RESI ${o.resi ? '· SUDAH DIUNGGAH' : '· BELUM DIUNGGAH'}</div>
@@ -261,6 +281,7 @@ function orderCardHTML(o, pel) {
         </div>
         ${dpBlock}
         ${verifBlock}
+        ${hargaBlock}
         ${resiBlock}
     </div>`;
 }
@@ -301,6 +322,36 @@ window.simpanDP = async (id) => {
         console.error(e);
         showToast('GAGAL SIMPAN DP: ' + errMsg(e), true);
     }
+};
+
+const angkaDari = id => Number((($(id) || {}).value || '').replace(/\D/g, '')) || 0;
+window.bukaEditHarga = (id) => { uiHarga[id] = true; renderOrders(true); };
+window.tutupEditHarga = (id) => { delete uiHarga[id]; renderOrders(true); };
+window.hitungTotalHarga = (id) => {
+    ['hgKaos-', 'hgOngkir-', 'hgDiskon-'].forEach(pf => {
+        const el = $(pf + id); if (!el) return;
+        const n = Number(el.value.replace(/\D/g, '')) || 0;
+        el.value = n ? n.toLocaleString('id-ID') : '';
+    });
+    const t = angkaDari('hgKaos-' + id) + angkaDari('hgOngkir-' + id) - angkaDari('hgDiskon-' + id);
+    const out = $('hgTotal-' + id);
+    if (out) { out.innerText = t > 0 ? rp(t) : '-'; out.style.color = t > 0 ? 'var(--green)' : 'var(--red)'; }
+};
+window.simpanHarga = async (id) => {
+    const o = allOrders.find(x => x.id === id);
+    if (!o) return;
+    const kaos = angkaDari('hgKaos-' + id), ongkir = angkaDari('hgOngkir-' + id), diskon = angkaDari('hgDiskon-' + id);
+    if (kaos <= 0) return showToast('ISI HARGA KAOS DULU!', true);
+    try {
+        const r = await adminEditHarga(o, kaos, ongkir, diskon);
+        allOrders = allOrders.map(x => x.id === id ? { ...x, hargaKaos: kaos, ongkir, diskon, totalAkhir: r.total, ...(r.sisa != null ? { sisaBayar: r.sisa } : {}) } : x);
+        delete uiHarga[id];
+        showToast('HARGA DISIMPAN ✓ TOTAL ' + rp(r.total));
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL: ' + errMsg(e), true);
+    }
+    renderOrders(true);
 };
 
 window.simpanResi = async (id) => {
