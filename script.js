@@ -2,7 +2,7 @@ import {
     listenProduk, listenGaleri, listenBanners, listenBannerText,
     auth, customerSignUp, customerSignIn, customerSignOut, customerSignInGoogle, onAuthStateChanged,
     getCustomerProfile, updateCustomerProfile, getCustomerOrders
-} from './firebase.js?v=20261007';
+} from './firebase.js?v=20261009';
 
 let cartItems = [];
 const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyDTEPvP5yndja35U02nkC4lsYRy3vQqVe2s4NTx-MxBE8MCSB9co2ztG5ZDMtJzuAO/exec";
@@ -71,7 +71,7 @@ const META = {
     galeri: { title: 'Galeri | FvcktheRules', desc: 'Galeri foto FvcktheRules Store.' },
     tentang: { title: 'Tentang Kami | FvcktheRules', desc: 'FvcktheRules: soccer culture, street attitude, born to disobey. Clothing label, media platform, publishing space, and community built around football culture.' },
     berita: { title: 'Berita | FvcktheRules Journal', desc: 'Berita football, Indonesia, dan budaya jalanan dari FvcktheRules.' },
-    pantau: { title: 'Pantau Pesanan | FvcktheRules', desc: 'Lacak status pesanan Pre Order kamu: masuk vendor, pelunasan, selesai, hingga dikirim.' },
+    pantau: { title: 'Cek Progres | FvcktheRules', desc: 'Cek progres pesananmu: masuk vendor, pelunasan, selesai, hingga dikirim.' },
     pelunasan: { title: 'Pelunasan | FvcktheRules', desc: 'Lunasi sisa pembayaran pesananmu dengan kode pelunasan.' },
     resi: { title: 'Cek Resi | FvcktheRules', desc: 'Cek nomor resi pengiriman pesananmu dengan ID Order, email, atau nomor HP.' },
     diskusi: { title: 'Diskusi | FvcktheRules Journal', desc: 'Diskusi komunitas FvcktheRules: post tim, reaksi, dan balasan.' }
@@ -320,7 +320,7 @@ async function executeCheckout() {
 
     let kodeBaru = null;
     try {
-        const { saveOrder } = await import('./firebase.js?v=20261007');
+        const { saveOrder } = await import('./firebase.js?v=20261009');
 
         if (currentCheckoutType === 'single') {
             const n = document.getElementById('inName').value;
@@ -364,7 +364,7 @@ async function executeCheckout() {
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261007');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261009');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('single');
@@ -424,7 +424,7 @@ async function executeCheckout() {
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261007');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261009');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('cart');
@@ -480,7 +480,7 @@ async function previewCartBukti(input) {
     const label = document.getElementById('cartLabelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261007');
+    const { uploadGambar } = await import('./firebase.js?v=20261009');
     uploadedCartBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('cartFileChip');
@@ -517,7 +517,7 @@ async function previewBukti(input) {
     const label = document.getElementById('labelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261007');
+    const { uploadGambar } = await import('./firebase.js?v=20261009');
     uploadedBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('fileChip');
@@ -1521,7 +1521,7 @@ window.applyVoucherModal = async () => {
     msgEl.style.color = '#555'; msgEl.innerText = "Mengecek voucher...";
 
     try {
-        const { getVoucherByKode } = await import('./firebase.js?v=20261007');
+        const { getVoucherByKode } = await import('./firebase.js?v=20261009');
         const v = await getVoucherByKode(kode);
 
         if (!v) {
@@ -1859,7 +1859,7 @@ async function renderProfileOrders() {
                     <p class="p">${escH(produkText)}</p>
                     <p class="t">${total}</p>
                     ${status === 'dp' && o.dpNominal ? `<p class="p">DP ${rpFmt(o.dpNominal)} · Sisa ${rpFmt(o.sisaBayar)}</p>` : ''}
-                    ${o.kodePelunasan && o.isPO !== false ? `<p class="p"><a href="#" onclick="lacakDariRiwayat('${escH(o.kodePelunasan)}');return false" style="text-decoration:underline">Pantau pesanan →</a></p>` : ''}
+                    ${o.kodePelunasan ? `<p class="p"><a href="#" onclick="lacakDariRiwayat('${escH(o.kodePelunasan)}');return false" style="text-decoration:underline">Cek progres →</a></p>` : ''}
                 </div>
             `;
         }).join('');
@@ -2007,7 +2007,7 @@ async function cekKodePelunasan() {
     pelBuktiURL = null; pelData = null;
     let list = null;
     try {
-        const { cariPelunasan } = await import('./firebase.js?v=20261007');
+        const { cariPelunasan } = await import('./firebase.js?v=20261009');
         list = await cariPelunasan(klasifikasiPantau(val));
     } catch (e) { console.error(e); }
     btn.disabled = false; btn.innerText = 'CARI PESANAN';
@@ -2090,7 +2090,7 @@ async function previewPelBukti(input) {
     if (!file) return;
     lbl.innerText = 'Mengunggah...';
     pelBuktiURL = null;
-    const { uploadGambar } = await import('./firebase.js?v=20261007');
+    const { uploadGambar } = await import('./firebase.js?v=20261009');
     pelBuktiURL = await uploadGambar(file, 'bukti');
     if (pelBuktiURL) lbl.innerText = '✓ ' + file.name;
     else { lbl.innerText = 'Gagal upload, coba lagi'; input.value = ''; }
@@ -2102,7 +2102,7 @@ async function kirimPelunasan() {
     const btn = document.getElementById('pelBtnKirim');
     btn.disabled = true; btn.innerText = 'MENGIRIM...';
     try {
-        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261007');
+        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261009');
         await kirimBuktiPelunasan(pelData.kode, pelBuktiURL);
         pelData.status = 'menunggu_verifikasi';
         pelBuktiURL = null;
@@ -2124,7 +2124,7 @@ window.salinKodePelunasan = salinKodePelunasan;
 window.tampilKodePelunasan = tampilKodePelunasan;
 
 
-/* ================= PANTAU PESANAN (PRE ORDER) ================= */
+/* ================= CEK PROGRES (PANTAU) ================= */
 function tsMillis(v) {
     if (!v) return 0;
     if (typeof v.toMillis === 'function') return v.toMillis();
@@ -2192,10 +2192,10 @@ function renderPantauDetail(d, timeline, mode) {
         ${pay === 'dp' && d.dpNominal ? baris('DP', rpFmt(d.dpNominal)) + baris('Sisa', rpFmt(d.sisa)) : ''}
         ${baris('Status', escH(PAY_LABEL[pay] || pay))}
         ${pay === 'dp' && mode !== 'resi' ? `<p style="margin:8px 0 0;font-size:12px;opacity:.8">Lunasi sisa di menu <a href="/pelunasan" onclick="return navLink(event,'pelunasan')" style="text-decoration:underline">Pelunasan</a> dengan ID ini.</p>` : ''}
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(128,128,128,.35)">
+        ${mode === 'resi' ? '' : `<div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(128,128,128,.35)">
             <p style="margin:0 0 14px;font-weight:600">Timeline</p>
             ${events.map((e, k) => pantauStepHTML(e, k === events.length - 1)).join('')}
-        </div>
+        </div>`}
     </div>`;
 }
 async function tampilPantau(kode) {
@@ -2205,7 +2205,7 @@ async function tampilPantau(kode) {
     box.innerHTML = '<p style="font-size:13px;opacity:.7;margin-top:14px">Memuat...</p>';
     let tl = [];
     try {
-        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261007');
+        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261009');
         tl = (await getTimeline(kode)).filter(e => e.kind !== 'legacy');
         // update per artikel (mis. "Kaos dikirim") ikut tampil, hanya yang terjadi setelah order dibuat
         const mulai = tsMillis(d.createdAt);
@@ -2218,7 +2218,7 @@ function renderPantau(list) {
     const out = document.getElementById('pantauResult');
     pantauList = list;
     if (!list.length) {
-        out.innerHTML = '<div class="card-box"><span class="cap">Pesanan tidak ditemukan</span><p style="margin:8px 0 0;font-size:13px;line-height:1.6">Periksa kembali ID Order, email, atau no. HP yang kamu pakai saat checkout. Pelacakan hanya untuk pesanan <b>Pre Order</b>.</p></div>';
+        out.innerHTML = '<div class="card-box"><span class="cap">Pesanan tidak ditemukan</span><p style="margin:8px 0 0;font-size:13px;line-height:1.6">Periksa kembali ID Order, email, atau no. HP yang kamu pakai saat checkout.</p></div>';
         return;
     }
     if (list.length === 1) {
@@ -2251,13 +2251,13 @@ async function cekPantau() {
     const btn = document.getElementById('pantauBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
-        const { cariLacak } = await import('./firebase.js?v=20261007');
+        const { cariLacak } = await import('./firebase.js?v=20261009');
         renderPantau(await cariLacak(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);
         out.innerHTML = '<div class="card-box"><span class="cap">Gagal memuat</span><p style="margin:8px 0 0;font-size:13px">Coba lagi sebentar lagi.</p></div>';
     }
-    btn.disabled = false; btn.innerText = 'LACAK PESANAN';
+    btn.disabled = false; btn.innerText = 'CEK PROGRES';
 }
 /* ================= CEK RESI ================= */
 let resiList = [];
@@ -2265,16 +2265,7 @@ async function tampilResi(kode) {
     const d = resiList.find(x => x.kode === kode);
     const box = document.getElementById('resiDetail');
     if (!d || !box) return;
-    box.innerHTML = '<p style="font-size:13px;opacity:.7;margin-top:14px">Memuat...</p>';
-    let tl = [];
-    try {
-        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261007');
-        tl = (await getTimeline(kode)).filter(e => e.kind !== 'legacy');
-        const mulai = tsMillis(d.createdAt);
-        const art = (await getPoUpdates(d.poIds)).filter(e => tsMillis(e.createdAt) >= mulai);
-        tl = tl.concat(art).sort((a, b) => (tsMillis(a.createdAt) - tsMillis(b.createdAt)) || (a.kind === 'created' ? -1 : 0));
-    } catch (e) { console.error(e); }
-    box.innerHTML = renderPantauDetail(d, tl, 'resi');
+    box.innerHTML = renderPantauDetail(d, [], 'resi');
 }
 function renderResi(list) {
     const out = document.getElementById('resiResult');
@@ -2305,7 +2296,7 @@ async function cekResi() {
     const btn = document.getElementById('resiBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
-        const { cariResi } = await import('./firebase.js?v=20261007');
+        const { cariResi } = await import('./firebase.js?v=20261009');
         renderResi(await cariResi(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);

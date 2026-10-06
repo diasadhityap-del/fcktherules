@@ -501,7 +501,7 @@ function urutTimeline(list) {
     return list.sort((a, b) => (tsMillis(a.createdAt) - tsMillis(b.createdAt)) || (a.kind === 'created' ? -1 : b.kind === 'created' ? 1 : 0) || String(a.id).localeCompare(String(b.id)));
 }
 
-// Customer: cari lewat ID / no HP / email. Hasil terbaru -> terlama. Hanya order Pre Order. Order lama tetap bisa dilacak
+// Customer: cari lewat ID / no HP / email. Hasil terbaru -> terlama. Pre Order maupun Ready Stock. Order lama tetap bisa dilacak
 // walaupun artikel PO-nya sudah diselesaikan.
 async function kumpulKode({ kode, hp, email }) {
     let kodes = [];
@@ -522,7 +522,6 @@ export async function cariLacak(q) {
         const s = await getDoc(doc(db, "lacak", k));
         if (!s.exists()) continue;
         const d = s.data();
-        if (d.isPO === false) continue;   // Ready Stock tidak memakai tracking Pre Order
         out.push({ id: s.id, ...d });
     }
     out.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
