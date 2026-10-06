@@ -528,6 +528,17 @@ export async function cariLacak(q) {
     out.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
     return out;
 }
+// Customer (halaman Cek Resi): pencarian sama dengan Pantau (ID / email / HP), tapi untuk SEMUA order (Pre Order & Ready Stock).
+export async function cariResi(q) {
+    const out = [];
+    for (const k of await kumpulKode(q)) {
+        const s = await getDoc(doc(db, "lacak", k));
+        if (!s.exists()) continue;
+        out.push({ id: s.id, ...s.data() });
+    }
+    out.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
+    return out;
+}
 // Customer (halaman Pelunasan): pencarian sama persis dengan Pantau (ID / email / HP), hasil terbaru -> terlama.
 // Hanya order yang sudah punya data pelunasan (admin sudah konfirmasi DP). Berlaku untuk Pre Order maupun Ready Stock DP.
 export async function cariPelunasan(q) {
@@ -562,6 +573,32 @@ export async function adminTambahUpdate(o, text) {
     await addDoc(collection(adminDb, "lacak", o.kodePelunasan, "timeline"), {
         kode: o.kodePelunasan, orderId: o.id, text: t, type: 'manual', kind: 'manual', createdAt: serverTimestamp()
     });
+}
+// Admin: unggah / ubah / hapus RESI per order (satu per satu).
+// Disimpan di orders/{id} (untuk admin) dan lacak/{kode} (dibaca pelanggan di Cek Resi & Pantau).
+// Timeline "Paket diserahkan ke pihak pengirim" dibuat sekali (id 'resi', waktu server); resi dihapus => event ikut dihapus.
+export async function adminSimpanResi(o, resiRaw) {
+    const resi = String(resiRaw || '').trim().replace(/\s+/g, ' ').slice(0, 60);
+    const kode = o.kodePelunasan;
+    if (!kode) throw new Error('Order belum punya ID');
+    const lkRef = doc(adminDb, "lacak", kode);
+    const lk = await getDoc(lkRef);
+    if (!lk.exists()) throw new Error('Pelacakan order belum disinkronkan (tekan SINKRONKAN)');
+    const tRef = doc(adminDb, "lacak", kode, "timeline", "resi");
+    if (!resi) {
+        await updateDoc(doc(adminDb, "orders", o.id), { resi: '', resiAt: null });
+        await updateDoc(lkRef, { resi: '', resiAt: null });
+        try { await deleteDoc(tRef); } catch (e) { console.error(e); }
+        return { resi: '' };
+    }
+    const resiAt = new Date().toISOString();
+    await updateDoc(doc(adminDb, "orders", o.id), { resi, resiAt });
+    await updateDoc(lkRef, { resi, resiAt });
+    const ex = await getDoc(tRef);
+    if (!ex.exists()) {
+        await setDoc(tRef, { kode, orderId: o.id, text: 'Paket diserahkan ke pihak pengirim', type: 'manual', kind: 'resi', createdAt: serverTimestamp() });
+    }
+    return { resi, resiAt };
 }
 // Hanya update manual yang bisa dihapus (rules juga menolak event otomatis). Hanya menyentuh 1 dokumen timeline.
 export async function adminHapusUpdate(kode, eventId) {

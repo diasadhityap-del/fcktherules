@@ -2,7 +2,7 @@ import {
     listenProduk, listenGaleri, listenBanners, listenBannerText,
     auth, customerSignUp, customerSignIn, customerSignOut, customerSignInGoogle, onAuthStateChanged,
     getCustomerProfile, updateCustomerProfile, getCustomerOrders
-} from './firebase.js?v=20261006';
+} from './firebase.js?v=20261007';
 
 let cartItems = [];
 const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyDTEPvP5yndja35U02nkC4lsYRy3vQqVe2s4NTx-MxBE8MCSB9co2ztG5ZDMtJzuAO/exec";
@@ -23,7 +23,8 @@ const PAGE_SLUGS = {
     berita: '/berita',
     diskusi: '/diskusi',
     pantau: '/pantau',
-    pelunasan: '/pelunasan'
+    pelunasan: '/pelunasan',
+    resi: '/resi'
 };
 
 const SLUG_TO_PAGE = {
@@ -36,7 +37,8 @@ const SLUG_TO_PAGE = {
     'berita': 'berita',
     'diskusi': 'diskusi',
     'pantau': 'pantau',
-    'pelunasan': 'pelunasan'
+    'pelunasan': 'pelunasan',
+    'resi': 'resi'
 };
 
 const PRODUCT_PAGES = ['detail', 'form', 'summary'];
@@ -71,6 +73,7 @@ const META = {
     berita: { title: 'Berita | FvcktheRules Journal', desc: 'Berita football, Indonesia, dan budaya jalanan dari FvcktheRules.' },
     pantau: { title: 'Pantau Pesanan | FvcktheRules', desc: 'Lacak status pesanan Pre Order kamu: masuk vendor, pelunasan, selesai, hingga dikirim.' },
     pelunasan: { title: 'Pelunasan | FvcktheRules', desc: 'Lunasi sisa pembayaran pesananmu dengan kode pelunasan.' },
+    resi: { title: 'Cek Resi | FvcktheRules', desc: 'Cek nomor resi pengiriman pesananmu dengan ID Order, email, atau nomor HP.' },
     diskusi: { title: 'Diskusi | FvcktheRules Journal', desc: 'Diskusi komunitas FvcktheRules: post tim, reaksi, dan balasan.' }
 };
 
@@ -317,7 +320,7 @@ async function executeCheckout() {
 
     let kodeBaru = null;
     try {
-        const { saveOrder } = await import('./firebase.js?v=20261006');
+        const { saveOrder } = await import('./firebase.js?v=20261007');
 
         if (currentCheckoutType === 'single') {
             const n = document.getElementById('inName').value;
@@ -361,7 +364,7 @@ async function executeCheckout() {
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261006');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261007');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('single');
@@ -421,7 +424,7 @@ async function executeCheckout() {
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261006');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261007');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('cart');
@@ -477,7 +480,7 @@ async function previewCartBukti(input) {
     const label = document.getElementById('cartLabelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261006');
+    const { uploadGambar } = await import('./firebase.js?v=20261007');
     uploadedCartBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('cartFileChip');
@@ -514,7 +517,7 @@ async function previewBukti(input) {
     const label = document.getElementById('labelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261006');
+    const { uploadGambar } = await import('./firebase.js?v=20261007');
     uploadedBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('fileChip');
@@ -808,7 +811,7 @@ function navTo(pageId) {
 function showPage(id) {
     if (META[id]) updateMeta(META[id].title, META[id].desc);
     const menuBtn = document.getElementById('mast');
-    const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang', 'berita', 'diskusi', 'pantau', 'pelunasan'];
+    const mainMenus = ['home', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang', 'berita', 'diskusi', 'pantau', 'pelunasan', 'resi'];
 
     if (PRODUCT_PAGES.includes(id) && !cart.prod) {
         history.pushState({ page: 'home' }, '', '/');
@@ -1518,7 +1521,7 @@ window.applyVoucherModal = async () => {
     msgEl.style.color = '#555'; msgEl.innerText = "Mengecek voucher...";
 
     try {
-        const { getVoucherByKode } = await import('./firebase.js?v=20261006');
+        const { getVoucherByKode } = await import('./firebase.js?v=20261007');
         const v = await getVoucherByKode(kode);
 
         if (!v) {
@@ -2004,7 +2007,7 @@ async function cekKodePelunasan() {
     pelBuktiURL = null; pelData = null;
     let list = null;
     try {
-        const { cariPelunasan } = await import('./firebase.js?v=20261006');
+        const { cariPelunasan } = await import('./firebase.js?v=20261007');
         list = await cariPelunasan(klasifikasiPantau(val));
     } catch (e) { console.error(e); }
     btn.disabled = false; btn.innerText = 'CARI PESANAN';
@@ -2087,7 +2090,7 @@ async function previewPelBukti(input) {
     if (!file) return;
     lbl.innerText = 'Mengunggah...';
     pelBuktiURL = null;
-    const { uploadGambar } = await import('./firebase.js?v=20261006');
+    const { uploadGambar } = await import('./firebase.js?v=20261007');
     pelBuktiURL = await uploadGambar(file, 'bukti');
     if (pelBuktiURL) lbl.innerText = '✓ ' + file.name;
     else { lbl.innerText = 'Gagal upload, coba lagi'; input.value = ''; }
@@ -2099,7 +2102,7 @@ async function kirimPelunasan() {
     const btn = document.getElementById('pelBtnKirim');
     btn.disabled = true; btn.innerText = 'MENGIRIM...';
     try {
-        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261006');
+        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261007');
         await kirimBuktiPelunasan(pelData.kode, pelBuktiURL);
         pelData.status = 'menunggu_verifikasi';
         pelBuktiURL = null;
@@ -2152,7 +2155,15 @@ function pantauStepHTML(s, last) {
 const PAY_LABEL = { pending: 'Pending', dp: 'DP', lunas: 'Lunas', ditolak: 'Ditolak' };
 const baris = (k, v) => `<div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0"><span style="opacity:.7">${k}</span><b style="text-align:right;word-break:break-word">${v}</b></div>`;
 
-function renderPantauDetail(d, timeline) {
+function resiBoxHTML(d, mode) {
+    if (d.resi) return `<div style="margin:0 0 14px;padding:12px 14px;border:1px solid currentColor;border-radius:12px">
+            <span class="cap">Resi Anda</span>
+            <p style="margin:6px 0 4px;font-size:18px;font-weight:700;letter-spacing:.06em;word-break:break-all;user-select:all">${escH(d.resi)}</p>
+            <p style="margin:0;font-size:12px;opacity:.8;line-height:1.5">Paket sudah diserahkan ke pihak pengirim. Cek progres pengiriman melalui resi ini.</p>
+        </div>`;
+    return mode === 'resi' ? `<p style="margin:0 0 14px;font-size:14px;font-weight:600">Pesanan anda belum dikirim.</p>` : '';
+}
+function renderPantauDetail(d, timeline, mode) {
     const items = (d.items && d.items.length) ? d.items : [{ nama: d.produk || '', warna: '', size: '' }];
     const artikel = (d.poNames && d.poNames.length) ? d.poNames.join(', ') : (d.produk || '');
     const events = timeline.length ? timeline.map(e => ({ text: e.text, at: tsMillis(e.createdAt) ? new Date(tsMillis(e.createdAt)).toISOString() : '' }))
@@ -2161,7 +2172,8 @@ function renderPantauDetail(d, timeline) {
     return `
     <div class="card-box" style="margin-top:14px">
         <span class="cap">ID Pemesanan</span>
-        <p style="margin:8px 0 2px;font-size:20px;font-weight:700;letter-spacing:.08em;word-break:break-all;user-select:all">${escH(d.kode)}</p>
+        <p style="margin:8px 0 12px;font-size:20px;font-weight:700;letter-spacing:.08em;word-break:break-all;user-select:all">${escH(d.kode)}</p>
+        ${resiBoxHTML(d, mode)}
         <p style="margin:0 0 12px;font-size:13px;opacity:.85">${escH(artikel)}</p>
         ${baris('Nama', escH(d.nama || '-'))}
         ${d.email ? baris('Email', escH(d.email)) : ''}
@@ -2171,7 +2183,7 @@ function renderPantauDetail(d, timeline) {
         ${d.total ? baris('Total', rpFmt(d.total)) : ''}
         ${pay === 'dp' && d.dpNominal ? baris('DP', rpFmt(d.dpNominal)) + baris('Sisa', rpFmt(d.sisa)) : ''}
         ${baris('Status', escH(PAY_LABEL[pay] || pay))}
-        ${pay === 'dp' ? `<p style="margin:8px 0 0;font-size:12px;opacity:.8">Lunasi sisa di menu <a href="/pelunasan" onclick="return navLink(event,'pelunasan')" style="text-decoration:underline">Pelunasan</a> dengan ID ini.</p>` : ''}
+        ${pay === 'dp' && mode !== 'resi' ? `<p style="margin:8px 0 0;font-size:12px;opacity:.8">Lunasi sisa di menu <a href="/pelunasan" onclick="return navLink(event,'pelunasan')" style="text-decoration:underline">Pelunasan</a> dengan ID ini.</p>` : ''}
         <div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(128,128,128,.35)">
             <p style="margin:0 0 14px;font-weight:600">Timeline</p>
             ${events.map((e, k) => pantauStepHTML(e, k === events.length - 1)).join('')}
@@ -2185,7 +2197,7 @@ async function tampilPantau(kode) {
     box.innerHTML = '<p style="font-size:13px;opacity:.7;margin-top:14px">Memuat...</p>';
     let tl = [];
     try {
-        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261006');
+        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261007');
         tl = (await getTimeline(kode)).filter(e => e.kind !== 'legacy');
         // update per artikel (mis. "Kaos dikirim") ikut tampil, hanya yang terjadi setelah order dibuat
         const mulai = tsMillis(d.createdAt);
@@ -2231,7 +2243,7 @@ async function cekPantau() {
     const btn = document.getElementById('pantauBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
-        const { cariLacak } = await import('./firebase.js?v=20261006');
+        const { cariLacak } = await import('./firebase.js?v=20261007');
         renderPantau(await cariLacak(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);
@@ -2239,6 +2251,63 @@ async function cekPantau() {
     }
     btn.disabled = false; btn.innerText = 'LACAK PESANAN';
 }
+/* ================= CEK RESI ================= */
+let resiList = [];
+async function tampilResi(kode) {
+    const d = resiList.find(x => x.kode === kode);
+    const box = document.getElementById('resiDetail');
+    if (!d || !box) return;
+    box.innerHTML = '<p style="font-size:13px;opacity:.7;margin-top:14px">Memuat...</p>';
+    let tl = [];
+    try {
+        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261007');
+        tl = (await getTimeline(kode)).filter(e => e.kind !== 'legacy');
+        const mulai = tsMillis(d.createdAt);
+        const art = (await getPoUpdates(d.poIds)).filter(e => tsMillis(e.createdAt) >= mulai);
+        tl = tl.concat(art).sort((a, b) => (tsMillis(a.createdAt) - tsMillis(b.createdAt)) || (a.kind === 'created' ? -1 : 0));
+    } catch (e) { console.error(e); }
+    box.innerHTML = renderPantauDetail(d, tl, 'resi');
+}
+function renderResi(list) {
+    const out = document.getElementById('resiResult');
+    resiList = list;
+    if (!list.length) {
+        out.innerHTML = '<div class="card-box"><span class="cap">Pesanan tidak ditemukan</span><p style="margin:8px 0 0;font-size:13px;line-height:1.6">Periksa kembali ID Order, email, atau no. HP yang kamu pakai saat checkout.</p></div>';
+        return;
+    }
+    if (list.length === 1) {
+        out.innerHTML = '<div id="resiDetail"></div>';
+        tampilResi(list[0].kode);
+        return;
+    }
+    out.innerHTML = `
+    <div class="card-box" style="margin-top:14px">
+        <span class="cap">Pilih Pesanan</span>
+        <select id="resiPilih" onchange="if(this.value)tampilResi(this.value)" style="width:100%;margin-top:10px;padding:12px;font-size:14px">
+            <option value="">— pilih salah satu (${list.length} pesanan) —</option>
+            ${list.map(d => `<option value="${escH(d.kode)}">${escH(d.kode)} — ${escH((d.poNames && d.poNames.length) ? d.poNames.join(', ') : d.produk)}</option>`).join('')}
+        </select>
+    </div>
+    <div id="resiDetail"></div>`;
+}
+async function cekResi() {
+    const val = document.getElementById('resiInput').value.trim();
+    const out = document.getElementById('resiResult');
+    if (!val) return triggerAlert('ISI ID ORDER / EMAIL / NO HP DULU!');
+    const btn = document.getElementById('resiBtn');
+    btn.disabled = true; btn.innerText = 'MENCARI...';
+    try {
+        const { cariResi } = await import('./firebase.js?v=20261007');
+        renderResi(await cariResi(klasifikasiPantau(val)));
+    } catch (e) {
+        console.error(e);
+        out.innerHTML = '<div class="card-box"><span class="cap">Gagal memuat</span><p style="margin:8px 0 0;font-size:13px">Coba lagi sebentar lagi.</p></div>';
+    }
+    btn.disabled = false; btn.innerText = 'CEK RESI';
+}
+window.cekResi = cekResi;
+window.tampilResi = tampilResi;
+
 function lacakDariRiwayat(kode) {
     showPage('pantau');
     document.getElementById('pantauInput').value = kode;

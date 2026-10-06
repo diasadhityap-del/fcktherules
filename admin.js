@@ -6,15 +6,15 @@ import {
     listenBannerText, saveBannerText,
     listenVouchers, saveVoucher, deleteVoucher,
     listenCustomers, deleteCustomer,
-    listenPelunasan, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
+    listenPelunasan, adminSimpanResi, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
     listenPoTrack, adminTutupPo, adminHapusLacak,
     adminBackfillOrder, turunanPO, tsMillis,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js?v=20261006';
+} from './firebase.js?v=20261007';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js?v=20261006";
+import { adminDb } from "./firebase.js?v=20261007";
 
 let allOrders = [];
 let allProduk = [];
@@ -213,6 +213,17 @@ function orderCardHTML(o, pel) {
             <button onclick="lunaskanOrder('${o.id}')" class="btn-sm btn-approve" style="width:100%;cursor:pointer;"><i class="fas fa-check"></i> VERIFIKASI &amp; LUNASKAN</button>
         </div>` : '';
 
+    const resiBlock = (status === 'dp' || status === 'lunas') ? `
+        <div style="margin-top:14px;border-top:1px solid #1a1a1a;padding-top:14px;">
+            <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">NOMOR RESI ${o.resi ? '· SUDAH DIUNGGAH' : '· BELUM DIUNGGAH'}</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <input type="text" id="resiInput-${o.id}" value="${esc(o.resi || '')}" placeholder="mis. JP1234567890" autocomplete="off" maxlength="60"
+                    style="flex:1;min-width:150px;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;">
+                <button onclick="simpanResi('${o.id}')" class="btn-sm btn-approve" style="cursor:pointer;"><i class="fas fa-truck"></i> ${o.resi ? 'UPDATE RESI' : 'SIMPAN RESI'}</button>
+                ${o.resi ? `<button onclick="hapusResi('${o.id}')" class="btn-sm" style="cursor:pointer;background:rgba(255,59,59,0.08);color:#ff4d4d;border:1px solid rgba(255,59,59,0.15);"><i class="fas fa-trash"></i></button>` : ''}
+            </div>
+        </div>` : '';
+
     return `
     <div class="order-card">
         <div class="order-top">
@@ -250,6 +261,7 @@ function orderCardHTML(o, pel) {
         </div>
         ${dpBlock}
         ${verifBlock}
+        ${resiBlock}
     </div>`;
 }
 
@@ -289,6 +301,37 @@ window.simpanDP = async (id) => {
         console.error(e);
         showToast('GAGAL SIMPAN DP: ' + errMsg(e), true);
     }
+};
+
+window.simpanResi = async (id) => {
+    const o = allOrders.find(x => x.id === id);
+    if (!o) return;
+    const val = ($('resiInput-' + id).value || '').trim();
+    if (!val) return showToast('ISI NOMOR RESI DULU!', true);
+    try {
+        const r = await adminSimpanResi(o, val);
+        allOrders = allOrders.map(x => x.id === id ? { ...x, resi: r.resi, resiAt: r.resiAt } : x);
+        showToast('RESI DISIMPAN ✓');
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL SIMPAN RESI: ' + errMsg(e), true);
+    }
+    renderOrders(true);
+};
+
+window.hapusResi = async (id) => {
+    const o = allOrders.find(x => x.id === id);
+    if (!o) return;
+    if (!confirm(`Hapus resi ${o.resi} dari ${idOrder(o)}?\n\nDi sisi pelanggan kembali tampil "Pesanan anda belum dikirim".`)) return;
+    try {
+        await adminSimpanResi(o, '');
+        allOrders = allOrders.map(x => x.id === id ? { ...x, resi: '', resiAt: null } : x);
+        showToast('RESI DIHAPUS');
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL HAPUS RESI: ' + errMsg(e), true);
+    }
+    renderOrders(true);
 };
 
 window.gantiStatusOrder = async (id, statusBaru) => {
