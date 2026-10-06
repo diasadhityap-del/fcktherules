@@ -292,15 +292,6 @@ export async function adminSetStatus(o, status) {
 /* ============== ORDER ============== */
 export async function saveOrder(orderData) {
     try {
-        // Artikel Pre Order yang sudah "Diselesaikan" admin tidak menerima order baru
-        if (orderData.isPO) {
-            for (const pid of (orderData.poIds || [])) {
-                const ps = await getDoc(doc(db, "produk", pid));
-                if (ps.exists() && ps.data().poClosed) {
-                    const e = new Error('po-closed'); e.code = 'po-closed'; throw e;
-                }
-            }
-        }
         if (!orderData.orderNo) orderData.orderNo = buatOrderNo(namaProdukUtama(orderData));
 
         // ID Pemesanan: dibuat di sini (saat order dibuat), prefix dari artikel, dipastikan belum dipakai (lacak/{kode}),
@@ -322,7 +313,6 @@ export async function saveOrder(orderData) {
         return ref.id;
     } catch (err) {
         console.error("Gagal simpan order:", err);
-        if (err && err.code === 'po-closed') throw err;
         return null;
     }
 }
@@ -445,6 +435,17 @@ function normEmail(v) { return String(v || '').trim().toLowerCase(); }
 async function sha256Hex(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+}
+// Order dianggap Pre Order bila artikelnya (sekarang) berbadge PRE ORDER, atau order itu memang tercatat PO.
+// Dipakai untuk order lama yang belum punya penanda isPO / poIds.
+export function turunanPO(o, produkList = []) {
+    const names = Array.isArray(o.produk) ? o.produk.map(p => p.nama) : [o.produk];
+    const ids = [...(o.poIds || [])], poNames = [...(o.poNames || [])];
+    produkList.filter(p => (p.badge === 'pre' || p.poClosed) && names.includes(p.nama)).forEach(p => {
+        if (!ids.includes(p.id)) ids.push(p.id);
+        if (!poNames.includes(p.nama)) poNames.push(p.nama);
+    });
+    return { isPO: ids.length > 0 || o.isPO === true, poIds: ids, poNames };
 }
 function itemsDariOrder(o) {
     return Array.isArray(o.produk)
@@ -589,11 +590,61 @@ export async function adminHapusLacak(kode) {
     } catch (e) { console.warn(e); }
 }
 
-/* ----- Admin: Selesaikan / buka lagi artikel Pre Order -----
-   Menutup artikel HANYA menghentikan order baru (flag poClosed di dokumen produk). Order, payment, timeline lama tidak disentuh. */
+/* ----- Update per ARTIKEL Pre Order -----
+   poUpdates/{produkId}/items/{id}: ditulis sekali oleh admin, otomatis tampil di timeline SEMUA order artikel tsb
+   (hanya order yang dibuat sebelum update itu). Waktu = waktu server. Baca publik, tulis admin. */
+function urutItems(list) { return list.sort((a, b) => (tsMillis(a.createdAt) - tsMillis(b.createdAt)) || String(a.id).localeCompare(String(b.id))); }
+export function listenPoUpdates(pid, cb) {
+    return onSnapshot(collection(adminDb, "poUpdates", pid, "items"),
+        s => cb(urutItems(s.docs.map(d => ({ id: d.id, pid, ...d.data({ serverTimestamps: 'estimate' }) })))),
+        e => console.error(e));
+}
+export async function adminTambahUpdatePo(pid, text) {
+    const t = String(text || '').trim().slice(0, 500);
+    if (!t) throw new Error('Isi update kosong');
+    await addDoc(collection(adminDb, "poUpdates", pid, "items"), { pid, text: t, type: 'manual', kind: 'manual', createdAt: serverTimestamp() });
+}
+export async function adminHapusUpdatePo(pid, id) {
+    await deleteDoc(doc(adminDb, "poUpdates", pid, "items", id));
+}
+export async function getPoUpdates(pids) {
+    const out = [];
+    for (const pid of (pids || []).slice(0, 10)) {
+        try {
+            const s = await getDocs(collection(db, "poUpdates", pid, "items"));
+            s.docs.forEach(d => out.push({ id: d.id, pid, ...d.data() }));
+        } catch (e) { console.error(e); }
+    }
+    return urutItems(out);
+}
+/* ----- Admin: "Selesaikan Artikel Pre Order" -----
+   HANYA keterangan: menandai produk poClosed dan menambah update "Pre Order selesai" di timeline semua order artikel itu.
+   Tidak memblokir pembelian di katalog (itu diatur lewat badge SOLD OUT). Order/payment/timeline lama tidak disentuh. */
 export async function adminTutupPo(produkId, nama, closed) {
     await updateDoc(doc(adminDb, "produk", produkId), { poClosed: !!closed, poClosedAt: closed ? new Date().toISOString() : null });
-    try { await setDoc(doc(adminDb, "poTrack", produkId), { nama, closed: !!closed, closedAt: closed ? new Date().toISOString() : null }, { merge: true }); } catch (e) { console.warn(e); }
+    const ref = doc(adminDb, "poUpdates", produkId, "items", "closed");
+    if (closed) {
+        if (!(await getDoc(ref)).exists()) await setDoc(ref, { pid: produkId, text: 'Pre Order selesai', type: 'automatic', kind: 'closed', createdAt: serverTimestamp() });
+    } else {
+        await deleteDoc(ref);
+    }
+}
+// Salin langkah lama per-artikel (poTrack: vendor/jadi/kirim) jadi update per artikel. Idempotent (ID tetap).
+export async function adminBackfillPoUpdates(poTrackMap) {
+    let n = 0;
+    for (const pid of Object.keys(poTrackMap || {})) {
+        const ev = (poTrackMap[pid] && poTrackMap[pid].events) || {};
+        for (const key of Object.keys(LEGACY_LABEL)) {
+            if (!ev[key] || !ev[key].at) continue;
+            const at = new Date(ev[key].at); if (isNaN(at)) continue;
+            const ref = doc(adminDb, "poUpdates", pid, "items", "legacy-" + key);
+            if ((await getDoc(ref)).exists()) continue;
+            const label = LEGACY_LABEL[key] + (key === 'kirim' && ev[key].note ? ' — ' + ev[key].note : '');
+            await setDoc(ref, { pid, text: label, type: 'manual', kind: 'legacy', createdAt: Timestamp.fromDate(at) });
+            n++;
+        }
+    }
+    return n;
 }
 export function listenPoTrack(cb) {
     return onSnapshot(collection(adminDb, "poTrack"), s => cb(s.docs.map(d => ({ id: d.id, ...d.data() }))));
@@ -627,9 +678,14 @@ export async function adminBackfillOrder(o, ctx = {}) {
         o = { ...o, kodePelunasan: kode };
         r.idBaru = true;
     }
+    const tp = turunanPO(o, produkList);
+    if (o.isPO !== tp.isPO || (o.poIds || []).length !== tp.poIds.length) {
+        await updateDoc(doc(adminDb, "orders", o.id), { isPO: tp.isPO, poIds: tp.poIds, poNames: tp.poNames });
+        o = { ...o, isPO: tp.isPO, poIds: tp.poIds, poNames: tp.poNames };
+    }
     const lRef = doc(adminDb, "lacak", kode);
     const lSnap = await getDoc(lRef);
-    const isPO = o.isPO === true;
+    const isPO = tp.isPO;
     const pay = payDariStatus(o.status);
     const dpN = Number(o.dpNominal || 0);
     const data = {
@@ -660,16 +716,6 @@ export async function adminBackfillOrder(o, ctx = {}) {
     if (o.status === 'lunas' && dpN > 0) {
         const t = (lSnap.exists() && lSnap.data().payAt) ? new Date(lSnap.data().payAt) : new Date();
         await bikin('pelunasan', { text: 'Pelunasan', type: 'automatic', kind: 'pelunasan', createdAt: Timestamp.fromDate(isNaN(t) ? new Date() : t) });
-    }
-    for (const pid of (o.poIds || [])) {
-        const ev = (poTrackMap[pid] && poTrackMap[pid].events) || {};
-        for (const key of Object.keys(LEGACY_LABEL)) {
-            if (!ev[key] || !ev[key].at) continue;
-            const at = new Date(ev[key].at);
-            if (isNaN(at)) continue;
-            const label = LEGACY_LABEL[key] + (key === 'kirim' && ev[key].note ? ' — ' + ev[key].note : '');
-            await bikin(`legacy-${pid}-${key}`, { text: label, type: 'manual', kind: 'legacy', createdAt: Timestamp.fromDate(at) });
-        }
     }
     return r;
 }

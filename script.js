@@ -101,7 +101,6 @@ let addToCartLock = false;
 function addToCart() {
     if (addToCartLock) return; // cegah double-tap memicu berkali-kali
     if (!cart.prod) return triggerAlert("PRODUK TIDAK DITEMUKAN!");
-    if (cart.prod.badge === 'pre' && cart.prod.poClosed) return triggerAlert("PRE ORDER ARTIKEL INI SUDAH DITUTUP");
     if (!cart.color) return triggerAlert("PILIH WARNA DULU!");
     if (!cart.size) return triggerAlert("PILIH UKURAN DULU!");
 
@@ -449,7 +448,7 @@ async function executeCheckout() {
 
     } catch (err) {
         console.error(err);
-        triggerAlert(err && err.code === 'po-closed' ? "PRE ORDER ARTIKEL INI SUDAH DITUTUP" : "GAGAL MENYIMPAN! COBA LAGI.");
+        triggerAlert("GAGAL MENYIMPAN! COBA LAGI.");
     } finally {
         if (loader) loader.classList.add('hide');
     }
@@ -707,8 +706,7 @@ function renderList(items, containerId) {
     if (!container) return;
     container.innerHTML = '';
     items.forEach(p => {
-        const poTutup = p.badge === 'pre' && p.poClosed;   // artikel PO sudah diselesaikan admin
-        const isSold = p.badge === 'sold' || poTutup;
+        const isSold = p.badge === 'sold';
         container.innerHTML += `
             <div class="card ${isSold ? 'sold-out-display' : ''}">
                 <div class="card-media">
@@ -717,9 +715,9 @@ function renderList(items, containerId) {
                 </div>
                 <div class="card-body">
                     <h3>${p.name}</h3>
-                    <p class="price">${poTutup ? 'PO DITUTUP' : isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
+                    <p class="price">${isSold ? 'OUT OF STOCK' : formatRupiah(p.price)}</p>
                     <button type="button" onclick="sessionStorage.setItem('lastPage', document.querySelector('.page.active') ? document.querySelector('.page.active').id : 'home'); vibrate(40); goDetail('${p.id}');" ${isSold ? 'disabled' : ''}>
-                        ${poTutup ? 'CLOSED' : isSold ? 'SOLD' : 'SELECT'}
+                        ${isSold ? 'SOLD' : 'SELECT'}
                     </button>
                 </div>
             </div>`;
@@ -919,7 +917,6 @@ function renderDetailContent(p, selectedColor) {
 function goDetail(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
-    if (p.badge === 'pre' && p.poClosed) return triggerAlert("PRE ORDER ARTIKEL INI SUDAH DITUTUP");
 
     if (document.getElementById('sidebar')?.classList.contains('open')) {
         toggleSidebar();
@@ -1859,7 +1856,7 @@ async function renderProfileOrders() {
                     <p class="p">${escH(produkText)}</p>
                     <p class="t">${total}</p>
                     ${status === 'dp' && o.dpNominal ? `<p class="p">DP ${rpFmt(o.dpNominal)} · Sisa ${rpFmt(o.sisaBayar)}</p>` : ''}
-                    ${o.kodePelunasan && o.isPO ? `<p class="p"><a href="#" onclick="lacakDariRiwayat('${escH(o.kodePelunasan)}');return false" style="text-decoration:underline">Pantau pesanan →</a></p>` : ''}
+                    ${o.kodePelunasan && o.isPO !== false ? `<p class="p"><a href="#" onclick="lacakDariRiwayat('${escH(o.kodePelunasan)}');return false" style="text-decoration:underline">Pantau pesanan →</a></p>` : ''}
                 </div>
             `;
         }).join('');
@@ -2187,7 +2184,14 @@ async function tampilPantau(kode) {
     if (!d || !box) return;
     box.innerHTML = '<p style="font-size:13px;opacity:.7;margin-top:14px">Memuat...</p>';
     let tl = [];
-    try { const { getTimeline } = await import('./firebase.js'); tl = await getTimeline(kode); } catch (e) { console.error(e); }
+    try {
+        const { getTimeline, getPoUpdates } = await import('./firebase.js');
+        tl = (await getTimeline(kode)).filter(e => e.kind !== 'legacy');
+        // update per artikel (mis. "Kaos dikirim") ikut tampil, hanya yang terjadi setelah order dibuat
+        const mulai = tsMillis(d.createdAt);
+        const art = (await getPoUpdates(d.poIds)).filter(e => tsMillis(e.createdAt) >= mulai);
+        tl = tl.concat(art).sort((a, b) => (tsMillis(a.createdAt) - tsMillis(b.createdAt)) || (a.kind === 'created' ? -1 : 0));
+    } catch (e) { console.error(e); }
     box.innerHTML = renderPantauDetail(d, tl);
 }
 function renderPantau(list) {

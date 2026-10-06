@@ -82,7 +82,7 @@
         <div class="tab-content active" id="tab-order">
             <div class="page-header">
                 <div class="page-title">ORDER</div>
-                <div class="page-desc">Pilih satu order. Status bayar, DP, pelunasan, dan timeline ada di detail order.</div>
+                <div class="page-desc">Kelola order, status bayar, DP, dan pelunasan. Timeline diatur per artikel di menu ARTIKEL PO.</div>
             </div>
 
             <div class="filter-bar">
@@ -101,11 +101,7 @@
                 </button>
             </div>
 
-            <div id="orderPickWrap" style="margin-bottom:16px">
-                <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">PILIH ORDER (ID — ARTIKEL, TERBARU DI ATAS)</div>
-                <select id="orderPicker" onchange="pilihOrder(this.value)" style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:14px;border-radius:10px;font-size:14px;font-weight:600;"></select>
-            </div>
-            <div id="orderDetail">
+            <div id="orderList">
                 <div class="loading">
                     <i class="fas fa-spinner fa-spin"></i> Memuat...
                 </div>
@@ -119,7 +115,7 @@
         <div class="tab-content" id="tab-lacak">
             <div class="page-header">
                 <div class="page-title">ARTIKEL PRE ORDER</div>
-                <div class="page-desc">Selesaikan artikel PO agar tidak menerima order baru. Order lama tetap tersimpan, bisa dilihat admin, dicari, dan dilacak customer. Timeline diisi per order di menu ORDER.</div>
+                <div class="page-desc">Tulis update sekali per artikel (mis. "Kaos dikirim"), otomatis tampil di Pantau semua order artikel itu. "Selesaikan" hanya menambah keterangan PO selesai, tidak menutup katalog.</div>
             </div>
             <div id="poList"></div>
         </div>

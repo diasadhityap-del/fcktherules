@@ -8,7 +8,8 @@ import {
     listenCustomers, deleteCustomer,
     listenPelunasan, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
     listenPoTrack, adminTutupPo, adminHapusLacak,
-    listenTimeline, adminTambahUpdate, adminHapusUpdate, adminBackfillOrder, tsMillis
+    adminBackfillOrder, turunanPO, tsMillis,
+    listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
 } from './firebase.js';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
@@ -48,6 +49,7 @@ onAuthStateChanged(adminAuth, async (user) => {
             loadVouchers()
         ]);
         loadCustomersList();
+        autoSinkron();
         listenPelunasan(data => { allPelunasan = data; renderOrders(); });
         listenPoTrack(data => { allPoTrack = data; renderPoAdmin(); });
     } else {
@@ -136,123 +138,105 @@ window.filterProdukOrder = (produk) => {
     renderOrders();
 };
 
-let selectedOrderId = null;
 const uiDP = {};            // orderId -> true: admin memilih status DP, nominal belum disimpan
-let tlUnsub = null, tlKode = null, tlData = [];
+const poUpd = {}, poUpdUnsub = {};    // update per ARTIKEL: produkId -> daftar update
+function ensurePoUpdSubs(pids) {
+    (pids || []).forEach(pid => {
+        if (poUpdUnsub[pid]) return;
+        poUpdUnsub[pid] = listenPoUpdates(pid, list => { poUpd[pid] = list; renderPoUpdBox(pid); });
+    });
+}
 const $ = id => document.getElementById(id);
+const errMsg = e => (e && e.code === 'permission-denied')
+    ? 'DITOLAK FIREBASE — publish firestore.rules terbaru di Firebase Console dulu'
+    : ((e && (e.code || e.message)) || 'error');
 const idOrder = o => o.kodePelunasan || o.orderNo || o.id;
 const artikelOrder = o => namaProdukText(o) || '-';
-const STATUS_LABEL = { pending: 'PENDING', dp: 'DP', lunas: 'LUNAS', rejected: 'DITOLAK' };
-
-function filteredOrders() {
-    let list = currentFilter === 'semua' ? allOrders : allOrders.filter(o => (o.status || 'pending') === currentFilter);
-    if (currentProdukFilter !== 'semua') {
-        list = list.filter(o => Array.isArray(o.produk) ? o.produk.some(p => p.nama === currentProdukFilter) : o.produk === currentProdukFilter);
-    }
-    return list;   // allOrders sudah diurutkan terbaru -> terlama (createdAt)
-}
+const isPoOrder = o => turunanPO(o, allProduk).isPO;
 
 window.renderOrders = (force) => {
-    const picker = $('orderPicker');
-    if (!picker) return;
-    const list = filteredOrders();
-    if (!list.length) {
-        picker.innerHTML = '<option>— belum ada order —</option>';
-        $('orderDetail').innerHTML = `<div class="empty"><i class="fas fa-box-open"></i><p>Belum ada order</p></div>`;
-        stopTimeline();
+    const list = $('orderList');
+    if (!list) return;
+    const ae = document.activeElement;
+    if (!force && ae && list.contains(ae) && ae.tagName === 'INPUT') return;   // jangan timpa yang sedang diketik
+
+    let filtered = currentFilter === 'semua' ? allOrders : allOrders.filter(o => (o.status || 'pending') === currentFilter);
+    if (currentProdukFilter !== 'semua') {
+        filtered = filtered.filter(o => Array.isArray(o.produk) ? o.produk.some(p => p.nama === currentProdukFilter) : o.produk === currentProdukFilter);
+    }
+    if (!filtered.length) {
+        list.innerHTML = `<div class="empty"><i class="fas fa-box-open"></i><p>Belum ada order</p></div>`;
         return;
     }
-    if (!list.some(o => o.id === selectedOrderId)) selectedOrderId = list[0].id;
-    picker.innerHTML = list.map(o => `<option value="${esc(o.id)}" ${o.id === selectedOrderId ? 'selected' : ''}>${esc(idOrder(o))} — ${esc(artikelOrder(o))}</option>`).join('');
-    renderOrderDetail(force);
+    const pelMap = pelByOrder();
+    list.innerHTML = filtered.map(o => orderCardHTML(o, pelMap[o.id])).join('');   // terbaru -> terlama
 };
-window.pilihOrder = (id) => { selectedOrderId = id; renderOrderDetail(true); };
 
-function stopTimeline() { if (tlUnsub) { tlUnsub(); tlUnsub = null; } tlKode = null; tlData = []; }
-
-function renderOrderDetail(force) {
-    const box = $('orderDetail');
-    const o = allOrders.find(x => x.id === selectedOrderId);
-    if (!o) return;
-    const ae = document.activeElement;
-    if (!force && ae && box.contains(ae) && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;   // jangan timpa yang sedang diketik
-
-    const pel = pelByOrder()[o.id];
+function orderCardHTML(o, pel) {
     const total = totalOrder(o);
     const status = o.status || 'pending';
     const uiStatus = uiDP[o.id] ? 'dp' : status;
     const dpNom = Number(o.dpNominal || 0);
+    const po = isPoOrder(o);
     const date = new Date(o.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const sc = status === 'rejected' ? 's-rejected' : (status === 'pending' ? 's-pending' : 's-approved');
+    let sc = 's-pending', st = 'PENDING';
+    if (status === 'lunas') { sc = 's-approved'; st = 'LUNAS'; }
+    if (status === 'dp') { sc = 's-approved'; st = 'DP'; }
+    if (status === 'rejected') { sc = 's-rejected'; st = 'DITOLAK'; }
 
     const produkHTML = Array.isArray(o.produk)
         ? o.produk.map(p => `<div class="info-item">Produk <span>${esc(p.nama)}</span></div><div class="info-item">Warna / Size <span>${esc(p.warna)} / ${esc(p.size)}</span></div>`).join('')
         : `<div class="info-item">Produk <span>${esc(o.produk)}</span></div><div class="info-item">Warna / Size <span>${esc(o.warna)} / ${esc(o.size)}</span></div>`;
-    const voucherHTML = o.voucherKode ? `<div class="info-item" style="color:var(--yellow)">Voucher <span>${esc(o.voucherKode)} ${o.voucherDeskripsi ? '· ' + esc(o.voucherDeskripsi) : ''}</span></div>` : '';
+    const voucherHTML = o.voucherKode ? `<div class="info-item" style="color:var(--yellow)">Voucher Dipakai <span>${esc(o.voucherKode)}</span></div><div class="info-item" style="color:var(--yellow)">Ket. Diskon <span>${esc(o.voucherDeskripsi)}</span></div>` : '';
 
-    const dpInputVal = dpNom ? dpNom.toLocaleString('id-ID') : '';
     const dpBlock = uiStatus === 'dp' ? `
         <div style="margin-top:14px;border-top:1px solid #1a1a1a;padding-top:14px;">
             <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
                 <div style="flex:1;min-width:150px;">
                     <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">NOMINAL DP (Rp)</div>
-                    <input type="text" inputmode="numeric" id="dpInput" value="${dpInputVal}" placeholder="mis. 70.000" oninput="hitungSisaDP()"
+                    <input type="text" inputmode="numeric" id="dpInput-${o.id}" value="${dpNom ? dpNom.toLocaleString('id-ID') : ''}" placeholder="mis. 70.000" oninput="hitungSisaDP('${o.id}')"
                         style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;">
                 </div>
                 <div style="flex:1;min-width:150px;">
                     <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">SISA (OTOMATIS)</div>
-                    <div id="dpSisa" data-total="${total}" style="padding:12px 0;font-weight:700;font-size:16px;color:var(--green)">${dpNom ? rp(total - dpNom) : '-'}</div>
+                    <div id="dpSisa-${o.id}" data-total="${total}" style="padding:12px 0;font-weight:700;font-size:16px;color:var(--green)">${dpNom ? rp(total - dpNom) : '-'}</div>
                 </div>
             </div>
             <button onclick="simpanDP('${o.id}')" class="btn-sm btn-approve" style="margin-top:12px;width:100%;cursor:pointer;"><i class="fas fa-save"></i> ${status === 'dp' ? 'UPDATE DP' : 'SIMPAN DP'}</button>
             ${status !== 'dp' ? '<div style="font-size:11px;color:#888;margin-top:8px">Status baru berubah menjadi DP setelah nominal disimpan.</div>' : ''}
         </div>` : '';
 
-    const menunggu = pel && pel.status === 'menunggu_verifikasi' && status === 'dp';
-    const verifBlock = menunggu ? `
+    const verifBlock = (pel && pel.status === 'menunggu_verifikasi' && status === 'dp') ? `
         <div style="margin-top:14px;border:1px solid var(--yellow);padding:14px;">
             <div style="font-size:12px;color:var(--yellow);font-weight:700;margin-bottom:6px;">BUKTI PELUNASAN MASUK</div>
             <div style="font-size:12px;color:#ccc;margin-bottom:10px;">Cek bukti: nominal harus <b>${rp(o.sisaBayar)}</b>. Setelah diverifikasi, status otomatis DP → LUNAS dan timeline "Pelunasan" terbuat.</div>
             <button onclick="lunaskanOrder('${o.id}')" class="btn-sm btn-approve" style="width:100%;cursor:pointer;"><i class="fas fa-check"></i> VERIFIKASI &amp; LUNASKAN</button>
         </div>` : '';
 
-    const poBlock = o.isPO === true && o.kodePelunasan ? `
-        <div style="margin-top:18px;border-top:1px solid #1a1a1a;padding-top:14px;">
-            <div style="font-size:11px;letter-spacing:.1em;color:#888;margin-bottom:10px;">TIMELINE ORDER</div>
-            <div id="tlBox"></div>
-            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-                <input type="text" id="tlInput" maxlength="500" placeholder="mis. Kaos masuk vendor" onkeydown="if(event.key==='Enter'){tambahUpdate('${o.id}')}"
-                    style="flex:1;min-width:200px;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:13px;">
-                <button onclick="tambahUpdate('${o.id}')" class="btn-sm btn-approve" style="flex:none;cursor:pointer;padding:0 18px;">+ TAMBAH UPDATE</button>
-            </div>
-            <div style="font-size:11px;color:#666;margin-top:6px">Tanggal &amp; jam otomatis (waktu server).</div>
-        </div>`
-        : `<div style="margin-top:18px;border-top:1px solid #1a1a1a;padding-top:14px;font-size:12px;color:#777">Ready Stock — tidak memakai tracking/timeline Pre Order.</div>`;
-
-    box.innerHTML = `
+    return `
     <div class="order-card">
         <div class="order-top">
             <div>
-                <div class="order-name" style="user-select:all;letter-spacing:.06em">${esc(idOrder(o))}</div>
-                <div class="order-time">${esc(artikelOrder(o))}${o.isPO ? ' · PRE ORDER' : ' · READY STOCK'}</div>
+                <div class="order-name">${esc(o.nama)}</div>
+                <div class="order-time" style="color:var(--green)">ID ORDER: <b style="user-select:all;letter-spacing:.08em">${esc(idOrder(o))}</b>${po ? ' · PRE ORDER' : ' · READY STOCK'}</div>
+                <div class="order-time">${esc(artikelOrder(o))}</div>
                 <div class="order-time">${date}</div>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
                 <button onclick="hapusOrder('${o.id}')" title="Hapus order" style="width:38px;height:38px;border:1px solid rgba(255,59,59,0.15);border-radius:10px;background:rgba(255,59,59,0.08);color:#ff4d4d;cursor:pointer;"><i class="fas fa-trash"></i></button>
-                <div class="status-badge ${sc}">${STATUS_LABEL[status] || status.toUpperCase()}</div>
+                <div class="status-badge ${sc}">${st}</div>
             </div>
         </div>
         <div class="order-info">
-            <div class="info-item">Nama <span>${esc(o.nama)}</span></div>
-            <div class="info-item">Email <span>${esc(o.email || '-')}</span></div>
-            <div class="info-item">Nomor HP <span>${esc(o.wa)}</span></div>
-            <div class="info-item">Artikel <span>${esc(artikelOrder(o))}</span></div>
             ${produkHTML}
+            ${o.email ? `<div class="info-item">Email <span>${esc(o.email)}</span></div>` : ''}
+            <div class="info-item">Harga Kaos <span>${o.hargaKaos ? rp(o.hargaKaos) : '-'}</span></div>
             <div class="info-item">Ongkir <span>${o.ongkir ? rp(o.ongkir) : '-'}</span></div>
             ${voucherHTML}
-            <div class="info-item" style="grid-column:1/-1">Alamat <span>${esc(o.alamat)}</span></div>
-            <div class="info-item" style="grid-column:1/-1;font-size:14px;color:var(--green)">TOTAL <span>${rp(total)}</span></div>
-            ${status === 'dp' && dpNom ? `<div class="info-item">DP <span>${rp(dpNom)}</span></div><div class="info-item">Sisa <span>${rp(o.sisaBayar)}</span></div>` : ''}
+            <div class="info-item">WhatsApp <span>${esc(o.wa)}</span></div>
+            <div class="info-item">Alamat <span>${esc(o.alamat)}</span></div>
+            <div class="info-item" style="color:var(--green)">TOTAL <span>${rp(total)}</span></div>
+            ${status === 'dp' && dpNom ? `<div class="info-item">DP Dibayar <span>${rp(dpNom)}</span></div><div class="info-item">Sisa <span>${rp(o.sisaBayar)}</span></div>` : ''}
         </div>
         <div class="order-actions" style="display:flex;gap:10px;align-items:center;border-top:1px solid #1a1a1a;padding-top:15px;flex-wrap:wrap;">
             ${o.buktiURL ? `<a href="${esc(o.buktiURL)}" target="_blank" class="btn-sm btn-bukti" style="flex:1;text-align:center;"><i class="fas fa-image"></i> BUKTI 1</a>` : ''}
@@ -266,46 +250,7 @@ function renderOrderDetail(force) {
         </div>
         ${dpBlock}
         ${verifBlock}
-        ${poBlock}
     </div>`;
-
-    if (o.isPO === true && o.kodePelunasan) startTimeline(o); else stopTimeline();
-}
-
-function startTimeline(o) {
-    if (tlKode !== o.kodePelunasan) {
-        stopTimeline();
-        tlKode = o.kodePelunasan;
-        tlUnsub = listenTimeline(o.kodePelunasan, (list) => { tlData = list; renderTimelineBox(); },
-            (e) => { const b = $('tlBox'); if (b) b.innerHTML = `<div style="color:var(--red);font-size:12px">Gagal memuat timeline: ${esc(e.code || e.message)}</div>`; });
-    }
-    renderTimelineBox();
-}
-
-function renderTimelineBox() {
-    const box = $('tlBox');
-    const o = allOrders.find(x => x.id === selectedOrderId);
-    if (!box || !o) return;
-    const punyaCreated = tlData.some(e => e.kind === 'created');
-    const warn = !punyaCreated ? `
-        <div style="border:1px solid var(--yellow);padding:12px;margin-bottom:10px;font-size:12px;color:var(--yellow)">
-            Pelacakan order ini belum tersinkron (order lama / gagal saat checkout).
-            <button onclick="sinkronOrder('${o.id}')" class="btn-sm btn-approve" style="margin-top:8px;width:100%;cursor:pointer;">SINKRONKAN ORDER INI</button>
-        </div>` : '';
-    const rows = tlData.map((e, i) => {
-        const auto = e.type === 'automatic';
-        const iso = tsMillis(e.createdAt) ? new Date(tsMillis(e.createdAt)).toISOString() : '';
-        return `
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:${i ? '1px solid #1a1a1a' : 'none'}">
-            <span style="width:10px;height:10px;border-radius:50%;background:${auto ? 'var(--green)' : '#888'};flex:none;margin-top:5px"></span>
-            <div style="flex:1;min-width:0">
-                <div style="font-size:13px;font-weight:700;word-break:break-word">${esc(e.text)} ${auto ? '<span style="font-size:9px;color:var(--green);letter-spacing:.1em;margin-left:6px">OTOMATIS</span>' : ''}</div>
-                <div style="font-size:11px;color:#888;margin-top:2px">${iso ? esc(fmtAdminWaktu(iso)) : 'menyimpan…'}</div>
-            </div>
-            ${auto ? '' : `<button onclick="hapusUpdate('${esc(o.kodePelunasan)}','${esc(e.id)}')" title="Hapus update" style="width:34px;height:34px;flex:none;border:1px solid rgba(255,59,59,0.15);border-radius:10px;background:rgba(255,59,59,0.08);color:#ff4d4d;cursor:pointer;"><i class="fas fa-trash"></i></button>`}
-        </div>`;
-    }).join('');
-    box.innerHTML = warn + (rows || '<div style="font-size:12px;color:#777">Belum ada update.</div>');
 }
 
 window.filterOrder = (filter, el) => {
@@ -315,8 +260,8 @@ window.filterOrder = (filter, el) => {
     renderOrders(true);
 };
 
-window.hitungSisaDP = () => {
-    const inp = $('dpInput'), out = $('dpSisa');
+window.hitungSisaDP = (id) => {
+    const inp = $('dpInput-' + id), out = $('dpSisa-' + id);
     if (!inp || !out) return;
     const nom = Number(inp.value.replace(/\D/g, '')) || 0;
     inp.value = nom ? nom.toLocaleString('id-ID') : '';
@@ -328,7 +273,7 @@ window.hitungSisaDP = () => {
 window.simpanDP = async (id) => {
     const o = allOrders.find(x => x.id === id);
     if (!o) return;
-    const nom = Number(($('dpInput').value || '').replace(/\D/g, '')) || 0;
+    const nom = Number(($('dpInput-' + id).value || '').replace(/\D/g, '')) || 0;
     const total = totalOrder(o);
     if (nom <= 0) return showToast('ISI NOMINAL DP DULU!', true);
     if (nom >= total) return showToast('DP TIDAK BOLEH >= TOTAL. Kalau sudah full, pilih LUNAS.', true);
@@ -342,7 +287,7 @@ window.simpanDP = async (id) => {
         showToast('DP DISIMPAN ✓ SISA ' + rp(sisa));
     } catch (e) {
         console.error(e);
-        showToast('GAGAL SIMPAN DP: ' + (e.code || e.message), true);
+        showToast('GAGAL SIMPAN DP: ' + errMsg(e), true);
     }
 };
 
@@ -382,49 +327,37 @@ window.lunaskanOrder = async (id) => {
         showToast(r.changed ? 'ORDER LUNAS ✓' : 'ORDER SUDAH LUNAS');
     } catch (e) {
         console.error(e);
-        showToast('GAGAL: ' + (e.code || e.message), true);
+        showToast('GAGAL: ' + errMsg(e), true);
     }
     renderOrders(true);
 };
 
-window.tambahUpdate = async (id) => {
-    const o = allOrders.find(x => x.id === id);
-    const inp = $('tlInput');
-    if (!o || !inp) return;
-    const t = inp.value.trim();
-    if (!t) return showToast('ISI UPDATE DULU!', true);
-    try {
-        await adminTambahUpdate(o, t);
-        inp.value = '';
-        showToast('UPDATE DITAMBAHKAN ✓');
-    } catch (e) {
-        console.error(e);
-        showToast('GAGAL: ' + (e.code || e.message), true);
+// Sekali per sesi admin: order lama yang belum punya ID / belum dikenali sebagai Pre Order disinkronkan otomatis
+// (aman diulang, tidak membuat order baru, tidak menghapus apa pun).
+let autoSinkronJalan = false;
+async function autoSinkron() {
+    if (autoSinkronJalan) return;
+    autoSinkronJalan = true;
+    const perlu = allOrders.filter(o => {
+        const t = turunanPO(o, allProduk);
+        return !o.kodePelunasan || o.isPO !== t.isPO || (o.poIds || []).length !== t.poIds.length;
+    });
+    if (!perlu.length) return;
+    let ok = 0;
+    for (const o of perlu) {
+        try { await adminBackfillOrder(o, syncCtx()); ok++; } catch (e) { console.error('autoSinkron', o.id, e); }
     }
-};
-window.hapusUpdate = async (kode, eid) => {
-    if (!confirm('Hapus update ini? (hanya update ini yang terhapus)')) return;
-    try { await adminHapusUpdate(kode, eid); showToast('UPDATE DIHAPUS'); }
-    catch (e) { console.error(e); showToast('GAGAL: ' + (e.code || e.message), true); }
-};
-
+    await loadOrders();
+    showToast(`${ok} ORDER LAMA DISINKRONKAN ✓`);
+}
 const syncCtx = () => ({ produkList: allProduk, poTrackMap: Object.fromEntries(allPoTrack.map(t => [t.id, t])) });
-window.sinkronOrder = async (id) => {
-    const o = allOrders.find(x => x.id === id);
-    if (!o) return;
-    try {
-        const r = await adminBackfillOrder(o, syncCtx());
-        if (r.idBaru) await loadOrders();
-        showToast('SINKRON ✓ (' + r.events + ' event dibuat)');
-    } catch (e) { console.error(e); showToast('GAGAL: ' + (e.code || e.message), true); }
-    renderOrders(true);
-};
 window.sinkronSemuaOrder = async () => {
     if (!confirm(`Sinkronkan ${allOrders.length} order?\n\nOrder tanpa ID akan diberi ID; timeline "Pesanan dibuat"/"Pelunasan" dan langkah lama dilengkapi. Tidak membuat order baru, tidak menghapus apa pun, aman diulang.`)) return;
     let ok = 0, gagal = 0;
     for (const o of allOrders) {
         try { await adminBackfillOrder(o, syncCtx()); ok++; } catch (e) { console.error(o.id, e); gagal++; }
     }
+    try { await adminBackfillPoUpdates(syncCtx().poTrackMap); } catch (e) { console.error(e); }
     await loadOrders();
     showToast(`SINKRON SELESAI: ${ok} OK${gagal ? ', ' + gagal + ' GAGAL' : ''}`, gagal > 0);
 };
@@ -1165,11 +1098,13 @@ function fmtAdminWaktu(iso) {
 /* ================= ARTIKEL PRE ORDER (selesaikan artikel) ================= */
 function ordersUntukPO(p) {
     return allOrders.filter(o => o.status !== 'rejected' &&
-        (Array.isArray(o.poIds) ? o.poIds.includes(p.id) : (o.isPO && namaProdukText(o).includes(p.nama))));
+        ((o.poIds || []).includes(p.id) || (Array.isArray(o.produk) ? o.produk.some(x => x.nama === p.nama) : o.produk === p.nama)));
 }
-window.renderPoAdmin = () => {
+window.renderPoAdmin = (force) => {
     const box = document.getElementById('poList');
     if (!box) return;
+    const ae = document.activeElement;
+    if (!force && ae && box.contains(ae) && ae.tagName === 'INPUT') return;   // jangan timpa yang sedang diketik
     const prods = allProduk
         .filter(p => p.badge === 'pre' || p.poClosed)
         .sort((a, b) => Number(!!a.poClosed) - Number(!!b.poClosed));
@@ -1182,34 +1117,75 @@ window.renderPoAdmin = () => {
         const ords = ordersUntukPO(p);
         const lunasN = ords.filter(o => o.status === 'lunas').length;
         return `
-        <div class="order-card" style="${closed ? 'opacity:.7' : ''}">
+        <div class="order-card">
             <div class="order-top">
                 <div>
                     <div class="order-name">${esc(p.nama)}</div>
                     <div class="order-time">Kode awal: <b>${esc(p.kodePrefix || '— belum diisi —')}</b> · ${ords.length} order · ${lunasN} lunas</div>
                 </div>
-                <div class="status-badge ${closed ? 's-rejected' : 's-approved'}">${closed ? 'SELESAI' : 'BERJALAN'}</div>
+                <div class="status-badge ${closed ? 's-rejected' : 's-approved'}">${closed ? 'PO SELESAI' : 'BERJALAN'}</div>
             </div>
+            <div style="font-size:11px;letter-spacing:.1em;color:#888;margin:4px 0 8px;">UPDATE ARTIKEL (tampil di Pantau semua order artikel ini)</div>
+            <div id="poU-${p.id}"></div>
+            <div style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;">
+                <input type="text" id="poIn-${p.id}" maxlength="500" placeholder="mis. Kaos dikirim" onkeydown="if(event.key==='Enter'){tambahUpdatePo('${p.id}')}"
+                    style="flex:1;min-width:200px;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:13px;">
+                <button type="button" onclick="tambahUpdatePo('${p.id}')" class="btn-sm btn-approve" style="flex:none;cursor:pointer;padding:12px 18px;">+ TAMBAH UPDATE</button>
+            </div>
+            <div style="font-size:11px;color:#666;margin-bottom:12px">Tanggal &amp; jam otomatis. Hanya muncul di order yang dibuat sebelum update ini.</div>
             ${closed
-                ? `<button onclick="tutupPo('${p.id}', false)" class="btn-sm btn-bukti" style="width:100%;cursor:pointer;"><i class="fas fa-undo"></i> BUKA LAGI ORDER</button>`
+                ? `<button onclick="tutupPo('${p.id}', false)" class="btn-sm btn-bukti" style="width:100%;cursor:pointer;"><i class="fas fa-undo"></i> BATALKAN "PO SELESAI"</button>`
                 : `<button onclick="tutupPo('${p.id}', true)" class="btn-sm btn-approve" style="width:100%;cursor:pointer;"><i class="fas fa-flag-checkered"></i> SELESAIKAN ARTIKEL PRE ORDER</button>`}
         </div>`;
     }).join('');
+    ensurePoUpdSubs(prods.map(p => p.id));
+    prods.forEach(p => renderPoUpdBox(p.id));
+};
+function renderPoUpdBox(pid) {
+    const box = document.getElementById('poU-' + pid);
+    if (!box) return;
+    const list = poUpd[pid] || [];
+    box.innerHTML = list.length ? list.map((e, i) => {
+        const iso = tsMillis(e.createdAt) ? new Date(tsMillis(e.createdAt)).toISOString() : '';
+        const auto = e.type === 'automatic';
+        return `
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-top:${i ? '1px solid #1a1a1a' : 'none'}">
+            <span style="width:10px;height:10px;border-radius:50%;background:${auto ? 'var(--green)' : '#6cf'};flex:none;margin-top:5px"></span>
+            <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:700;word-break:break-word">${esc(e.text)}</div>
+                <div style="font-size:11px;color:#888;margin-top:2px">${iso ? esc(fmtAdminWaktu(iso)) : 'menyimpan…'}</div>
+            </div>
+            ${auto ? '' : `<button onclick="hapusUpdatePo('${pid}','${esc(e.id)}')" title="Hapus update" style="width:34px;height:34px;flex:none;border:1px solid rgba(255,59,59,0.15);border-radius:10px;background:rgba(255,59,59,0.08);color:#ff4d4d;cursor:pointer;"><i class="fas fa-trash"></i></button>`}
+        </div>`;
+    }).join('') : '<div style="font-size:12px;color:#777">Belum ada update artikel.</div>';
+}
+window.tambahUpdatePo = async (pid) => {
+    const inp = document.getElementById('poIn-' + pid);
+    if (!inp) return;
+    const t = inp.value.trim();
+    if (!t) { showToast('KETIK KETERANGAN DULU!', true); inp.focus(); return; }
+    try { await adminTambahUpdatePo(pid, t); inp.value = ''; showToast('UPDATE ARTIKEL DITAMBAHKAN ✓'); }
+    catch (e) { console.error(e); showToast('GAGAL: ' + errMsg(e), true); }
+};
+window.hapusUpdatePo = async (pid, id) => {
+    if (!confirm('Hapus update artikel ini? (hilang dari timeline semua order artikel ini)')) return;
+    try { await adminHapusUpdatePo(pid, id); showToast('UPDATE DIHAPUS'); }
+    catch (e) { console.error(e); showToast('GAGAL: ' + errMsg(e), true); }
 };
 window.tutupPo = async (pid, closed) => {
     const p = allProduk.find(x => x.id === pid);
     if (!p) return;
     const msg = closed
-        ? `Selesaikan PO "${p.nama}"?\n\nCustomer tidak bisa membuat order baru untuk artikel ini. Order lama TIDAK dihapus: tetap tersimpan, terlihat di admin, bisa dicari dan dilacak.`
-        : `Buka lagi order untuk "${p.nama}"?`;
+        ? `Tandai PO "${p.nama}" SELESAI?\n\nDi Pantau semua order artikel ini muncul keterangan "Pre Order selesai". Katalog TIDAK ditutup: masih bisa dibeli selama badge belum SOLD OUT.`
+        : `Batalkan tanda "PO selesai" untuk "${p.nama}"?`;
     if (!confirm(msg)) return;
     try {
         await adminTutupPo(pid, p.nama, closed);
         allProduk = allProduk.map(x => x.id === pid ? { ...x, poClosed: closed } : x);
-        renderPoAdmin();
-        showToast(closed ? 'ARTIKEL PO DISELESAIKAN ✓' : 'ORDER DIBUKA LAGI');
+        renderPoAdmin(true);
+        showToast(closed ? 'PO DITANDAI SELESAI ✓' : 'TANDA PO SELESAI DIBATALKAN');
     } catch (e) {
         console.error(e);
-        showToast('GAGAL: ' + (e.code || e.message), true);
+        showToast('GAGAL: ' + errMsg(e), true);
     }
 };

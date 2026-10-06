@@ -120,6 +120,11 @@ service cloud.firestore {
             && exists(/databases/$(database)/documents/lacak/$(kode)));
       allow update, delete: if isAdmin() && resource.data.type == 'manual';
     }
+    // Update per ARTIKEL Pre Order (tampil di timeline semua order artikel itu): baca publik, tulis admin
+    match /poUpdates/{pid}/items/{id} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
     match /lacakIdx/{h} {
       allow get: if true;
       allow list, delete: if isAdmin();
