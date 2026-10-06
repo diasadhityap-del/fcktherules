@@ -90,7 +90,7 @@
     <a class="dlink" href="/berita" data-nav="berita" onclick="return navLink(event,'berita',true)">Berita</a>
     <a class="dlink" href="/diskusi" data-nav="diskusi" onclick="return navLink(event,'diskusi',true)">Diskusi</a>
     <a class="dlink small" href="https://jurnal-fucktherules.my.id/">Buka situs Journal ↗</a>
-    <p class="dgroup">Pembayaran</p>
+    <p class="dgroup">Pesanan</p>
     <a class="dlink" href="/pantau" data-nav="pantau" onclick="return navLink(event,'pantau',true)">Pantau Pesanan</a>
     <a class="dlink" href="/pelunasan" data-nav="pelunasan" onclick="return navLink(event,'pelunasan',true)">Pelunasan</a>
     <p class="dgroup">Akun</p>
@@ -401,7 +401,7 @@
 <!-- ================= PANTAU PESANAN ================= -->
 <div class="page" id="pantau">
     <article class="about">
-        <p class="eyebrow">Pre Order</p>
+        <p class="eyebrow">Pesanan</p>
         <h1 class="page-title">Pantau Pesanan</h1>
         <p class="page-sub">Lacak pesanan Pre Order kamu dengan ID Order, email, atau nomor HP yang dipakai saat checkout.</p>
 
@@ -420,16 +420,16 @@
 <!-- ================= PELUNASAN ================= -->
 <div class="page" id="pelunasan">
     <article class="about">
-        <p class="eyebrow">Pembayaran</p>
+        <p class="eyebrow">Pesanan</p>
         <h1 class="page-title">Pelunasan</h1>
-        <p class="page-sub">Sudah bayar DP? Masukkan kode pelunasan yang kamu terima saat checkout untuk melunasi sisa pembayaran.</p>
+        <p class="page-sub">Sudah bayar DP? Cari pesananmu dengan ID Order, email, atau nomor HP yang dipakai saat checkout, lalu lunasi sisa pembayarannya.</p>
 
         <div class="input-group" style="margin-top:22px">
-            <label>Kode pelunasan</label>
-            <input type="text" id="pelKode" placeholder="contoh: SLMN-7K2QX" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase" onkeydown="if(event.key==='Enter'){cekKodePelunasan()}">
+            <label>ID Order / Email / Nomor HP</label>
+            <input type="text" id="pelKode" placeholder="contoh: FVCK-A82K91 atau email@gmail.com atau 08123456789" autocomplete="off" onkeydown="if(event.key==='Enter'){cekKodePelunasan()}">
         </div>
         <div class="btn-container" style="margin-top:14px;">
-            <button type="button" id="pelBtnCek" onclick="cekKodePelunasan()">CEK KODE</button>
+            <button type="button" id="pelBtnCek" onclick="cekKodePelunasan()">CARI PESANAN</button>
         </div>
 
         <div id="pelResult" style="margin-top:8px"></div>

@@ -481,11 +481,12 @@ async function buatLacak(orderId, o) {
         pay: 'pending', payAt: null,
         createdAt: new Date().toISOString()
     });
+    // Index email/HP untuk semua order (dipakai Pantau & Pelunasan)
+    await indeksLacak(db, o, kode);
     if (!o.isPO) return;   // Ready Stock: tanpa tracking/timeline Pre Order
     await setDoc(doc(db, "lacak", kode, "timeline", "created"), {
         kode, orderId, text: 'Pesanan dibuat', type: 'automatic', kind: 'created', createdAt: serverTimestamp()
     });
-    await indeksLacak(db, o, kode);
 }
 
 export function tsMillis(v) {
@@ -501,7 +502,7 @@ function urutTimeline(list) {
 
 // Customer: cari lewat ID / no HP / email. Hasil terbaru -> terlama. Hanya order Pre Order. Order lama tetap bisa dilacak
 // walaupun artikel PO-nya sudah diselesaikan.
-export async function cariLacak({ kode, hp, email }) {
+async function kumpulKode({ kode, hp, email }) {
     let kodes = [];
     if (kode) kodes.push(String(kode).toUpperCase().replace(/[^A-Z0-9-]/g, ''));
     if (hp) {
@@ -512,9 +513,11 @@ export async function cariLacak({ kode, hp, email }) {
         const s = await getDoc(doc(db, "lacakIdx", await sha256Hex('em:' + normEmail(email))));
         if (s.exists()) kodes.push(...(s.data().kodes || []));
     }
-    kodes = [...new Set(kodes)].filter(Boolean).slice(0, 50);
+    return [...new Set(kodes)].filter(Boolean).slice(0, 50);
+}
+export async function cariLacak(q) {
     const out = [];
-    for (const k of kodes) {
+    for (const k of await kumpulKode(q)) {
         const s = await getDoc(doc(db, "lacak", k));
         if (!s.exists()) continue;
         const d = s.data();
@@ -522,6 +525,19 @@ export async function cariLacak({ kode, hp, email }) {
         out.push({ id: s.id, ...d });
     }
     out.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
+    return out;
+}
+// Customer (halaman Pelunasan): pencarian sama persis dengan Pantau (ID / email / HP), hasil terbaru -> terlama.
+// Hanya order yang sudah punya data pelunasan (admin sudah konfirmasi DP). Berlaku untuk Pre Order maupun Ready Stock DP.
+export async function cariPelunasan(q) {
+    const out = [];
+    for (const k of await kumpulKode(q)) {
+        const p = await getDoc(doc(db, "pelunasan", k));
+        if (!p.exists()) continue;
+        const l = await getDoc(doc(db, "lacak", k));
+        out.push({ id: p.id, ...p.data(), _urut: l.exists() ? tsMillis(l.data().createdAt) : tsMillis(p.data().createdAt) });
+    }
+    out.sort((a, b) => b._urut - a._urut);
     return out;
 }
 export async function getTimeline(kode) {
@@ -630,6 +646,7 @@ export async function adminBackfillOrder(o, ctx = {}) {
     } else {
         await setDoc(lRef, data, { merge: true });
     }
+    await indeksLacak(adminDb, o, kode);   // idempotent
     if (!isPO) return r;
 
     const tl = collection(adminDb, "lacak", kode, "timeline");
@@ -654,6 +671,5 @@ export async function adminBackfillOrder(o, ctx = {}) {
             await bikin(`legacy-${pid}-${key}`, { text: label, type: 'manual', kind: 'legacy', createdAt: Timestamp.fromDate(at) });
         }
     }
-    if (lSnap.exists() === false) await indeksLacak(adminDb, o, kode);
     return r;
 }

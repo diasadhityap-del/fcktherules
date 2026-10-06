@@ -1996,33 +1996,61 @@ async function salinKodePelunasan() {
     catch { triggerAlert('TAHAN & SALIN KODE MANUAL'); }
 }
 
+let pelList = [];
+// Satu kolom input (sama dengan Pantau): ID Order / Email / Nomor HP
 async function cekKodePelunasan() {
-    const kode = document.getElementById('pelKode').value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    const val = document.getElementById('pelKode').value.trim();
     const out = document.getElementById('pelResult');
-    if (!kode) return triggerAlert('MASUKKAN KODE DULU!');
+    if (!val) return triggerAlert('ISI ID ORDER / EMAIL / NO HP DULU!');
     const btn = document.getElementById('pelBtnCek');
-    btn.disabled = true; btn.innerText = 'MENGECEK...';
-    pelBuktiURL = null;
+    btn.disabled = true; btn.innerText = 'MENCARI...';
+    pelBuktiURL = null; pelData = null;
+    let list = null;
     try {
-        const { getPelunasan } = await import('./firebase.js');
-        pelData = await getPelunasan(kode);
-    } catch (e) { console.error(e); pelData = null; }
-    btn.disabled = false; btn.innerText = 'CEK KODE';
+        const { cariPelunasan } = await import('./firebase.js');
+        list = await cariPelunasan(klasifikasiPantau(val));
+    } catch (e) { console.error(e); }
+    btn.disabled = false; btn.innerText = 'CARI PESANAN';
 
-    if (!pelData) {
-        out.innerHTML = '<div class="card-box"><span class="cap">Kode tidak ditemukan</span><p style="margin:8px 0 0;font-size:13px;line-height:1.6">Periksa kembali penulisan kode. Jika baru checkout, tunggu admin mengonfirmasi DP kamu terlebih dahulu.</p></div>';
+    if (list === null) {
+        out.innerHTML = '<div class="card-box"><span class="cap">Gagal memuat</span><p style="margin:8px 0 0;font-size:13px">Coba lagi sebentar lagi.</p></div>';
         return;
     }
+    pelList = list;
+    if (!list.length) {
+        out.innerHTML = '<div class="card-box"><span class="cap">Pesanan tidak ditemukan</span><p style="margin:8px 0 0;font-size:13px;line-height:1.6">Periksa kembali ID Order, email, atau no. HP yang kamu pakai saat checkout. Pelunasan hanya tersedia untuk pesanan DP yang sudah dikonfirmasi admin.</p></div>';
+        return;
+    }
+    if (list.length === 1) {
+        out.innerHTML = '<div id="pelDetail"></div>';
+        pilihPelunasan(list[0].kode);
+        return;
+    }
+    out.innerHTML = `
+    <div class="card-box">
+        <span class="cap">Pilih Pesanan</span>
+        <select id="pelPilih" onchange="pilihPelunasan(this.value)" style="width:100%;margin-top:10px;padding:12px;font-size:14px">
+            <option value="">— pilih salah satu (${list.length} pesanan) —</option>
+            ${list.map(d => `<option value="${escH(d.kode)}">${escH(d.kode)} — ${escH(d.produk)}${d.status === 'lunas' ? ' (Lunas)' : ''}</option>`).join('')}
+        </select>
+    </div>
+    <div id="pelDetail"></div>`;
+}
+function pilihPelunasan(kode) {
+    pelBuktiURL = null;
+    pelData = pelList.find(x => x.kode === kode) || null;
+    if (!pelData) { const d = document.getElementById('pelDetail'); if (d) d.innerHTML = ''; return; }
     renderPelunasan();
 }
 
 function renderPelunasan() {
-    const out = document.getElementById('pelResult');
+    const out = document.getElementById('pelDetail');
     const d = pelData;
     const ringkas = `
         <div class="card-box">
             <span class="cap">Ringkasan pesanan</span>
-            <p style="margin:10px 0 4px;font-weight:600">${escH(d.produk)}</p>
+            <p style="margin:10px 0 2px;font-size:18px;font-weight:700;letter-spacing:.08em;user-select:all">${escH(d.kode)}</p>
+            <p style="margin:0 0 4px;font-weight:600">${escH(d.produk)}</p>
             <p style="margin:0 0 12px;font-size:12px;opacity:.7">Atas nama ${escH(d.nama)}</p>
             <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>Total</span><b>${rpFmt(d.totalAkhir)}</b></div>
             <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span>DP dibayar</span><b>- ${rpFmt(d.dpNominal)}</b></div>
@@ -2088,6 +2116,7 @@ async function kirimPelunasan() {
 }
 
 window.cekKodePelunasan = cekKodePelunasan;
+window.pilihPelunasan = pilihPelunasan;
 window.previewPelBukti = previewPelBukti;
 window.kirimPelunasan = kirimPelunasan;
 window.closeKodeModal = closeKodeModal;
