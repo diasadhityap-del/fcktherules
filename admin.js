@@ -6,15 +6,15 @@ import {
     listenBannerText, saveBannerText,
     listenVouchers, saveVoucher, deleteVoucher,
     listenCustomers, deleteCustomer,
-    listenPelunasan, adminSimpanResi, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
+    listenPelunasan, adminSimpanResi, adminKodeLacakAda, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
     listenPoTrack, adminTutupPo, adminHapusLacak,
     adminBackfillOrder, turunanPO, tsMillis,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js?v=20261010';
+} from './firebase.js?v=20261012';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js?v=20261010";
+import { adminDb } from "./firebase.js?v=20261012";
 
 let allOrders = [];
 let allProduk = [];
@@ -381,9 +381,12 @@ let autoSinkronJalan = false;
 async function autoSinkron() {
     if (autoSinkronJalan) return;
     autoSinkronJalan = true;
+    let adaLacak = null;
+    try { adaLacak = await adminKodeLacakAda(); } catch (e) { console.error('cek lacak', e); }
     const perlu = allOrders.filter(o => {
         const t = turunanPO(o, allProduk);
-        return !o.kodePelunasan || o.isPO !== t.isPO || (o.poIds || []).length !== t.poIds.length;
+        return !o.kodePelunasan || o.isPO !== t.isPO || (o.poIds || []).length !== t.poIds.length
+            || (adaLacak && o.kodePelunasan && !adaLacak.has(o.kodePelunasan));   // order tanpa data pelacakan => belum bisa dicek pelanggan
     });
     if (!perlu.length) return;
     let ok = 0;
@@ -396,13 +399,13 @@ async function autoSinkron() {
 const syncCtx = () => ({ produkList: allProduk, poTrackMap: Object.fromEntries(allPoTrack.map(t => [t.id, t])) });
 window.sinkronSemuaOrder = async () => {
     if (!confirm(`Sinkronkan ${allOrders.length} order?\n\nOrder tanpa ID akan diberi ID; timeline "Pesanan dibuat"/"Pelunasan" dan langkah lama dilengkapi. Tidak membuat order baru, tidak menghapus apa pun, aman diulang.`)) return;
-    let ok = 0, gagal = 0;
+    let ok = 0, gagal = 0, galatPertama = '';
     for (const o of allOrders) {
-        try { await adminBackfillOrder(o, syncCtx()); ok++; } catch (e) { console.error(o.id, e); gagal++; }
+        try { await adminBackfillOrder(o, syncCtx()); ok++; } catch (e) { console.error(o.id, e); gagal++; if (!galatPertama) galatPertama = errMsg(e); }
     }
     try { await adminBackfillPoUpdates(syncCtx().poTrackMap); } catch (e) { console.error(e); }
     await loadOrders();
-    showToast(`SINKRON SELESAI: ${ok} OK${gagal ? ', ' + gagal + ' GAGAL' : ''}`, gagal > 0);
+    showToast(`SINKRON SELESAI: ${ok} OK${gagal ? ', ' + gagal + ' GAGAL (' + galatPertama + ')' : ''}`, gagal > 0);
 };
 
 window.hapusOrder = async (id) => {

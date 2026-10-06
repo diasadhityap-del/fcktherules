@@ -102,8 +102,11 @@ service cloud.firestore {
     match /lacak/{kode} {
       allow get: if true;
       allow list, update, delete: if isAdmin();
-      allow create: if request.resource.data.pay == 'pending'
-                    && request.resource.data.kode == kode;
+      // Admin boleh membuat dokumen pelacakan untuk order lama (yang sudah DP/LUNAS) lewat SINKRONKAN.
+      // Pembeli tetap hanya boleh membuat dengan pay 'pending'.
+      allow create: if isAdmin()
+                    || (request.resource.data.pay == 'pending'
+                        && request.resource.data.kode == kode);
     }
     // Timeline per order: lacak/{kode}/timeline/{id}
     // - baca publik (path memuat ID order, lacak tidak bisa di-list)

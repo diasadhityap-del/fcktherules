@@ -2,7 +2,7 @@
 // Data: koleksi "articles" dan "posts" (+ replies/reactions) di Firebase JURNAL (fvck-journal).
 // Akun: Firebase Auth toko (koleksi "customers"). Untuk menulis (balasan/reaksi) dipakai akun bayangan
 // di project jurnal dengan email + password yang sama (lihat journalShadowSignIn di firebase.js).
-import { db as mainDb, auth, onAuthStateChanged, journalDb as db, journalAuth, journalShadowSignIn, journalConfigured } from './firebase.js?v=20261010';
+import { db as mainDb, auth, onAuthStateChanged, journalDb as db, journalAuth, journalShadowSignIn, journalConfigured } from './firebase.js?v=20261012';
 import {
     collection, query, where, orderBy, limit, getDocs, getDoc, doc,
     setDoc, addDoc, deleteDoc, getCountFromServer, serverTimestamp

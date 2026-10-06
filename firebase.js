@@ -698,6 +698,11 @@ export function listenPoTrack(cb) {
    - Pre Order: buat event "Pesanan dibuat" (waktu order asli), "Pelunasan" bila sudah lunas setelah DP,
      dan salin langkah lama per-artikel (vendor/jadi/kirim) jadi update manual di timeline order tsb.
    Tidak membuat order baru, tidak menghapus apa pun. Semua dokumen memakai ID tetap => tidak pernah dobel. */
+// Admin: daftar ID order yang sudah punya dokumen pelacakan (lacak/{kode}). Dipakai untuk menemukan order yang belum bisa dicek pelanggan.
+export async function adminKodeLacakAda() {
+    const s = await getDocs(collection(adminDb, "lacak"));
+    return new Set(s.docs.map(d => d.id));
+}
 const LEGACY_LABEL = { vendor: 'Kaos masuk vendor', jadi: 'Kaos sudah jadi', kirim: 'Kaos dikirim' };
 export async function adminBackfillOrder(o, ctx = {}) {
     const produkList = ctx.produkList || [];
