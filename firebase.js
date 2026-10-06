@@ -439,6 +439,12 @@ async function sha256Hex(str) {
 // Order dianggap Pre Order bila artikelnya (sekarang) berbadge PRE ORDER, atau order itu memang tercatat PO.
 // Dipakai untuk order lama yang belum punya penanda isPO / poIds.
 export function turunanPO(o, produkList = []) {
+    // Order baru sudah mencatat isPO sendiri saat checkout (sesuai badge produk SAAT ITU). Itu yang dipegang,
+    // supaya order Ready Stock setelah PO selesai tidak berubah jadi Pre Order dan tidak membawa keterangan lama (vendor, sablon, dll).
+    // Penurunan dari produk hanya untuk order lama yang belum punya penanda isPO.
+    if (typeof o.isPO === 'boolean') {
+        return { isPO: o.isPO, poIds: o.isPO ? [...(o.poIds || [])] : [], poNames: o.isPO ? [...(o.poNames || [])] : [] };
+    }
     const names = Array.isArray(o.produk) ? o.produk.map(p => p.nama) : [o.produk];
     const ids = [...(o.poIds || [])], poNames = [...(o.poNames || [])];
     produkList.filter(p => (p.badge === 'pre' || p.poClosed) && names.includes(p.nama)).forEach(p => {
