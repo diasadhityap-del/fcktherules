@@ -10,11 +10,11 @@ import {
     listenPoTrack, adminTutupPo, adminHapusLacak,
     adminBackfillOrder, turunanPO, tsMillis,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js?v=20261013';
+} from './firebase.js?v=20261014';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-import { deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js?v=20261013";
+import { deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { adminDb } from "./firebase.js?v=20261014";
 
 let allOrders = [];
 let allProduk = [];
@@ -28,6 +28,8 @@ const pelByOrder = () => Object.fromEntries(allPelunasan.map(p => [p.orderId, p]
 const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const rp = n => 'Rp' + Number(n || 0).toLocaleString('id-ID');
 
+let ordersReady = false, produkReady = false, ordersError = '';   // dipakai tab Rekap Pesanan & Pengiriman
+let rk = null;                                                       // diisi initRekapKirim() di bagian bawah file
 let currentFilter = 'semua';
 let currentProdukFilter = 'semua';
 let editingProdukId = null;
@@ -97,11 +99,14 @@ window.switchTab = (tab) => {
     const mobEl = document.getElementById('mob-' + tab);
     if (navEl) navEl.classList.add('active');
     if (mobEl) mobEl.classList.add('active');
+    if (rk && (tab === 'rekap' || tab === 'kirim')) rk.refresh(true);
 };
 
 // ===== ORDER =====
 async function loadOrders() {
     allOrders = await getOrders();
+    ordersError = window.__ordersLoadError || '';   // diisi getOrders() bila Firebase gagal membaca
+    ordersReady = true;
     allOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     isiFilterProduk();
     renderOrders();
@@ -156,6 +161,7 @@ const artikelOrder = o => namaProdukText(o) || '-';
 const isPoOrder = o => turunanPO(o, allProduk).isPO;
 
 window.renderOrders = (force) => {
+    if (rk) rk.refresh();   // tab Rekap/Pengiriman ikut diperbarui bila sedang terbuka
     const list = $('orderList');
     if (!list) return;
     const ae = document.activeElement;
@@ -499,8 +505,10 @@ window.hapusProdukOrder = async () => {
 // ===== PRODUK =====
 async function loadProduk() {
     allProduk = await getProduk();
+    produkReady = true;
     renderProduk();
     renderPoAdmin();
+    if (rk) rk.refresh();
 }
 
 function renderProduk() {
@@ -1286,3 +1294,22 @@ window.tutupPo = async (pid, closed) => {
         showToast('GAGAL: ' + errMsg(e), true);
     }
 };
+
+/* ================= REKAP PESANAN & PENGIRIMAN (admin-kirim.js) ================= */
+// Memakai data allOrders/allProduk yang sama dengan tab ORDER. Penulisan: statusKirim (field baru, hanya admin lewat rules orders update)
+// dan resi lewat adminSimpanResi() yang sudah ada (order + Pantau/Cek Resi).
+// Dimuat dengan import() dinamis: bila file ini gagal dimuat, fitur admin lama tetap berjalan normal.
+import('./admin-kirim.js?v=20261014').then(({ initRekapKirim }) => {
+    rk = initRekapKirim({
+        getOrders: () => allOrders,
+        getProduk: () => allProduk,
+        getState: () => ({ ordersReady, produkReady, error: ordersError }),
+        reload: async () => { ordersReady = false; ordersError = ''; rk.refresh(true); await loadOrders(); },
+        idOrder, totalOrder, errMsg,
+        toast: (m, isErr) => window.showToast(m, isErr),
+        setStatusKirim: (o, status) => updateDoc(doc(adminDb, 'orders', o.id), { statusKirim: status }),
+        simpanResi: (o, resi) => adminSimpanResi(o, resi),
+        patchOrder: (id, patch) => { allOrders = allOrders.map(x => x.id === id ? { ...x, ...patch } : x); renderOrders(true); }
+    });
+    rk.refresh();
+}).catch(e => console.error('Modul Rekap/Pengiriman gagal dimuat:', e));

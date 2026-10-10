@@ -6,7 +6,7 @@
     <title>Admin | FvcktheRules</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="admin.css?v=20261014">
 </head>
 <body>
 
@@ -42,6 +42,12 @@
 
         <div class="nav-item active" id="nav-order" onclick="switchTab('order')">
             <i class="fas fa-box"></i> ORDER
+        </div>
+        <div class="nav-item" id="nav-rekap" onclick="switchTab('rekap')">
+            <i class="fas fa-clipboard-list"></i> REKAP PESANAN
+        </div>
+        <div class="nav-item" id="nav-kirim" onclick="switchTab('kirim')">
+            <i class="fas fa-truck"></i> PENGIRIMAN
         </div>
         <div class="nav-item" id="nav-lacak" onclick="switchTab('lacak')">
             <i class="fas fa-flag-checkered"></i> ARTIKEL PO
@@ -109,6 +115,24 @@
             <div style="margin-top:22px;border-top:1px solid #1a1a1a;padding-top:14px;">
                 <button onclick="sinkronSemuaOrder()" class="btn-sm btn-bukti" style="cursor:pointer;width:100%;padding:12px"><i class="fas fa-sync"></i> SINKRONKAN ORDER LAMA (beri ID & timeline)</button>
             </div>
+        </div>
+
+        <!-- TAB REKAP PESANAN -->
+        <div class="tab-content" id="tab-rekap">
+            <div class="page-header">
+                <div class="page-title">REKAP PESANAN</div>
+                <div class="page-desc">Rekap per produk berdasarkan warna &amp; size dari order asli. Order DITOLAK tidak dihitung.</div>
+            </div>
+            <div id="rekapRoot"></div>
+        </div>
+
+        <!-- TAB PENGIRIMAN -->
+        <div class="tab-content" id="tab-kirim">
+            <div class="page-header">
+                <div class="page-title">PENGIRIMAN</div>
+                <div class="page-desc">Siapkan teks pengiriman KirimAja &amp; J&amp;T Express, catat status kirim dan nomor resi.</div>
+            </div>
+            <div id="kirimRoot"></div>
         </div>
 
         <!-- TAB LACAK PO -->
@@ -214,6 +238,12 @@
     <div class="mobile-nav">
         <div class="mob-nav-item active" id="mob-order" onclick="switchTab('order')">
             <i class="fas fa-box"></i> ORDER
+        </div>
+        <div class="mob-nav-item" id="mob-rekap" onclick="switchTab('rekap')">
+            <i class="fas fa-clipboard-list"></i> REKAP
+        </div>
+        <div class="mob-nav-item" id="mob-kirim" onclick="switchTab('kirim')">
+            <i class="fas fa-truck"></i> KIRIM
         </div>
         <div class="mob-nav-item" id="mob-lacak" onclick="switchTab('lacak')">
             <i class="fas fa-flag-checkered"></i> ARTIKEL PO
@@ -341,6 +371,11 @@
     </div>
 </div>
 
+<!-- MODAL DETAIL ORDER (Rekap & Pengiriman) -->
+<div class="modal-bg" id="modalRkDetail">
+    <div class="modal-box rk-modal"><div id="rkDetailBody"></div></div>
+</div>
+
 <div id="uploadOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; display:none; align-items:center; justify-content:center; flex-direction:column; gap:18px;">
     <i class="fas fa-spinner fa-spin" style="font-size:42px;color:#ffffff;"></i>
     <div id="uploadText" style="font-size:13px; font-weight:700; letter-spacing:1px;">MENGUPLOAD...</div>
@@ -432,6 +467,6 @@
     </div>
 </div>
 
-<script type="module" src="admin.js?v=20261013"></script>
+<script type="module" src="admin.js?v=20261014"></script>
 </body>
 </html>

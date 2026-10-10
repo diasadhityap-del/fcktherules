@@ -338,9 +338,11 @@ export async function getOrders() {
     try {
         const q = query(collection(adminDb, "orders"), orderBy("createdAt", "desc"));
         const snapshot = await getDocs(q);
+        if (typeof window !== 'undefined') window.__ordersLoadError = '';
         return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (err) {
         console.error("Gagal ambil order:", err);
+        if (typeof window !== 'undefined') window.__ordersLoadError = err.code || err.message || 'unknown';   // dibaca tab Rekap/Pengiriman
         if (typeof window !== 'undefined' && window.showToast) {
             window.showToast('GAGAL AMBIL ORDER: ' + (err.code || err.message || 'unknown'), true);
         }
