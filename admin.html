@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin | FvcktheRules</title>
     <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#0a0a0b">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="admin.css?v=20261014">
+    <link rel="stylesheet" href="admin.css?v=20261015">
 </head>
 <body>
 
@@ -19,12 +20,12 @@
         <div class="login-sub">ADMIN PANEL</div>
         <div class="login-card">
             <div class="form-group">
-                <label>EMAIL</label>
-                <input type="email" id="adminEmail" placeholder="admin@fcktherules">
+                <label>Email</label>
+                <input type="email" id="adminEmail" placeholder="admin@fcktherules" autocomplete="username">
             </div>
             <div class="form-group">
-                <label>PASSWORD</label>
-                <input type="password" id="adminPass" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()">
+                <label>Password</label>
+                <input type="password" id="adminPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
             </div>
             <button class="btn-primary" id="loginBtn" onclick="doLogin()">MASUK</button>
             <div class="login-err" id="loginErr">Email atau password salah.</div>
@@ -40,37 +41,41 @@
         <div class="sidebar-logo">FVCKTHERULES</div>
         <div class="sidebar-sub">ADMIN PANEL</div>
 
+        <div class="nav-group">Transaksi</div>
         <div class="nav-item active" id="nav-order" onclick="switchTab('order')">
-            <i class="fas fa-box"></i> ORDER
+            <i class="fas fa-box"></i> Order<span class="nav-badge" id="badgePending"></span>
         </div>
         <div class="nav-item" id="nav-rekap" onclick="switchTab('rekap')">
-            <i class="fas fa-clipboard-list"></i> REKAP PESANAN
+            <i class="fas fa-clipboard-list"></i> Rekap Pesanan
         </div>
         <div class="nav-item" id="nav-kirim" onclick="switchTab('kirim')">
-            <i class="fas fa-truck"></i> PENGIRIMAN
+            <i class="fas fa-truck"></i> Pengiriman
         </div>
         <div class="nav-item" id="nav-lacak" onclick="switchTab('lacak')">
-            <i class="fas fa-flag-checkered"></i> ARTIKEL PO
+            <i class="fas fa-flag-checkered"></i> Artikel PO
         </div>
+        <div class="nav-group">Toko</div>
         <div class="nav-item" id="nav-produk" onclick="switchTab('produk')">
-            <i class="fas fa-tshirt"></i> PRODUK
-        </div>
-        <div class="nav-item" id="nav-galeri" onclick="switchTab('galeri')">
-            <i class="fas fa-images"></i> GALERI
-        </div>
-        <div class="nav-item" id="nav-banner" onclick="switchTab('banner')">
-            <i class="fas fa-flag"></i> BANNER
+            <i class="fas fa-tshirt"></i> Produk
         </div>
         <div class="nav-item" id="nav-voucher" onclick="switchTab('voucher')">
-            <i class="fas fa-ticket-alt"></i> VOUCHER
+            <i class="fas fa-ticket-alt"></i> Voucher
         </div>
+        <div class="nav-group">Tampilan Web</div>
+        <div class="nav-item" id="nav-galeri" onclick="switchTab('galeri')">
+            <i class="fas fa-images"></i> Galeri
+        </div>
+        <div class="nav-item" id="nav-banner" onclick="switchTab('banner')">
+            <i class="fas fa-flag"></i> Banner
+        </div>
+        <div class="nav-group">Pelanggan</div>
         <div class="nav-item" id="nav-pelanggan" onclick="switchTab('pelanggan')">
-            <i class="fas fa-users"></i> MEMBER
+            <i class="fas fa-users"></i> Member
         </div>
 
         <div class="sidebar-bottom">
             <div class="logout-btn" onclick="doLogout()">
-                <i class="fas fa-sign-out-alt"></i> LOGOUT
+                <i class="fas fa-sign-out-alt"></i> Keluar
             </div>
         </div>
     </div>
@@ -78,7 +83,7 @@
     <!-- MOBILE HEADER -->
     <div class="mobile-header">
         <div class="mobile-header-logo">FVCKTHERULES</div>
-        <div style="font-size:10px; color:var(--muted); font-weight:700; letter-spacing:2px;">ADMIN</div>
+        <div class="mobile-header-tag">ADMIN</div>
     </div>
 
     <!-- MAIN -->
@@ -87,24 +92,34 @@
         <!-- TAB ORDER -->
         <div class="tab-content active" id="tab-order">
             <div class="page-header">
-                <div class="page-title">ORDER</div>
-                <div class="page-desc">Kelola order, status bayar, DP, dan pelunasan. Timeline diatur per artikel di menu ARTIKEL PO.</div>
+                <div class="page-title">Order</div>
+                <div class="page-desc">Kelola order, status bayar, DP, dan pelunasan. Timeline diatur per artikel di menu Artikel PO.</div>
+            </div>
+
+            <div class="stat-row" id="orderStats">
+                <div class="stat-card"><div class="stat-label">Total order</div><div class="stat-val" id="stTotal">-</div></div>
+                <div class="stat-card warn"><div class="stat-label">Menunggu konfirmasi</div><div class="stat-val" id="stPending">-</div></div>
+                <div class="stat-card"><div class="stat-label">DP berjalan</div><div class="stat-val" id="stDp">-</div></div>
+                <div class="stat-card ok"><div class="stat-label">Lunas</div><div class="stat-val" id="stLunas">-</div></div>
             </div>
 
             <div class="filter-bar">
-                <button class="filter-btn active" onclick="filterOrder('semua',this)">SEMUA</button>
-                <button class="filter-btn" onclick="filterOrder('pending',this)">PENDING</button>
+                <button class="filter-btn active" onclick="filterOrder('semua',this)">Semua</button>
+                <button class="filter-btn" onclick="filterOrder('pending',this)">Pending</button>
                 <button class="filter-btn" onclick="filterOrder('dp',this)">DP</button>
-                <button class="filter-btn" onclick="filterOrder('lunas',this)">LUNAS</button>
+                <button class="filter-btn" onclick="filterOrder('lunas',this)">Lunas</button>
+                <button class="filter-btn" onclick="filterOrder('rejected',this)">Ditolak</button>
             </div>
 
-            <div style="display:flex; gap:10px; margin-top:14px; margin-bottom:18px; flex-wrap:wrap;">
-                <select id="filterProduk" onchange="filterProdukOrder(this.value)" style="background:#111; color:#fff; border:1px solid #333; padding:12px 14px; border-radius:10px; font-size:13px; font-weight:600;">
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="search" id="orderSearch" placeholder="Cari nama, ID order, WA, atau email..." oninput="searchOrder(this.value)" autocomplete="off">
+                </div>
+                <select id="filterProduk" onchange="filterProdukOrder(this.value)">
                     <option value="semua">Semua Produk</option>
                 </select>
-                <button onclick="hapusProdukOrder()" style="background:#c62828; color:#fff; border:none; padding:12px 16px; border-radius:10px; font-weight:700; cursor:pointer;">
-                    Hapus Semua Order
-                </button>
+                <button class="btn-danger-outline" onclick="hapusProdukOrder()"><i class="fas fa-trash"></i> Hapus Semua Order</button>
             </div>
 
             <div id="orderList">
@@ -112,15 +127,15 @@
                     <i class="fas fa-spinner fa-spin"></i> Memuat...
                 </div>
             </div>
-            <div style="margin-top:22px;border-top:1px solid #1a1a1a;padding-top:14px;">
-                <button onclick="sinkronSemuaOrder()" class="btn-sm btn-bukti" style="cursor:pointer;width:100%;padding:12px"><i class="fas fa-sync"></i> SINKRONKAN ORDER LAMA (beri ID & timeline)</button>
+            <div style="margin-top:24px;">
+                <button onclick="sinkronSemuaOrder()" class="btn-sm btn-bukti btn-block"><i class="fas fa-sync"></i> Sinkronkan order lama (beri ID &amp; timeline)</button>
             </div>
         </div>
 
         <!-- TAB REKAP PESANAN -->
         <div class="tab-content" id="tab-rekap">
             <div class="page-header">
-                <div class="page-title">REKAP PESANAN</div>
+                <div class="page-title">Rekap Pesanan</div>
                 <div class="page-desc">Rekap per produk berdasarkan warna &amp; size dari order asli. Order DITOLAK tidak dihitung.</div>
             </div>
             <div id="rekapRoot"></div>
@@ -129,7 +144,7 @@
         <!-- TAB PENGIRIMAN -->
         <div class="tab-content" id="tab-kirim">
             <div class="page-header">
-                <div class="page-title">PENGIRIMAN</div>
+                <div class="page-title">Pengiriman</div>
                 <div class="page-desc">Siapkan teks pengiriman KirimAja &amp; J&amp;T Express, catat status kirim dan nomor resi.</div>
             </div>
             <div id="kirimRoot"></div>
@@ -138,7 +153,7 @@
         <!-- TAB LACAK PO -->
         <div class="tab-content" id="tab-lacak">
             <div class="page-header">
-                <div class="page-title">ARTIKEL PRE ORDER</div>
+                <div class="page-title">Artikel Pre Order</div>
                 <div class="page-desc">Tulis update sekali per artikel (mis. "Kaos dikirim"), otomatis tampil di Pantau semua order artikel itu. "Selesaikan" hanya menambah keterangan PO selesai, tidak menutup katalog.</div>
             </div>
             <div id="poList"></div>
@@ -148,11 +163,11 @@
         <div class="tab-content" id="tab-produk">
             <div class="header-row">
                 <div>
-                    <div class="page-title">PRODUK</div>
+                    <div class="page-title">Produk</div>
                     <div class="page-desc">Kelola katalog produk FvcktheRules</div>
                 </div>
                 <button class="add-btn" onclick="openModalProduk()">
-                    <i class="fas fa-plus"></i> TAMBAH
+                    <i class="fas fa-plus"></i> Tambah
                 </button>
             </div>
             <div id="produkList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
@@ -162,13 +177,13 @@
         <div class="tab-content" id="tab-galeri">
             <div class="header-row">
                 <div>
-                    <div class="page-title">GALERI</div>
+                    <div class="page-title">Galeri</div>
                     <div class="page-desc">Upload foto untuk halaman galeri</div>
                 </div>
             </div>
             <div class="upload-area" onclick="document.getElementById('inputGaleri').click()">
                 <i class="fas fa-camera"></i>
-                Tap untuk upload foto galeri
+                Tap / klik untuk upload foto galeri<br><small style="font-size:12px;opacity:.7">Bisa pilih banyak foto sekaligus</small>
                 <input type="file" id="inputGaleri" accept="image/*" multiple style="display:none" onchange="uploadGaleriFoto(this)">
             </div>
             <div class="galeri-grid" id="galeriGrid"></div>
@@ -178,15 +193,15 @@
         <div class="tab-content" id="tab-banner">
             <div class="header-row">
                 <div>
-                    <div class="page-title">BANNER HOMEPAGE</div>
+                    <div class="page-title">Banner Homepage</div>
                     <div class="page-desc">Kelola banner slider yang bisa digeser</div>
                 </div>
-                <div style="display:flex; gap:10px;">
-                    <button class="add-btn" style="background:#444;" onclick="openModalBannerText()">
-                        <i class="fas fa-text-width"></i> TEKS
+                <div class="header-actions">
+                    <button class="add-btn secondary" onclick="openModalBannerText()">
+                        <i class="fas fa-text-width"></i> Teks
                     </button>
                     <button class="add-btn" onclick="openModalBanner()">
-                        <i class="fas fa-plus"></i> TAMBAH
+                        <i class="fas fa-plus"></i> Tambah
                     </button>
                 </div>
             </div>
@@ -197,11 +212,11 @@
         <div class="tab-content" id="tab-voucher">
             <div class="header-row">
                 <div>
-                    <div class="page-title">VOUCHER</div>
+                    <div class="page-title">Voucher</div>
                     <div class="page-desc">Kelola kode promo & diskon</div>
                 </div>
                 <button class="add-btn" onclick="openModalVoucher()">
-                    <i class="fas fa-plus"></i> TAMBAH
+                    <i class="fas fa-plus"></i> Tambah
                 </button>
             </div>
             <div id="voucherList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
@@ -211,15 +226,15 @@
         <div class="tab-content" id="tab-pelanggan">
             <div class="header-row">
                 <div>
-                    <div class="page-title">MEMBER</div>
+                    <div class="page-title">Member</div>
                     <div class="page-desc">Data member terdaftar & data pembeli</div>
                 </div>
             </div>
 
             <div class="filter-bar" style="margin-bottom:18px; align-items:center;">
-                <button class="filter-btn active" id="subtab-member-btn" onclick="switchPelangganSubTab('member')">TAB MEMBER</button>
-                <button class="filter-btn" id="subtab-pembeli-btn" onclick="switchPelangganSubTab('pembeli')">TAB PEMBELI</button>
-                <button class="btn-icon del" id="pelangganDeleteBtn" onclick="togglePelangganDeleteMode()" title="Mode Hapus" style="flex:none; width:36px; height:36px; padding:0; border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                <button class="filter-btn active" id="subtab-member-btn" onclick="switchPelangganSubTab('member')">Member</button>
+                <button class="filter-btn" id="subtab-pembeli-btn" onclick="switchPelangganSubTab('pembeli')">Pembeli</button>
+                <button class="btn-icon del" id="pelangganDeleteBtn" onclick="togglePelangganDeleteMode()" title="Mode Hapus" style="flex:none; width:38px; height:38px; padding:0; margin-left:auto;">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -237,34 +252,34 @@
     <!-- MOBILE NAV -->
     <div class="mobile-nav">
         <div class="mob-nav-item active" id="mob-order" onclick="switchTab('order')">
-            <i class="fas fa-box"></i> ORDER
+            <i class="fas fa-box"></i> Order
         </div>
         <div class="mob-nav-item" id="mob-rekap" onclick="switchTab('rekap')">
-            <i class="fas fa-clipboard-list"></i> REKAP
+            <i class="fas fa-clipboard-list"></i> Rekap
         </div>
         <div class="mob-nav-item" id="mob-kirim" onclick="switchTab('kirim')">
-            <i class="fas fa-truck"></i> KIRIM
+            <i class="fas fa-truck"></i> Kirim
         </div>
         <div class="mob-nav-item" id="mob-lacak" onclick="switchTab('lacak')">
-            <i class="fas fa-flag-checkered"></i> ARTIKEL PO
+            <i class="fas fa-flag-checkered"></i> Artikel PO
         </div>
         <div class="mob-nav-item" id="mob-produk" onclick="switchTab('produk')">
-            <i class="fas fa-tshirt"></i> PRODUK
+            <i class="fas fa-tshirt"></i> Produk
         </div>
         <div class="mob-nav-item" id="mob-galeri" onclick="switchTab('galeri')">
-            <i class="fas fa-images"></i> GALERI
+            <i class="fas fa-images"></i> Galeri
         </div>
         <div class="mob-nav-item" id="mob-banner" onclick="switchTab('banner')">
-            <i class="fas fa-flag"></i> BANNER
+            <i class="fas fa-flag"></i> Banner
         </div>
         <div class="mob-nav-item" id="mob-voucher" onclick="switchTab('voucher')">
-            <i class="fas fa-ticket-alt"></i> VOUCHER
+            <i class="fas fa-ticket-alt"></i> Voucher
         </div>
         <div class="mob-nav-item" id="mob-pelanggan" onclick="switchTab('pelanggan')">
-            <i class="fas fa-users"></i> MEMBER
+            <i class="fas fa-users"></i> Member
         </div>
         <div class="mob-nav-item" onclick="doLogout()" style="color:var(--red)">
-            <i class="fas fa-sign-out-alt"></i> LOGOUT
+            <i class="fas fa-sign-out-alt"></i> Keluar
         </div>
     </div>
 
@@ -274,6 +289,7 @@
 <div class="modal-bg" id="modalProduk">
     <div class="modal-box">
         <div class="modal-title" id="modalProdukTitle">TAMBAH PRODUK</div>
+        <div class="form-section-title" style="margin-top:0">Informasi dasar</div>
         <div class="form-group">
             <label>NAMA PRODUK</label>
             <input type="text" id="pNama" placeholder="Soccer Madness...">
@@ -281,24 +297,27 @@
         <div class="form-group" id="pKodeWrap">
             <label>KODE AWAL ID ORDER</label>
             <input type="text" id="pKode" maxlength="8" placeholder="mis. FVCK" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-            <small style="color:#888; font-size:11px; display:block; margin-top:6px;">Order baru jadi <b id="pKodeContoh">FVCK</b>-XXXXXX. Wajib untuk artikel Pre Order. Mengubahnya hanya berlaku untuk order baru; ID order lama tidak berubah.</small>
+            <small style="font-size:12px; display:block; margin-top:6px;">Order baru jadi <b id="pKodeContoh">FVCK</b>-XXXXXX. Wajib untuk artikel Pre Order. Mengubahnya hanya berlaku untuk order baru; ID order lama tidak berubah.</small>
         </div>
         <div class="form-group">
             <label>HARGA (tanpa titik)</label>
-            <input type="number" id="pHarga" placeholder="150000">
+            <input type="number" id="pHarga" inputmode="numeric" placeholder="150000">
         </div>
-        <div class="form-group">
-            <label>STATUS BADGE</label>
-            <select id="pBadge" onchange="toggleKodeProduk()">
-                <option value="pre">PRE ORDER</option>
-                <option value="ready">READY</option>
-                <option value="sold">SOLD OUT</option>
-            </select>
+        <div class="form-row">
+            <div class="form-group">
+                <label>STATUS BADGE</label>
+                <select id="pBadge" onchange="toggleKodeProduk()">
+                    <option value="pre">PRE ORDER</option>
+                    <option value="ready">READY</option>
+                    <option value="sold">SOLD OUT</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>LABEL STATUS (teks di badge)</label>
+                <input type="text" id="pStatus" placeholder="PRE ORDER / READY / SOLD OUT">
+            </div>
         </div>
-        <div class="form-group">
-            <label>LABEL STATUS (teks di badge)</label>
-            <input type="text" id="pStatus" placeholder="PRE ORDER / READY / SOLD OUT">
-        </div>
+        <div class="form-section-title">Varian &amp; detail</div>
         <div class="form-group">
             <label>WARNA (pisah dengan /)</label>
             <input type="text" id="pWarna" placeholder="Hitam / Putih / Navy">
@@ -311,20 +330,24 @@
             <label>SPESIFIKASI PRODUK</label>
             <textarea id="pSpecs" rows="3" placeholder="Bahan: Polyester 100%&#10;Berat: 200gsm..."></textarea>
         </div>
-        <div class="form-group">
-            <label>TAMPILKAN DI BERANDA?</label>
-            <select id="pShowcase">
-                <option value="yes">Ya</option>
-                <option value="no">Tidak</option>
-            </select>
+        <div class="form-section-title">Pengaturan</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>TAMPILKAN DI BERANDA?</label>
+                <select id="pShowcase">
+                    <option value="yes">Ya</option>
+                    <option value="no">Tidak</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>BISA DP?</label>
+                <select id="pDP" onchange="toggleKodeProduk()">
+                    <option value="yes">Bisa DP</option>
+                    <option value="no">Tidak Bisa DP</option>
+                </select>
+            </div>
         </div>
-        <div class="form-group">
-            <label>BISA DP?</label>
-            <select id="pDP" onchange="toggleKodeProduk()">
-                <option value="yes">Bisa DP</option>
-                <option value="no">Tidak Bisa DP</option>
-            </select>
-        </div>
+        <div class="form-section-title">Foto</div>
         <div class="form-group">
             <label>FOTO THUMBNAIL</label>
             <div class="img-slot" onclick="document.getElementById('inputThumb').click()" style="width:120px; height:120px;">
@@ -377,8 +400,8 @@
 </div>
 
 <div id="uploadOverlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; display:none; align-items:center; justify-content:center; flex-direction:column; gap:18px;">
-    <i class="fas fa-spinner fa-spin" style="font-size:42px;color:#ffffff;"></i>
-    <div id="uploadText" style="font-size:13px; font-weight:700; letter-spacing:1px;">MENGUPLOAD...</div>
+    <i class="fas fa-spinner fa-spin" style="font-size:38px;color:#ffffff;"></i>
+    <div id="uploadText" style="font-size:14px; font-weight:600;">MENGUPLOAD...</div>
 </div>
 
 <!-- MODAL BANNER -->
@@ -420,7 +443,7 @@
 <div class="modal-bg" id="modalBannerText">
     <div class="modal-box">
         <div class="modal-title">EDIT TEKS GARIS BANNER</div>
-        <p style="font-size:12px; color:#777; margin-bottom:20px; line-height:1.5;">Kosongkan kolom di bawah jika Anda ingin menghilangkan garis hitamnya.</p>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.6;">Kosongkan kolom di bawah jika Anda ingin menghilangkan garis hitamnya.</p>
         <div class="form-group">
             <label>TEKS GARIS ATAS</label>
             <input type="text" id="bTextTop" placeholder="Contoh: NEW ARRIVALS">
@@ -467,6 +490,6 @@
     </div>
 </div>
 
-<script type="module" src="admin.js?v=20261014"></script>
+<script type="module" src="admin.js?v=20261015"></script>
 </body>
 </html>

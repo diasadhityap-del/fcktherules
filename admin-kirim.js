@@ -230,7 +230,7 @@ export function initRekapKirim(deps) {
     /* ---------- util tampilan ---------- */
     function stateMsg(kind) {   // 'loading' | 'error' | 'empty' | null
         const st = deps.getState();
-        if (st.error) return `<div class="empty"><i class="fas fa-exclamation-triangle"></i><p>GAGAL MEMBACA ORDER DARI FIREBASE<br><span style="color:#888">${esc(st.error)}</span><br><span style="color:#888">Pastikan sudah login sebagai admin dan firestore.rules sudah dipublish.</span></p><button class="btn-sm btn-bukti" style="margin-top:14px;max-width:200px" data-act="reload">COBA LAGI</button></div>`;
+        if (st.error) return `<div class="empty"><i class="fas fa-exclamation-triangle"></i><p>Gagal membaca order dari Firebase<br><span style="color:var(--muted)">${esc(st.error)}</span><br><span style="color:var(--muted)">Pastikan sudah login sebagai admin dan firestore.rules sudah dipublish.</span></p><button class="btn-sm btn-bukti" style="margin-top:14px;max-width:200px" data-act="reload">COBA LAGI</button></div>`;
         if (!st.ordersReady || !st.produkReady) return `<div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat data order...</div>`;
         if (!orders().length) return `<div class="empty"><i class="fas fa-box-open"></i><p>Belum ada order</p></div>`;
         return null;
@@ -624,7 +624,7 @@ export function initRekapKirim(deps) {
             ${kv('Order ID', `<b style="user-select:all;letter-spacing:.06em">${esc(idOf(o))}</b>`)}
             ${kv('Tanggal Order', esc(fmtTgl(o.createdAt)))}
             ${kv('Nama Pembeli / Penerima', esc(o.nama || '-'))}
-            ${kv('Nomor HP', esc(o.wa || '-') + (d.hp && d.hp !== o.wa ? ` <small style="color:#888">(format salin: ${esc(d.hp)})</small>` : ''))}
+            ${kv('Nomor HP', esc(o.wa || '-') + (d.hp && d.hp !== o.wa ? ` <small style="color:var(--muted)">(format salin: ${esc(d.hp)})</small>` : ''))}
             ${kv('Email', esc(o.email || '-'))}
             ${kv('Kecamatan', esc(d.kecamatan || '-'))}
             <div class="info-item" style="grid-column:1/-1">Alamat Lengkap<span>${esc(o.alamat || '-')}</span></div>
@@ -632,8 +632,8 @@ export function initRekapKirim(deps) {
             ${kv('Jumlah Item', totalPcsOrder(o) + ' pcs')}
             ${kv('Nilai Barang (harga kaos)', d.nilaiBarang ? rp(d.nilaiBarang) : '-')}
             ${kv('Total Pembayaran', rp(total))}
-            ${kv('Status Pembayaran', `<span class="status-badge ${classBayar(o)}">${labelBayar(o)}</span>` + (o.status === 'dp' && o.dpNominal ? ` <small style="color:#888">DP ${rp(o.dpNominal)} · sisa ${rp(o.sisaBayar)}</small>` : ''))}
-            ${kv('Catatan Pesanan', catatan ? esc(catatan) : '<span style="color:#666">— (tidak ada field catatan di order)</span>')}
+            ${kv('Status Pembayaran', `<span class="status-badge ${classBayar(o)}">${labelBayar(o)}</span>` + (o.status === 'dp' && o.dpNominal ? ` <small style="color:var(--muted)">DP ${rp(o.dpNominal)} · sisa ${rp(o.sisaBayar)}</small>` : ''))}
+            ${kv('Catatan Pesanan', catatan ? esc(catatan) : '<span style="color:var(--muted)">— (tidak ada field catatan di order)</span>')}
             ${kv('Status Pengiriman', esc(STATUS_KIRIM[sk]))}
             ${kv('Nomor Resi', o.resi ? `<b>${esc(o.resi)}</b>` : '-')}
         </div>
@@ -661,11 +661,11 @@ export function initRekapKirim(deps) {
         <div class="rk-bar" style="margin-bottom:6px">
             <div class="rk-field rk-grow"><input id="dResi" data-id="${esc(o.id)}" type="text" maxlength="60" value="${esc(o.resi || '')}" placeholder="mis. JP1234567890" autocomplete="off"></div>
             <button class="btn-sm btn-approve rk-btn-fit" data-act="save-resi" data-id="${esc(o.id)}">${o.resi ? 'UPDATE RESI' : 'SIMPAN RESI'}</button>
-            ${o.resi ? `<button class="btn-sm rk-btn-fit" style="background:rgba(255,59,59,0.08);color:#ff4d4d;border:1px solid rgba(255,59,59,0.15)" data-act="del-resi" data-id="${esc(o.id)}"><i class="fas fa-trash"></i></button>` : ''}
+            ${o.resi ? `<button class="btn-sm btn-reject rk-btn-fit" data-act="del-resi" data-id="${esc(o.id)}"><i class="fas fa-trash"></i></button>` : ''}
         </div>
         <div class="rk-hint">Resi disimpan ke order dan ke data Pantau Pesanan / Cek Resi (fungsi yang sama dengan kolom resi di tab ORDER).</div>
         <div class="rk-sub">FORMAT ${namaFormat(sub)}</div>
-        ${miss.length ? `<div class="rk-note" style="color:#ff8a8a">Data belum lengkap: ${esc(miss.join('; '))}</div>` : ''}
+        ${miss.length ? `<div class="rk-note">Data belum lengkap: ${esc(miss.join('; '))}</div>` : ''}
         <textarea id="dPreview" class="rk-preview" readonly rows="${sub === 'kirimaja' ? 13 : 4}">${esc(teksOrder(o, sub))}</textarea>
         <button class="add-btn" style="width:100%;justify-content:center;margin-top:10px" data-act="copy-preview" data-id="${esc(o.id)}" data-sub="${sub}"><i class="fas fa-copy"></i> SALIN TEKS</button>`;
     }

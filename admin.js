@@ -120,7 +120,7 @@ async function loadOrders() {
 
 window.filterOrder = (filter, el) => {
     currentFilter = filter;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#tab-order .filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
     renderOrders();
 };
@@ -160,8 +160,24 @@ const idOrder = o => o.kodePelunasan || o.orderNo || o.id;
 const artikelOrder = o => namaProdukText(o) || '-';
 const isPoOrder = o => turunanPO(o, allProduk).isPO;
 
+let orderQuery = '';
+window.searchOrder = (q) => { orderQuery = String(q || '').trim().toLowerCase(); renderOrders(true); };
+
+function updateOrderStats() {
+    const cnt = st => allOrders.filter(o => (o.status || 'pending') === st).length;
+    const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    const pending = cnt('pending');
+    set('stTotal', allOrders.length);
+    set('stPending', pending);
+    set('stDp', cnt('dp'));
+    set('stLunas', cnt('lunas'));
+    const b = $('badgePending');
+    if (b) { b.textContent = pending; b.classList.toggle('show', pending > 0); }
+}
+
 window.renderOrders = (force) => {
     if (rk) rk.refresh();   // tab Rekap/Pengiriman ikut diperbarui bila sedang terbuka
+    updateOrderStats();
     const list = $('orderList');
     if (!list) return;
     const ae = document.activeElement;
@@ -171,8 +187,13 @@ window.renderOrders = (force) => {
     if (currentProdukFilter !== 'semua') {
         filtered = filtered.filter(o => Array.isArray(o.produk) ? o.produk.some(p => p.nama === currentProdukFilter) : o.produk === currentProdukFilter);
     }
+    if (orderQuery) {
+        filtered = filtered.filter(o => [o.nama, idOrder(o), o.wa, o.email, namaProdukText(o)]
+            .some(v => String(v || '').toLowerCase().includes(orderQuery)));
+    }
     if (!filtered.length) {
-        list.innerHTML = `<div class="empty"><i class="fas fa-box-open"></i><p>Belum ada order</p></div>`;
+        const msg = (orderQuery || currentFilter !== 'semua' || currentProdukFilter !== 'semua') ? 'Tidak ada order yang cocok dengan filter' : 'Belum ada order';
+        list.innerHTML = `<div class="empty"><i class="fas fa-box-open"></i><p>${msg}</p></div>`;
         return;
     }
     const pelMap = pelByOrder();
@@ -188,101 +209,115 @@ function orderCardHTML(o, pel) {
     const date = new Date(o.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     let sc = 's-pending', st = 'PENDING';
     if (status === 'lunas') { sc = 's-approved'; st = 'LUNAS'; }
-    if (status === 'dp') { sc = 's-approved'; st = 'DP'; }
+    if (status === 'dp') { sc = 's-dp'; st = 'DP'; }
     if (status === 'rejected') { sc = 's-rejected'; st = 'DITOLAK'; }
 
-    const produkHTML = Array.isArray(o.produk)
-        ? o.produk.map(p => `<div class="info-item">Produk <span>${esc(p.nama)}</span></div><div class="info-item">Warna / Size <span>${esc(p.warna)} / ${esc(p.size)}</span></div>`).join('')
-        : `<div class="info-item">Produk <span>${esc(o.produk)}</span></div><div class="info-item">Warna / Size <span>${esc(o.warna)} / ${esc(o.size)}</span></div>`;
-    const voucherHTML = o.voucherKode ? `<div class="info-item" style="color:var(--yellow)">Voucher Dipakai <span>${esc(o.voucherKode)}</span></div><div class="info-item" style="color:var(--yellow)">Ket. Diskon <span>${esc(o.voucherDeskripsi)}</span></div>` : '';
+    const items = Array.isArray(o.produk)
+        ? o.produk.map(p => ({ nama: p.nama, warna: p.warna, size: p.size }))
+        : [{ nama: o.produk, warna: o.warna, size: o.size }];
+    const itemsHTML = items.map(p => `
+        <div class="oc-item"><b>${esc(p.nama)}</b><span>${esc(p.warna)} / ${esc(p.size)}</span></div>`).join('');
+
+    const voucherHTML = o.voucherKode ? `
+        <div class="info-item warn">Voucher <span>${esc(o.voucherKode)}${o.voucherDeskripsi ? ' · ' + esc(o.voucherDeskripsi) : ''}</span></div>` : '';
+
+    const subTotal = (status === 'dp' && dpNom)
+        ? `<div class="sub"><span>DP dibayar <b>${rp(dpNom)}</b></span><span>Sisa <b>${rp(o.sisaBayar)}</b></span></div>` : '';
 
     const dpBlock = uiStatus === 'dp' ? `
-        <div style="margin-top:14px;border-top:1px solid #1a1a1a;padding-top:14px;">
-            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-                <div style="flex:1;min-width:150px;">
-                    <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">NOMINAL DP (Rp)</div>
-                    <input type="text" inputmode="numeric" id="dpInput-${o.id}" value="${dpNom ? dpNom.toLocaleString('id-ID') : ''}" placeholder="mis. 70.000" oninput="hitungSisaDP('${o.id}')"
-                        style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;">
+        <div class="oc-section">
+            <div class="oc-sec-title">Nominal DP</div>
+            <div class="oc-row">
+                <div class="oc-field">
+                    <label for="dpInput-${o.id}">DP yang dibayar (Rp)</label>
+                    <input type="text" class="oc-input" inputmode="numeric" id="dpInput-${o.id}" value="${dpNom ? dpNom.toLocaleString('id-ID') : ''}" placeholder="mis. 70.000" oninput="hitungSisaDP('${o.id}')">
                 </div>
-                <div style="flex:1;min-width:150px;">
-                    <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">SISA (OTOMATIS)</div>
-                    <div id="dpSisa-${o.id}" data-total="${total}" style="padding:12px 0;font-weight:700;font-size:16px;color:var(--green)">${dpNom ? rp(total - dpNom) : '-'}</div>
+                <div class="oc-field">
+                    <div class="lbl">Sisa (otomatis)</div>
+                    <div class="oc-calc" id="dpSisa-${o.id}" data-total="${total}">${dpNom ? rp(total - dpNom) : '-'}</div>
                 </div>
             </div>
-            <button onclick="simpanDP('${o.id}')" class="btn-sm btn-approve" style="margin-top:12px;width:100%;cursor:pointer;"><i class="fas fa-save"></i> ${status === 'dp' ? 'UPDATE DP' : 'SIMPAN DP'}</button>
-            ${status !== 'dp' ? '<div style="font-size:11px;color:#888;margin-top:8px">Status baru berubah menjadi DP setelah nominal disimpan.</div>' : ''}
+            <button onclick="simpanDP('${o.id}')" class="btn-sm btn-approve btn-block" style="margin-top:12px"><i class="fas fa-save"></i> ${status === 'dp' ? 'Update DP' : 'Simpan DP'}</button>
+            ${status !== 'dp' ? '<div class="oc-hint">Status baru berubah menjadi DP setelah nominal disimpan.</div>' : ''}
         </div>` : '';
 
     const verifBlock = (pel && pel.status === 'menunggu_verifikasi' && status === 'dp') ? `
-        <div style="margin-top:14px;border:1px solid var(--yellow);padding:14px;">
-            <div style="font-size:12px;color:var(--yellow);font-weight:700;margin-bottom:6px;">BUKTI PELUNASAN MASUK</div>
-            <div style="font-size:12px;color:#ccc;margin-bottom:10px;">Cek bukti: nominal harus <b>${rp(o.sisaBayar)}</b>. Setelah diverifikasi, status otomatis DP → LUNAS dan timeline "Pelunasan" terbuat.</div>
-            <button onclick="lunaskanOrder('${o.id}')" class="btn-sm btn-approve" style="width:100%;cursor:pointer;"><i class="fas fa-check"></i> VERIFIKASI &amp; LUNASKAN</button>
+        <div class="oc-section alert">
+            <div class="oc-sec-title yellow"><i class="fas fa-bell"></i> Bukti pelunasan masuk</div>
+            <div class="oc-note">Cek bukti: nominal harus <b>${rp(o.sisaBayar)}</b>. Setelah diverifikasi, status otomatis DP → LUNAS dan timeline "Pelunasan" terbuat.</div>
+            <button onclick="lunaskanOrder('${o.id}')" class="btn-sm btn-approve btn-block"><i class="fas fa-check"></i> Verifikasi &amp; lunaskan</button>
         </div>` : '';
 
     const hargaBlock = uiHarga[o.id] ? `
-        <div style="margin-top:14px;border-top:1px solid #1a1a1a;padding-top:14px;">
-            <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:10px;">EDIT HARGA ORDER</div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                <div style="flex:1;min-width:120px;"><div style="font-size:10px;color:#888;margin-bottom:6px;">HARGA KAOS (Rp)</div>
-                    <input type="text" inputmode="numeric" id="hgKaos-${o.id}" value="${o.hargaKaos ? Number(o.hargaKaos).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')" style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;"></div>
-                <div style="flex:1;min-width:120px;"><div style="font-size:10px;color:#888;margin-bottom:6px;">ONGKIR (Rp)</div>
-                    <input type="text" inputmode="numeric" id="hgOngkir-${o.id}" value="${o.ongkir ? Number(o.ongkir).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')" style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;"></div>
-                <div style="flex:1;min-width:120px;"><div style="font-size:10px;color:#888;margin-bottom:6px;">DISKON (Rp, opsional)</div>
-                    <input type="text" inputmode="numeric" id="hgDiskon-${o.id}" value="${o.diskon ? Number(o.diskon).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')" style="width:100%;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;"></div>
+        <div class="oc-section">
+            <div class="oc-sec-title">Edit harga order</div>
+            <div class="oc-row">
+                <div class="oc-field"><label>Harga kaos (Rp)</label>
+                    <input type="text" class="oc-input" inputmode="numeric" id="hgKaos-${o.id}" value="${o.hargaKaos ? Number(o.hargaKaos).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')"></div>
+                <div class="oc-field"><label>Ongkir (Rp)</label>
+                    <input type="text" class="oc-input" inputmode="numeric" id="hgOngkir-${o.id}" value="${o.ongkir ? Number(o.ongkir).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')"></div>
+                <div class="oc-field"><label>Diskon (Rp, opsional)</label>
+                    <input type="text" class="oc-input" inputmode="numeric" id="hgDiskon-${o.id}" value="${o.diskon ? Number(o.diskon).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')"></div>
             </div>
-            <div style="margin-top:10px;font-size:12px;color:#888;">TOTAL (OTOMATIS): <b id="hgTotal-${o.id}" style="color:var(--green);font-size:16px;">${total ? rp(total) : '-'}</b>${status === 'dp' ? ` · DP ${rp(dpNom)}` : ''}</div>
-            <div style="display:flex;gap:10px;margin-top:12px;">
-                <button onclick="simpanHarga('${o.id}')" class="btn-sm btn-approve" style="flex:1;cursor:pointer;"><i class="fas fa-save"></i> SIMPAN HARGA</button>
-                <button onclick="tutupEditHarga('${o.id}')" class="btn-sm" style="cursor:pointer;background:#111;color:#ccc;border:1px solid #333;">BATAL</button>
+            <div class="oc-hint" style="font-size:13px">Total (otomatis): <b id="hgTotal-${o.id}" style="color:var(--green);font-size:17px">${total ? rp(total) : '-'}</b>${status === 'dp' ? ` · DP ${rp(dpNom)}` : ''}</div>
+            <div class="oc-row" style="margin-top:12px">
+                <button onclick="simpanHarga('${o.id}')" class="btn-sm btn-approve"><i class="fas fa-save"></i> Simpan harga</button>
+                <button onclick="tutupEditHarga('${o.id}')" class="btn-sm btn-bukti">Batal</button>
             </div>
-        </div>` : `
-        <div style="margin-top:14px;"><button onclick="bukaEditHarga('${o.id}')" class="btn-sm btn-bukti" style="cursor:pointer;width:100%;padding:11px;"><i class="fas fa-pen"></i> EDIT HARGA / ONGKIR</button></div>`;
+        </div>` : '';
 
     const resiBlock = (status === 'dp' || status === 'lunas') ? `
-        <div style="margin-top:14px;border-top:1px solid #1a1a1a;padding-top:14px;">
-            <div style="font-size:10px;letter-spacing:.1em;color:#888;margin-bottom:6px;">NOMOR RESI ${o.resi ? '· SUDAH DIUNGGAH' : '· BELUM DIUNGGAH'}</div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                <input type="text" id="resiInput-${o.id}" value="${esc(o.resi || '')}" placeholder="mis. JP1234567890" autocomplete="off" maxlength="60"
-                    style="flex:1;min-width:150px;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:14px;">
-                <button onclick="simpanResi('${o.id}')" class="btn-sm btn-approve" style="cursor:pointer;"><i class="fas fa-truck"></i> ${o.resi ? 'UPDATE RESI' : 'SIMPAN RESI'}</button>
-                ${o.resi ? `<button onclick="hapusResi('${o.id}')" class="btn-sm" style="cursor:pointer;background:rgba(255,59,59,0.08);color:#ff4d4d;border:1px solid rgba(255,59,59,0.15);"><i class="fas fa-trash"></i></button>` : ''}
+        <div class="oc-section">
+            <div class="oc-sec-title">Nomor resi ${o.resi ? '<span class="ok">· sudah diunggah</span>' : '· belum diunggah'}</div>
+            <div class="oc-row">
+                <input type="text" class="oc-input" style="flex:1;min-width:160px;width:auto" id="resiInput-${o.id}" value="${esc(o.resi || '')}" placeholder="mis. JP1234567890" autocomplete="off" maxlength="60">
+                <button onclick="simpanResi('${o.id}')" class="btn-sm btn-approve" style="flex:none"><i class="fas fa-truck"></i> ${o.resi ? 'Update resi' : 'Simpan resi'}</button>
+                ${o.resi ? `<button onclick="hapusResi('${o.id}')" class="btn-sm btn-reject" style="flex:none" title="Hapus resi"><i class="fas fa-trash"></i></button>` : ''}
             </div>
         </div>` : '';
 
     return `
-    <div class="order-card">
-        <div class="order-top">
-            <div>
+    <div class="order-card st-${status}">
+        <div class="oc-head">
+            <div style="min-width:0">
                 <div class="order-name">${esc(o.nama)}</div>
-                <div class="order-time" style="color:var(--green)">ID ORDER: <b style="user-select:all;letter-spacing:.08em">${esc(idOrder(o))}</b>${po ? ' · PRE ORDER' : ' · READY STOCK'}</div>
-                <div class="order-time">${esc(artikelOrder(o))}</div>
-                <div class="order-time">${date}</div>
+                <div class="oc-meta">
+                    <span class="chip id" title="ID order">${esc(idOrder(o))}</span>
+                    <span class="chip ${po ? 'po' : 'ready'}">${po ? 'Pre Order' : 'Ready Stock'}</span>
+                    <span class="order-time" style="margin:0">${date}</span>
+                </div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px;">
-                <button onclick="hapusOrder('${o.id}')" title="Hapus order" style="width:38px;height:38px;border:1px solid rgba(255,59,59,0.15);border-radius:10px;background:rgba(255,59,59,0.08);color:#ff4d4d;cursor:pointer;"><i class="fas fa-trash"></i></button>
+            <div class="oc-head-right">
                 <div class="status-badge ${sc}">${st}</div>
+                <button class="icon-del" onclick="hapusOrder('${o.id}')" title="Hapus order"><i class="fas fa-trash"></i></button>
             </div>
         </div>
-        <div class="order-info">
-            ${produkHTML}
-            ${o.email ? `<div class="info-item">Email <span>${esc(o.email)}</span></div>` : ''}
-            <div class="info-item">Harga Kaos <span>${o.hargaKaos ? rp(o.hargaKaos) : '-'}</span></div>
-            <div class="info-item">Ongkir <span>${o.ongkir ? rp(o.ongkir) : '-'}</span></div>
-            ${voucherHTML}
-            <div class="info-item">WhatsApp <span>${esc(o.wa)}</span></div>
-            <div class="info-item">Alamat <span>${esc(o.alamat)}</span></div>
-            <div class="info-item" style="color:var(--green)">TOTAL <span>${rp(total)}</span></div>
-            ${status === 'dp' && dpNom ? `<div class="info-item">DP Dibayar <span>${rp(dpNom)}</span></div><div class="info-item">Sisa <span>${rp(o.sisaBayar)}</span></div>` : ''}
+
+        <div class="oc-body">
+            <div class="oc-items">${itemsHTML}</div>
+            <div class="order-info">
+                <div class="info-item">WhatsApp <span>${esc(o.wa)}</span></div>
+                ${o.email ? `<div class="info-item">Email <span>${esc(o.email)}</span></div>` : ''}
+                <div class="info-item full">Alamat <span>${esc(o.alamat)}</span></div>
+                <div class="info-item">Harga kaos <span>${o.hargaKaos ? rp(o.hargaKaos) : '-'}</span></div>
+                <div class="info-item">Ongkir <span>${o.ongkir ? rp(o.ongkir) : '-'}</span></div>
+                ${voucherHTML}
+            </div>
+            <div class="oc-total">
+                <div><div class="lbl">TOTAL</div><div class="val">${rp(total)}</div></div>
+                ${subTotal}
+            </div>
         </div>
-        <div class="order-actions" style="display:flex;gap:10px;align-items:center;border-top:1px solid #1a1a1a;padding-top:15px;flex-wrap:wrap;">
-            ${o.buktiURL ? `<a href="${esc(o.buktiURL)}" target="_blank" class="btn-sm btn-bukti" style="flex:1;text-align:center;"><i class="fas fa-image"></i> BUKTI 1</a>` : ''}
-            ${(pel && pel.buktiPelunasanURL) ? `<a href="${esc(pel.buktiPelunasanURL)}" target="_blank" class="btn-sm btn-bukti" style="flex:1;text-align:center;"><i class="fas fa-image"></i> BUKTI 2</a>` : ''}
-            <select onchange="gantiStatusOrder('${o.id}', this.value)" style="flex:1;min-width:140px;background:#111;color:#fff;border:1px solid #333;padding:10px;border-radius:8px;font-weight:bold;font-size:12px;cursor:pointer;outline:none;">
-                <option value="pending" ${uiStatus === 'pending' ? 'selected' : ''}>⏳ PENDING</option>
+
+        <div class="order-actions">
+            ${o.buktiURL ? `<a href="${esc(o.buktiURL)}" target="_blank" rel="noopener" class="btn-sm btn-bukti"><i class="fas fa-image"></i> Bukti 1</a>` : ''}
+            ${(pel && pel.buktiPelunasanURL) ? `<a href="${esc(pel.buktiPelunasanURL)}" target="_blank" rel="noopener" class="btn-sm btn-bukti"><i class="fas fa-image"></i> Bukti 2</a>` : ''}
+            ${uiHarga[o.id] ? '' : `<button onclick="bukaEditHarga('${o.id}')" class="btn-sm btn-bukti"><i class="fas fa-pen"></i> Edit harga</button>`}
+            <select class="status-select" onchange="gantiStatusOrder('${o.id}', this.value)" aria-label="Ubah status order">
+                <option value="pending" ${uiStatus === 'pending' ? 'selected' : ''}>⏳ Pending</option>
                 <option value="dp" ${uiStatus === 'dp' ? 'selected' : ''}>💳 DP</option>
-                <option value="lunas" ${uiStatus === 'lunas' ? 'selected' : ''}>✅ LUNAS</option>
-                <option value="rejected" ${uiStatus === 'rejected' ? 'selected' : ''}>❌ DITOLAK</option>
+                <option value="lunas" ${uiStatus === 'lunas' ? 'selected' : ''}>✅ Lunas</option>
+                <option value="rejected" ${uiStatus === 'rejected' ? 'selected' : ''}>❌ Ditolak</option>
             </select>
         </div>
         ${dpBlock}
@@ -294,7 +329,7 @@ function orderCardHTML(o, pel) {
 
 window.filterOrder = (filter, el) => {
     currentFilter = filter;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#tab-order .filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
     renderOrders(true);
 };
@@ -524,16 +559,16 @@ function renderProduk() {
         <div class="produk-grid">
             ${sortedProduk.map(p => `
             <div class="produk-card">
-                <img src="${p.thumbnail || ''}" onerror="this.src=''">
+                <img src="${p.thumbnail || ''}" loading="lazy" alt="" onerror="this.style.visibility='hidden'">
                 <div class="produk-info">
                     <div class="produk-badge badge-${p.badge}">${p.status || p.badge}</div>
                     <div class="produk-name">${p.nama}</div>
                     <div class="produk-price">Rp${Number(String(p.harga).replace(/\D/g,'')).toLocaleString('id-ID')}</div>
                     <div class="produk-actions">
-                        <div class="btn-icon" onclick="moveProdukUp('${p.id}')">↑</div>
-                        <div class="btn-icon" onclick="moveProdukDown('${p.id}')">↓</div>
-                        <div class="btn-icon" onclick="editProduk('${p.id}')"><i class="fas fa-pen"></i></div>
-                        <div class="btn-icon del" onclick="hapusProduk('${p.id}')"><i class="fas fa-trash"></i></div>
+                        <div class="btn-icon" title="Naikkan" onclick="moveProdukUp('${p.id}')">↑</div>
+                        <div class="btn-icon" title="Turunkan" onclick="moveProdukDown('${p.id}')">↓</div>
+                        <div class="btn-icon" title="Edit" onclick="editProduk('${p.id}')"><i class="fas fa-pen"></i></div>
+                        <div class="btn-icon del" title="Hapus" onclick="hapusProduk('${p.id}')"><i class="fas fa-trash"></i></div>
                     </div>
                 </div>
             </div>`).join('')}
@@ -777,10 +812,10 @@ function renderBanners() {
     }
     list.innerHTML = `<div class="produk-grid">` + allBanners.map((b, i) => `
         <div class="produk-card">
-            <img src="${b.image}" style="aspect-ratio: 16/9;">
+            <img src="${b.image}" loading="lazy" alt="" style="aspect-ratio: 16/9;">
             <div class="produk-info">
                 <div class="produk-name">${b.title || 'Tanpa Judul'}</div>
-                <div class="produk-actions" style="margin-top:10px;">
+                <div class="produk-actions" style="margin-top:12px;">
                     <div class="btn-icon" onclick="moveBannerUp('${b.id}', ${i})">↑</div>
                     <div class="btn-icon" onclick="moveBannerDown('${b.id}', ${i})">↓</div>
                     <div class="btn-icon" onclick="editBanner('${b.id}')"><i class="fas fa-pen"></i></div>
@@ -911,12 +946,12 @@ function renderVouchers() {
         if(v.tipe === 'persen') deskripsi = `Diskon ${v.nilai}%`;
 
         return `
-        <div class="produk-card" style="padding:15px; border-left:3px solid var(--green)">
-            <div class="produk-badge ${badgeClass}" style="margin-bottom:10px;">${badgeText}</div>
-            <div class="produk-name" style="font-size:18px; letter-spacing:1px; margin-bottom:5px;">${v.kode}</div>
-            <div class="info-item" style="margin-bottom:15px; color:var(--green); font-size:11px; font-weight:700;">${deskripsi}</div>
+        <div class="produk-card voucher-card" style="${isHabis ? 'border-left-color:var(--red);opacity:.75' : ''}">
+            <div class="produk-badge ${badgeClass}">${badgeText}</div>
+            <div class="voucher-code">${v.kode}</div>
+            <div class="voucher-desc">${deskripsi}</div>
             <div class="produk-actions">
-                <div class="btn-icon del" onclick="hapusVoucher('${v.id}')"><i class="fas fa-trash"></i> HAPUS</div>
+                <div class="btn-icon del" onclick="hapusVoucher('${v.id}')"><i class="fas fa-trash"></i> Hapus</div>
             </div>
         </div>`;
     }).join('') + `</div>`;
@@ -1077,20 +1112,20 @@ function renderMemberTab() {
         const lastLogin = formatTanggalWaktu(c.lastLoginAt) || 'Belum ada data login';
 
         const deleteArea = memberDeleteMode
-            ? `<button onclick="event.stopPropagation(); confirmDeleteCustomer('member','${c.email}')" title="Hapus" style="width:34px; height:34px; border:none; background:var(--red); color:#fff; border-radius:10px; cursor:pointer; font-weight:900; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">&times;</button>`
+            ? `<button class="del-x" onclick="event.stopPropagation(); confirmDeleteCustomer('member','${c.email}')" title="Hapus">&times;</button>`
             : '';
 
         return `
-        <div class="order-card" style="padding:0;">
-            <div class="cust-row" onclick="toggleCustDetail('${safeId}')" style="display:flex; justify-content:space-between; align-items:center; padding:16px 18px; cursor:pointer; gap:10px;">
-                <span style="font-size:13px; font-weight:700; color:#fff; word-break:break-all;">${c.email}</span>
-                ${deleteArea}
+        <div class="cust-card">
+            <div class="cust-row" onclick="toggleCustDetail('${safeId}')">
+                <span class="cust-email"><span class="cust-avatar">${esc((c.email || '?').charAt(0))}</span><span>${c.email}</span></span>
+                <span class="cust-trail">${deleteArea}<i class="fas fa-chevron-down" style="color:var(--muted);font-size:12px"></i></span>
             </div>
-            <div class="cust-detail" id="${safeId}" style="display:none; border-top:1px solid var(--border); padding:16px 18px; background:#0d0d0d; font-size:12px; line-height:1.9; color:#ddd;">
-                <div><b style="color:#fff;">Email:</b> ${c.email}</div>
-                <div><b style="color:#fff;">Total pembelian:</b> ${c.purchaseCount} kali</div>
-                <div><b style="color:#fff;">Total transaksi:</b> Rp${c.totalSpent.toLocaleString('id-ID')}</div>
-                <div><b style="color:#fff;">Terakhir login:</b> ${lastLogin}</div>
+            <div class="cust-detail" id="${safeId}" style="display:none;">
+                <div><b>Email:</b> ${c.email}</div>
+                <div><b>Total pembelian:</b> ${c.purchaseCount} kali</div>
+                <div><b>Total transaksi:</b> Rp${c.totalSpent.toLocaleString('id-ID')}</div>
+                <div><b>Terakhir login:</b> ${lastLogin}</div>
             </div>
         </div>`;
     }).join('');
@@ -1111,21 +1146,21 @@ function renderPembeliTab() {
     list.innerHTML = data.map(c => {
         const safeId = safeIdFor('buy', c.email);
 
-        const trailingArea = `<span style="font-size:13px; font-weight:700; color:var(--green); min-width:20px; text-align:right;">${c.purchaseCount}</span>`
+        const trailingArea = `<span class="cust-count">${c.purchaseCount}x beli</span>`
             + (pembeliDeleteMode
-                ? `<button onclick="event.stopPropagation(); confirmDeleteCustomer('pembeli','${c.email}')" title="Hapus" style="width:34px; height:34px; border:none; background:var(--red); color:#fff; border-radius:10px; cursor:pointer; font-weight:900; font-size:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">&times;</button>`
+                ? `<button class="del-x" onclick="event.stopPropagation(); confirmDeleteCustomer('pembeli','${c.email}')" title="Hapus">&times;</button>`
                 : '');
 
         return `
-        <div class="order-card" style="padding:0;">
-            <div class="cust-row" onclick="toggleCustDetail('${safeId}')" style="display:flex; justify-content:space-between; align-items:center; padding:16px 18px; cursor:pointer; gap:10px;">
-                <span style="font-size:13px; font-weight:700; color:#fff; word-break:break-all;">${c.email}</span>
-                <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">${trailingArea}</div>
+        <div class="cust-card">
+            <div class="cust-row" onclick="toggleCustDetail('${safeId}')">
+                <span class="cust-email"><span class="cust-avatar">${esc((c.email || '?').charAt(0))}</span><span>${c.email}</span></span>
+                <span class="cust-trail">${trailingArea}</span>
             </div>
-            <div class="cust-detail" id="${safeId}" style="display:none; border-top:1px solid var(--border); padding:16px 18px; background:#0d0d0d; font-size:12px; line-height:1.9; color:#ddd;">
-                <div><b style="color:#fff;">Email:</b> ${c.email}</div>
-                <div><b style="color:#fff;">Total pembelian:</b> ${c.purchaseCount} kali</div>
-                <div><b style="color:#fff;">Total transaksi:</b> Rp${c.totalSpent.toLocaleString('id-ID')}</div>
+            <div class="cust-detail" id="${safeId}" style="display:none;">
+                <div><b>Email:</b> ${c.email}</div>
+                <div><b>Total pembelian:</b> ${c.purchaseCount} kali</div>
+                <div><b>Total transaksi:</b> Rp${c.totalSpent.toLocaleString('id-ID')}</div>
                 <div style="color:${c.registered ? 'var(--green)' : 'var(--muted)'}; margin-top:6px;">${c.registered ? '✓ Terdaftar sebagai member' : '✕ Tidak terdaftar sebagai member'}</div>
             </div>
         </div>`;
@@ -1222,25 +1257,32 @@ window.renderPoAdmin = (force) => {
         const ords = ordersUntukPO(p);
         const lunasN = ords.filter(o => o.status === 'lunas').length;
         return `
-        <div class="order-card">
-            <div class="order-top">
+        <div class="order-card ${closed ? 'st-rejected' : 'st-lunas'}" style="${closed ? 'opacity:.85' : ''}">
+            <div class="oc-head">
                 <div>
                     <div class="order-name">${esc(p.nama)}</div>
-                    <div class="order-time">Kode awal: <b>${esc(p.kodePrefix || '— belum diisi —')}</b> · ${ords.length} order · ${lunasN} lunas</div>
+                    <div class="oc-meta">
+                        <span class="chip id">${esc(p.kodePrefix || 'kode belum diisi')}</span>
+                        <span class="chip">${ords.length} order</span>
+                        <span class="chip ready">${lunasN} lunas</span>
+                    </div>
                 </div>
                 <div class="status-badge ${closed ? 's-rejected' : 's-approved'}">${closed ? 'PO SELESAI' : 'BERJALAN'}</div>
             </div>
-            <div style="font-size:11px;letter-spacing:.1em;color:#888;margin:4px 0 8px;">UPDATE ARTIKEL (tampil di Pantau semua order artikel ini)</div>
+            <div class="oc-section">
+            <div class="oc-sec-title">Update artikel <span style="text-transform:none;letter-spacing:0;font-weight:500">· tampil di Pantau semua order artikel ini</span></div>
             <div id="poU-${p.id}"></div>
-            <div style="display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;">
-                <input type="text" id="poIn-${p.id}" maxlength="500" placeholder="mis. Kaos dikirim" onkeydown="if(event.key==='Enter'){tambahUpdatePo('${p.id}')}"
-                    style="flex:1;min-width:200px;box-sizing:border-box;background:#111;color:#fff;border:1px solid #333;padding:12px;border-radius:8px;font-size:13px;">
-                <button type="button" onclick="tambahUpdatePo('${p.id}')" class="btn-sm btn-approve" style="flex:none;cursor:pointer;padding:12px 18px;">+ TAMBAH UPDATE</button>
+            <div class="oc-row" style="margin-top:12px">
+                <input type="text" class="oc-input" style="flex:1;min-width:200px;width:auto" id="poIn-${p.id}" maxlength="500" placeholder="mis. Kaos dikirim" onkeydown="if(event.key==='Enter'){tambahUpdatePo('${p.id}')}">
+                <button type="button" onclick="tambahUpdatePo('${p.id}')" class="btn-sm btn-approve" style="flex:none"><i class="fas fa-plus"></i> Tambah update</button>
             </div>
-            <div style="font-size:11px;color:#666;margin-bottom:12px">Tanggal &amp; jam otomatis. Hanya muncul di order yang dibuat sebelum update ini.</div>
+            <div class="oc-hint">Tanggal &amp; jam otomatis. Hanya muncul di order yang dibuat sebelum update ini.</div>
+            </div>
+            <div class="oc-section">
             ${closed
-                ? `<button onclick="tutupPo('${p.id}', false)" class="btn-sm btn-bukti" style="width:100%;cursor:pointer;"><i class="fas fa-undo"></i> BATALKAN "PO SELESAI"</button>`
-                : `<button onclick="tutupPo('${p.id}', true)" class="btn-sm btn-approve" style="width:100%;cursor:pointer;"><i class="fas fa-flag-checkered"></i> SELESAIKAN ARTIKEL PRE ORDER</button>`}
+                ? `<button onclick="tutupPo('${p.id}', false)" class="btn-sm btn-bukti btn-block"><i class="fas fa-undo"></i> Batalkan "PO selesai"</button>`
+                : `<button onclick="tutupPo('${p.id}', true)" class="btn-sm btn-approve btn-block"><i class="fas fa-flag-checkered"></i> Selesaikan artikel Pre Order</button>`}
+            </div>
         </div>`;
     }).join('');
     ensurePoUpdSubs(prods.map(p => p.id));
@@ -1254,15 +1296,15 @@ function renderPoUpdBox(pid) {
         const iso = tsMillis(e.createdAt) ? new Date(tsMillis(e.createdAt)).toISOString() : '';
         const auto = e.type === 'automatic';
         return `
-        <div style="display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-top:${i ? '1px solid #1a1a1a' : 'none'}">
-            <span style="width:10px;height:10px;border-radius:50%;background:${auto ? 'var(--green)' : '#6cf'};flex:none;margin-top:5px"></span>
+        <div class="po-timeline-item">
+            <span class="po-dot ${auto ? 'auto' : 'manual'}"></span>
             <div style="flex:1;min-width:0">
-                <div style="font-size:13px;font-weight:700;word-break:break-word">${esc(e.text)}</div>
-                <div style="font-size:11px;color:#888;margin-top:2px">${iso ? esc(fmtAdminWaktu(iso)) : 'menyimpan…'}</div>
+                <div style="font-size:14px;font-weight:600;word-break:break-word">${esc(e.text)}</div>
+                <div class="order-time">${iso ? esc(fmtAdminWaktu(iso)) : 'menyimpan…'}</div>
             </div>
-            ${auto ? '' : `<button onclick="hapusUpdatePo('${pid}','${esc(e.id)}')" title="Hapus update" style="width:34px;height:34px;flex:none;border:1px solid rgba(255,59,59,0.15);border-radius:10px;background:rgba(255,59,59,0.08);color:#ff4d4d;cursor:pointer;"><i class="fas fa-trash"></i></button>`}
+            ${auto ? '' : `<button class="icon-del" onclick="hapusUpdatePo('${pid}','${esc(e.id)}')" title="Hapus update"><i class="fas fa-trash"></i></button>`}
         </div>`;
-    }).join('') : '<div style="font-size:12px;color:#777">Belum ada update artikel.</div>';
+    }).join('') : '<div class="oc-hint" style="margin:0">Belum ada update artikel.</div>';
 }
 window.tambahUpdatePo = async (pid) => {
     const inp = document.getElementById('poIn-' + pid);
