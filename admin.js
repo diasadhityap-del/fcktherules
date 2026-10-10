@@ -259,7 +259,7 @@ function orderCardHTML(o, pel) {
                 <div class="oc-field"><label>Diskon (Rp, opsional)</label>
                     <input type="text" class="oc-input" inputmode="numeric" id="hgDiskon-${o.id}" value="${o.diskon ? Number(o.diskon).toLocaleString('id-ID') : ''}" oninput="hitungTotalHarga('${o.id}')"></div>
             </div>
-            <div class="oc-hint" style="font-size:13px">Total (otomatis): <b id="hgTotal-${o.id}" style="color:var(--green);font-size:17px">${total ? rp(total) : '-'}</b>${status === 'dp' ? ` · DP ${rp(dpNom)}` : ''}</div>
+            <div class="oc-hint" style="font-size:13px">Total (otomatis): <b id="hgTotal-${o.id}" style="color:var(--green);font-size:18px">${total ? rp(total) : '-'}</b>${status === 'dp' ? ` · DP ${rp(dpNom)}` : ''}</div>
             <div class="oc-row" style="margin-top:12px">
                 <button onclick="simpanHarga('${o.id}')" class="btn-sm btn-approve"><i class="fas fa-save"></i> Simpan harga</button>
                 <button onclick="tutupEditHarga('${o.id}')" class="btn-sm btn-bukti">Batal</button>

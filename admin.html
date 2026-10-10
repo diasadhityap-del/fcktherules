@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin | FvcktheRules</title>
     <meta name="robots" content="noindex, nofollow">
-    <meta name="theme-color" content="#0a0a0b">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="admin.css?v=20261015">
+    <link rel="stylesheet" href="admin.css?v=20261016">
 </head>
 <body>
 
@@ -17,7 +19,7 @@
 <div id="loginPage">
     <div class="login-box">
         <div class="login-logo">FVCKTHERULES</div>
-        <div class="login-sub">ADMIN PANEL</div>
+        <div class="login-sub">admin panel</div>
         <div class="login-card">
             <div class="form-group">
                 <label>Email</label>
@@ -98,9 +100,9 @@
 
             <div class="stat-row" id="orderStats">
                 <div class="stat-card"><div class="stat-label">Total order</div><div class="stat-val" id="stTotal">-</div></div>
-                <div class="stat-card warn"><div class="stat-label">Menunggu konfirmasi</div><div class="stat-val" id="stPending">-</div></div>
-                <div class="stat-card"><div class="stat-label">DP berjalan</div><div class="stat-val" id="stDp">-</div></div>
-                <div class="stat-card ok"><div class="stat-label">Lunas</div><div class="stat-val" id="stLunas">-</div></div>
+                <div class="stat-card c-sun"><div class="stat-label">Menunggu konfirmasi</div><div class="stat-val" id="stPending">-</div></div>
+                <div class="stat-card c-sky"><div class="stat-label">DP berjalan</div><div class="stat-val" id="stDp">-</div></div>
+                <div class="stat-card c-mint"><div class="stat-label">Lunas</div><div class="stat-val" id="stLunas">-</div></div>
             </div>
 
             <div class="filter-bar">
@@ -183,7 +185,7 @@
             </div>
             <div class="upload-area" onclick="document.getElementById('inputGaleri').click()">
                 <i class="fas fa-camera"></i>
-                Tap / klik untuk upload foto galeri<br><small style="font-size:12px;opacity:.7">Bisa pilih banyak foto sekaligus</small>
+                Tap / klik untuk upload foto galeri<br><small >Bisa pilih banyak foto sekaligus</small>
                 <input type="file" id="inputGaleri" accept="image/*" multiple style="display:none" onchange="uploadGaleriFoto(this)">
             </div>
             <div class="galeri-grid" id="galeriGrid"></div>
