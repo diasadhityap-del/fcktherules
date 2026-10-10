@@ -95,6 +95,8 @@ window.switchTab = (tab) => {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.querySelectorAll('.mob-nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('tab-' + tab).classList.add('active');
+    document.body.dataset.tab = tab;   // warna latar per tab
+    window.scrollTo({ top: 0 });
     const navEl = document.getElementById('nav-' + tab);
     const mobEl = document.getElementById('mob-' + tab);
     if (navEl) navEl.classList.add('active');

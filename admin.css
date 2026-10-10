@@ -37,7 +37,8 @@
 html { -webkit-text-size-adjust: 100%; }
 body {
     font-family: var(--font-ui);
-    background: var(--paper);
+    background: var(--tab-bg, var(--paper));
+    transition: background-color .35s ease;
     color: var(--ink);
     min-height: 100vh;
     overflow-x: hidden;
@@ -566,3 +567,26 @@ button, input, select, textarea { font-family: inherit; color: inherit; }
     .rk-scroll { max-height: 58vh; }
 }
 @media (max-width: 380px) { .order-info { grid-template-columns: 1fr; } }
+
+
+/* ===== WARNA LATAR PER TAB (pastel, seperti halaman pelanggan) ===== */
+body                     { --tab-bg: #f6e6fb; --tab-accent: var(--lav); }
+body[data-tab="order"]   { --tab-bg: #f6e6fb; --tab-accent: #e6b3ef; }   /* lavender */
+body[data-tab="rekap"]   { --tab-bg: #dcf8e9; --tab-accent: #5be39a; }   /* mint */
+body[data-tab="kirim"]   { --tab-bg: #d9f2fc; --tab-accent: #86d6f2; }   /* biru muda */
+body[data-tab="lacak"]   { --tab-bg: #fff3c4; --tab-accent: #ffd51e; }   /* kuning */
+body[data-tab="produk"]  { --tab-bg: #ffe5dc; --tab-accent: #ffb59e; }   /* peach */
+body[data-tab="voucher"] { --tab-bg: #ffecd0; --tab-accent: #ffc980; }   /* apricot */
+body[data-tab="galeri"]  { --tab-bg: #ffe0f0; --tab-accent: #ff9fcf; }   /* pink */
+body[data-tab="banner"]  { --tab-bg: #e7e5ff; --tab-accent: #b7b2ff; }   /* periwinkle */
+body[data-tab="pelanggan"] { --tab-bg: #e5f6d6; --tab-accent: #b4ea8f; } /* hijau muda */
+
+.nav-item:hover { background: rgba(255,255,255,.0); background: var(--tab-bg); }
+.nav-item.active, .mob-nav-item.active { background: var(--tab-accent); }
+.page-title { text-shadow: 3px 3px 0 #fff; }
+.filter-btn:hover { background: var(--tab-accent); }
+.btn-bukti:hover, .add-btn.secondary:hover, .btn-icon:hover { background: var(--tab-accent); }
+.rk-row:hover, .rk-row.picked { background: var(--tab-bg); }
+.cust-row:hover { background: var(--tab-bg); }
+.upload-area:hover { background: var(--tab-bg); }
+.mobile-header { background: var(--tab-bg) !important; }
