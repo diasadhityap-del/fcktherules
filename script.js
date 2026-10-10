@@ -71,7 +71,7 @@ const META = {
     galeri: { title: 'Galeri | FvcktheRules', desc: 'Galeri foto FvcktheRules Store.' },
     tentang: { title: 'Tentang Kami | FvcktheRules', desc: 'FvcktheRules: soccer culture, street attitude, born to disobey. Clothing label, media platform, publishing space, and community built around football culture.' },
     berita: { title: 'Berita | FvcktheRules Journal', desc: 'Berita football, Indonesia, dan budaya jalanan dari FvcktheRules.' },
-    pantau: { title: 'Cek Progres | FvcktheRules', desc: 'Cek progres pesananmu: masuk vendor, pelunasan, selesai, hingga dikirim.' },
+    pantau: { title: 'Cek Pesanan | FvcktheRules', desc: 'Cek pesananmu: masuk vendor, pelunasan, selesai, hingga dikirim.' },
     pelunasan: { title: 'Pelunasan | FvcktheRules', desc: 'Lunasi sisa pembayaran pesananmu dengan kode pelunasan.' },
     resi: { title: 'Cek Resi | FvcktheRules', desc: 'Cek nomor resi pengiriman pesananmu dengan ID Order, email, atau nomor HP.' },
     diskusi: { title: 'Diskusi | FvcktheRules Journal', desc: 'Diskusi komunitas FvcktheRules: post tim, reaksi, dan balasan.' }
@@ -1859,7 +1859,7 @@ async function renderProfileOrders() {
                     <p class="p">${escH(produkText)}</p>
                     <p class="t">${total}</p>
                     ${status === 'dp' && o.dpNominal ? `<p class="p">DP ${rpFmt(o.dpNominal)} · Sisa ${rpFmt(o.sisaBayar)}</p>` : ''}
-                    ${o.kodePelunasan ? `<p class="p"><a href="#" onclick="lacakDariRiwayat('${escH(o.kodePelunasan)}');return false" style="text-decoration:underline">Cek progres →</a></p>` : ''}
+                    ${o.kodePelunasan ? `<p class="p"><a href="#" onclick="lacakDariRiwayat('${escH(o.kodePelunasan)}');return false" style="text-decoration:underline">Cek pesanan →</a></p>` : ''}
                 </div>
             `;
         }).join('');
@@ -2124,7 +2124,7 @@ window.salinKodePelunasan = salinKodePelunasan;
 window.tampilKodePelunasan = tampilKodePelunasan;
 
 
-/* ================= CEK PROGRES (PANTAU) ================= */
+/* ================= CEK PESANAN (PANTAU) ================= */
 function tsMillis(v) {
     if (!v) return 0;
     if (typeof v.toMillis === 'function') return v.toMillis();
@@ -2257,7 +2257,7 @@ async function cekPantau() {
         console.error(e);
         out.innerHTML = '<div class="card-box"><span class="cap">Gagal memuat</span><p style="margin:8px 0 0;font-size:13px">Coba lagi sebentar lagi.</p></div>';
     }
-    btn.disabled = false; btn.innerText = 'CEK PROGRES';
+    btn.disabled = false; btn.innerText = 'CEK PESANAN';
 }
 /* ================= CEK RESI ================= */
 let resiList = [];

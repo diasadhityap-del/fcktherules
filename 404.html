@@ -45,7 +45,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css?v=pc14">
+    <link rel="stylesheet" href="/style.css?v=pc15">
 </head>
 <body>
 <noscript><p style="padding:24px;font-family:Arial,sans-serif">FvcktheRules — Soccer culture. Street attitude. Born to Disobey. Aktifkan JavaScript untuk membuka toko.</p></noscript>
@@ -63,7 +63,7 @@
         <a href="/arsip" data-nav="arsip" onclick="return navLink(event,'arsip')">Arsip</a>
         <a href="/galeri" data-nav="galeri" onclick="return navLink(event,'galeri')">Galeri</a>
         <a href="/tentang" data-nav="tentang" onclick="return navLink(event,'tentang')">Tentang</a>
-        <a href="/pantau" data-nav="pantau" onclick="return navLink(event,'pantau')">Cek Progres</a>
+        <a href="/pantau" data-nav="pantau" onclick="return navLink(event,'pantau')">Cek Pesanan</a>
         <a href="/pelunasan" data-nav="pelunasan" onclick="return navLink(event,'pelunasan')">Pelunasan</a>
         <a href="/resi" data-nav="resi" onclick="return navLink(event,'resi')">Cek Resi</a>
         <span class="spacer"></span>
@@ -92,7 +92,7 @@
     <a class="dlink" href="/diskusi" data-nav="diskusi" onclick="return navLink(event,'diskusi',true)">Diskusi</a>
     <a class="dlink small" href="https://jurnal-fucktherules.my.id/">Buka situs Journal ↗</a>
     <p class="dgroup">Pesanan</p>
-    <a class="dlink" href="/pantau" data-nav="pantau" onclick="return navLink(event,'pantau',true)">Cek Progres</a>
+    <a class="dlink" href="/pantau" data-nav="pantau" onclick="return navLink(event,'pantau',true)">Cek Pesanan</a>
     <a class="dlink" href="/pelunasan" data-nav="pelunasan" onclick="return navLink(event,'pelunasan',true)">Pelunasan</a>
     <a class="dlink" href="/resi" data-nav="resi" onclick="return navLink(event,'resi',true)">Cek Resi</a>
     <p class="dgroup">Akun</p>
@@ -400,19 +400,19 @@
 </div>
 
 <!-- ================= KERANJANG ================= -->
-<!-- ================= CEK PROGRES (PANTAU) ================= -->
+<!-- ================= CEK PESANAN (PANTAU) ================= -->
 <div class="page" id="pantau">
     <article class="about">
         <p class="eyebrow">Pesanan</p>
-        <h1 class="page-title">Cek Progres</h1>
-        <p class="page-sub">Cek progres pesananmu dengan ID Order, email, atau nomor HP yang dipakai saat checkout.</p>
+        <h1 class="page-title">Cek Pesanan</h1>
+        <p class="page-sub">Cek pesananmu dengan ID Order, email, atau nomor HP yang dipakai saat checkout.</p>
 
         <div class="input-group" style="margin-top:22px">
             <label>ID Order / Email / Nomor HP</label>
             <input type="text" id="pantauInput" placeholder="contoh: FVCK-A82K91 atau email@gmail.com atau 08123456789" autocomplete="off" onkeydown="if(event.key==='Enter'){cekPantau()}">
         </div>
         <div class="btn-container" style="margin-top:14px;">
-            <button type="button" id="pantauBtn" onclick="cekPantau()">CEK PROGRES</button>
+            <button type="button" id="pantauBtn" onclick="cekPantau()">CEK PESANAN</button>
         </div>
 
         <div id="pantauResult" style="margin-top:8px"></div>
@@ -463,7 +463,7 @@
         <i class="fas fa-key modal-icon"></i>
         <h3 class="modal-title">Order Berhasil</h3>
         <p class="modal-desc" style="margin:0 0 6px;font-weight:700">ID Pemesanan</p>
-        <p class="modal-desc" style="margin-bottom:14px">Catat atau salin ID ini. Pakai di menu <b>Cek Progres</b> dan di menu <b>Pelunasan</b> untuk melunasi sisa pembayaran jika DP.</p>
+        <p class="modal-desc" style="margin-bottom:14px">Catat atau salin ID ini. Pakai di menu <b>Cek Pesanan</b> dan <b>Cek Resi</b> untuk memantau pesananmu, serta di menu <b>Pelunasan</b> untuk melunasi sisa pembayaran jika DP.</p>
         <div id="kodeModalValue" style="font-size:26px;font-weight:700;letter-spacing:.12em;padding:14px;border:2px dashed currentColor;border-radius:12px;word-break:break-all;user-select:all"></div>
         <div class="modal-actions">
             <button type="button" class="btn-ghost" onclick="salinKodePelunasan()">SALIN</button>
@@ -774,7 +774,7 @@
     </div>
 </div>
 
-<script type="module" src="/script.js?v=20261013"></script>
+<script type="module" src="/script.js?v=20261018"></script>
 <script>
     setTimeout(() => {
         const loader = document.getElementById('loader');
