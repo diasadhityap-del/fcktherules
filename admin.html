@@ -360,6 +360,17 @@
         </div>
 
         <div class="form-group">
+            <label>GAMBAR DESAIN UNTUK GAME 3D <small style="font-weight:400;opacity:.7">(opsional)</small></label>
+            <div class="img-slot" onclick="document.getElementById('inputDesain').click()" style="width:120px; height:120px; background:repeating-conic-gradient(#e6e6e6 0% 25%, #fff 0% 50%) 50% / 16px 16px;">
+                <i class="fas fa-plus"></i>
+                <img id="prevDesain" src="" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:contain;">
+                <input type="file" id="inputDesain" accept="image/png,image/webp" style="display:none" onchange="prevImgSlot(this,'prevDesain')">
+            </div>
+            <small style="display:block;margin-top:6px;opacity:.7;line-height:1.5">Hanya <b>desain cetaknya</b> (tanpa gambar kaos), format <b>PNG transparan</b>, lebar ±1200 px. Di game desain ditempel di dada tengah (lebar 28 cm) di atas warna kaos dari kolom WARNA. Kosongkan jika tidak ada.</small>
+            <button type="button" onclick="hapusDesain()" style="margin-top:6px;background:none;border:0;text-decoration:underline;cursor:pointer;color:inherit;font-size:12px">Hapus desain</button>
+        </div>
+
+        <div class="form-group">
             <label>FOTO DETAIL (maks 5)</label>
             <div class="img-upload-grid">
                 <div class="img-slot" onclick="document.getElementById('inputDet0').click()">

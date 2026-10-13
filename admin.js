@@ -592,6 +592,7 @@ window.openModalProduk = () => {
     document.getElementById('pKode').value = '';
     toggleKodeProduk();
     document.getElementById('prevThumb').style.display = 'none';
+    document.getElementById('prevDesain').style.display = 'none'; document.getElementById('inputDesain').value = ''; hapusDesainFlag = false;
     [0,1,2,3,4].forEach(i => {
         const img = document.getElementById('prevDet'+i);
         img.src = '';
@@ -601,6 +602,9 @@ window.openModalProduk = () => {
 };
 
 window.closeModalProduk = () => { document.getElementById('modalProduk').classList.remove('show'); };
+
+let hapusDesainFlag = false;
+window.hapusDesain = () => { hapusDesainFlag = true; const d = document.getElementById('prevDesain'); d.src = ''; d.style.display = 'none'; document.getElementById('inputDesain').value = ''; };
 
 window.editProduk = (id) => {
     const p = allProduk.find(x => x.id === id);
@@ -621,6 +625,8 @@ window.editProduk = (id) => {
 
     const thumb = document.getElementById('prevThumb');
     if (p.thumbnail) { thumb.src = p.thumbnail; thumb.style.display = 'block'; }
+    const des = document.getElementById('prevDesain'); document.getElementById('inputDesain').value = ''; hapusDesainFlag = false;
+    if (p.desain) { des.src = p.desain; des.style.display = 'block'; } else { des.src = ''; des.style.display = 'none'; }
 
     const details = p.details || [];
     [0,1,2,3,4].forEach(i => {
@@ -644,6 +650,10 @@ window.saveProdukData = async () => {
         let thumbnailURL = editingProdukId ? (allProduk.find(x => x.id === editingProdukId)?.thumbnail || '') : '';
         const thumbFile = document.getElementById('inputThumb').files[0];
         if (thumbFile) thumbnailURL = await uploadGambar(thumbFile, 'produk');
+
+        let desainURL = editingProdukId ? (allProduk.find(x => x.id === editingProdukId)?.desain || '') : '';
+        const desainFile = document.getElementById('inputDesain').files[0];
+        if (desainFile) { const u = await uploadGambar(desainFile, 'produk'); if (u) desainURL = u; } else if (hapusDesainFlag) desainURL = '';
 
         const details = [];
         const existing = editingProdukId ? (allProduk.find(x => x.id === editingProdukId)?.details || []) : [];
@@ -670,6 +680,7 @@ window.saveProdukData = async () => {
             dpAllowed: document.getElementById('pDP').value,
             kodePrefix: bersihkanPrefix(document.getElementById('pKode').value),
             thumbnail: thumbnailURL,
+            desain: desainURL,
             details
         };
 
