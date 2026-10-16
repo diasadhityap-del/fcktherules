@@ -34,14 +34,18 @@ export function itemsOrder(o) {
     if (Array.isArray(o.produk)) {
         return o.produk.map(p => ({
             nama: String(p?.nama ?? '').trim(), warna: String(p?.warna ?? '').trim(),
-            size: String(p?.size ?? '').trim(), qty: qtyOf(p), harga: angka(p?.harga)
+            size: String(p?.size ?? '').trim(), qty: qtyOf(p), harga: angka(p?.harga),
+            tambahan: String(p?.tambahan ?? '').trim()
         }));
     }
     return [{
         nama: String(o.produk ?? o.produkText ?? '').trim(), warna: String(o.warna ?? '').trim(),
-        size: String(o.size ?? '').trim(), qty: qtyOf(o), harga: angka(o.hargaKaos)
+        size: String(o.size ?? '').trim(), qty: qtyOf(o), harga: angka(o.hargaKaos),
+        tambahan: String(o.tambahan ?? '').trim()
     }];
 }
+// "Lengan panjang, Bundling syal" -> ['Lengan panjang', 'Bundling syal']
+export const daftarTambahan = t => String(t ?? '').split(',').map(x => x.trim()).filter(Boolean);
 export const totalPcsOrder = o => itemsOrder(o).reduce((s, i) => s + i.qty, 0);
 
 export const statusKirimOf = o => (STATUS_KIRIM[o.statusKirim] ? o.statusKirim : (o.resi ? 'dikirim' : 'belum'));
@@ -68,8 +72,9 @@ export function namaBarangText(o) {
     const g = new Map();
     itemsOrder(o).forEach(i => {
         if (!i.nama) return;
-        const k = normKey(i.nama);
-        g.set(k, { nama: i.nama, qty: (g.get(k)?.qty || 0) + i.qty });
+        const label = i.nama + (i.tambahan ? ` (+${i.tambahan})` : '');
+        const k = normKey(label);
+        g.set(k, { nama: label, qty: (g.get(k)?.qty || 0) + i.qty });
     });
     return [...g.values()].map(v => v.nama + (v.qty > 1 ? ' x' + v.qty : '')).join(', ');
 }
@@ -151,7 +156,7 @@ export function hitungRekap(orders, produkList, namaProduk, opt = {}) {
         String(def.warna || '').split('/').forEach(w => tambah(warnaMap, w, false));
         String(def.stok || '').split('/').forEach(s => tambah(sizeMap, s, false));
     }
-    const mx = {}, perColor = {}, perSize = {}, rows = [], orderSet = new Set();
+    const mx = {}, perColor = {}, perSize = {}, rows = [], orderSet = new Set(), tambahMap = new Map();
     let totalPcs = 0, pendingTidakDihitung = 0, batalDiabaikan = 0;
 
     (orders || []).forEach(o => {
@@ -170,7 +175,16 @@ export function hitungRekap(orders, produkList, namaProduk, opt = {}) {
             perColor[wk] = (perColor[wk] || 0) + i.qty;
             perSize[sk] = (perSize[sk] || 0) + i.qty;
             totalPcs += i.qty;
-            rows.push({ docId: o.id, idx, nama: String(o.nama || '').trim(), warna: i.warna, size: i.size, qty: i.qty, wk, sk, o });
+            daftarTambahan(i.tambahan).forEach(t => {
+                const tk = normKey(t);
+                const e = tambahMap.get(tk) || { nama: t, qty: 0, ps: {}, pc: {} };
+                e.qty += i.qty;
+                e.ps[sk] = (e.ps[sk] || 0) + i.qty;
+                e.pc[wk] = e.pc[wk] || {};
+                e.pc[wk][sk] = (e.pc[wk][sk] || 0) + i.qty;
+                tambahMap.set(tk, e);
+            });
+            rows.push({ docId: o.id, idx, nama: String(o.nama || '').trim(), warna: i.warna, size: i.size, qty: i.qty, tambahan: i.tambahan, wk, sk, o });
         });
     });
 
@@ -181,6 +195,14 @@ export function hitungRekap(orders, produkList, namaProduk, opt = {}) {
         || String(a.docId).localeCompare(String(b.docId)) || (a.idx - b.idx));
     return {
         nama: namaProduk, def, colors, sizes, mx, perColor, perSize, rows, totalPcs,
+        tambahan: [...tambahMap.values()].map(t => {
+            const dA = (def && Array.isArray(def.tambahan) ? def.tambahan : []).find(a => normKey(a.nama) === normKey(t.nama));
+            return {
+                nama: t.nama, qty: t.qty, perUkuran: !!(dA && dA.perUkuran),
+                perSize: sizes.filter(s => t.ps[s.key]).map(s => ({ label: s.label, qty: t.ps[s.key] })),
+                perColor: colors.filter(c => t.pc[c.key]).map(c => ({ label: c.label, sizes: sizes.filter(s => t.pc[c.key][s.key]).map(s => ({ label: s.label, qty: t.pc[c.key][s.key] })) }))
+            };
+        }).sort((a, b) => (b.perUkuran - a.perUkuran) || b.qty - a.qty || a.nama.localeCompare(b.nama, 'id')),
         totalOrder: orderSet.size, pendingTidakDihitung, batalDiabaikan,
         adaExtra: colors.some(c => c.extra) || sizes.some(s => s.extra)
     };
@@ -195,6 +217,16 @@ export function teksRekap(r) {
     });
     out.push('TOTAL PER SIZE');
     r.sizes.forEach(s => out.push(`${s.label} : ${r.perSize[s.key] || 0} pcs`));
+    if (r.tambahan && r.tambahan.length) {
+        out.push('', 'TAMBAHAN');
+        r.tambahan.forEach(t => {
+            out.push(`${t.nama} : ${t.qty} pcs`);
+            if (t.perUkuran) {
+                out.push('  Per size: ' + t.perSize.map(s => `${s.label} ${s.qty}`).join(', '));
+                t.perColor.forEach(c => out.push(`  ${c.label}: ` + c.sizes.map(s => `${s.label} ${s.qty}`).join(', ')));
+            }
+        });
+    }
     out.push('', `TOTAL KESELURUHAN: ${r.totalPcs} PCS`);
     return out.join('\n');
 }
@@ -260,7 +292,7 @@ export function initRekapKirim(deps) {
         }));
     }
     function ringkasItems(o) {
-        return itemsOrder(o).map(i => `${esc(i.nama)} — ${esc(i.warna || '-')} / ${esc(String(i.size || '-').toUpperCase())}${i.qty > 1 ? ' ×' + i.qty : ''}`).join('<br>');
+        return itemsOrder(o).map(i => `${esc(i.nama)} — ${esc(i.warna || '-')} / ${esc(String(i.size || '-').toUpperCase())}${i.qty > 1 ? ' ×' + i.qty : ''}${i.tambahan ? ' <b class="rk-add">+ ' + esc(i.tambahan) + '</b>' : ''}`).join('<br>');
     }
 
     /* ---------- clipboard ---------- */
@@ -397,6 +429,16 @@ export function initRekapKirim(deps) {
                     <div class="rk-line rk-total"><span>Total ${esc(titleCase(c.label))}:</span><b>${r.perColor[c.key] || 0} pcs</b></div>
                 </div>`).join('')}
             </div>
+            ${r.tambahan && r.tambahan.length ? `
+            <div class="rk-sub">TAMBAHAN</div>
+            ${r.tambahan.filter(t => t.perUkuran).map(t => `
+            <div class="rk-color">
+                <div class="rk-color-name">${esc(t.nama)} — ${t.qty} pcs (per ukuran)</div>
+                ${t.perSize.map(s => `<div class="rk-line"><span>${esc(s.label)} :</span><b>${s.qty} pcs</b></div>`).join('')}
+                <div class="rk-line rk-total"><span>Per warna:</span><b></b></div>
+                ${t.perColor.map(c => `<div class="rk-line"><span>${esc(c.label)}</span><b>${c.sizes.map(s => esc(s.label) + ' ' + s.qty).join(', ')}</b></div>`).join('')}
+            </div>`).join('')}
+            ${r.tambahan.some(t => !t.perUkuran) ? `<div class="rk-chips">${r.tambahan.filter(t => !t.perUkuran).map(t => `<span class="rk-chip">${esc(t.nama)}: <b>${t.qty}</b> pcs</span>`).join('')}</div>` : ''}` : ''}
             <div class="rk-line rk-total rk-grand"><span>TOTAL KESELURUHAN</span><b>${r.totalPcs} PCS</b></div>
             ${notes.map(n => `<div class="rk-note">${esc(n)}</div>`).join('')}
         </div>`;
@@ -426,7 +468,7 @@ export function initRekapKirim(deps) {
         const multi = r.produk === SEMUA;
         list.innerHTML = rows.map(x => `
             <div class="rk-row" data-act="row-rekap" data-id="${esc(x.docId)}">
-                <div class="rk-row-main"><b>${esc(x.nama || '(tanpa nama)')}</b> — ${esc(x.warna || '-')} — ${esc(String(x.size || '-').toUpperCase())}${x.qty > 1 ? `<span class="rk-qty">×${x.qty}</span>` : ''}</div>
+                <div class="rk-row-main"><b>${esc(x.nama || '(tanpa nama)')}</b> — ${esc(x.warna || '-')} — ${esc(String(x.size || '-').toUpperCase())}${x.qty > 1 ? `<span class="rk-qty">×${x.qty}</span>` : ''}${x.tambahan ? ` <span class="rk-add">+ ${esc(x.tambahan)}</span>` : ''}</div>
                 <div class="rk-row-sub">${esc(idOf(x.o))} · <span class="status-badge ${classBayar(x.o)}">${labelBayar(x.o)}</span>${multi ? ' · ' + esc(x.produk) : ''}</div>
             </div>`).join('');
     }

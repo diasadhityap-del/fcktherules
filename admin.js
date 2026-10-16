@@ -768,7 +768,7 @@ window.editProduk = (id) => {
     document.getElementById('pStatus').value = p.status || '';
     document.getElementById('pWarna').value = p.warna || '';
     document.getElementById('pStok').value = p.stok || '';
-    document.getElementById('pTambahan').value = (Array.isArray(p.tambahan) ? p.tambahan : []).map(t => `${t.nama} | ${t.harga}`).join('\n');
+    document.getElementById('pTambahan').value = (Array.isArray(p.tambahan) ? p.tambahan : []).map(t => `${t.nama} | ${t.harga}${t.perUkuran ? ' | ukuran' : ''}`).join('\n');
     document.getElementById('pSpecs').value = p.specs || '';
     document.getElementById('pShowcase').value = p.showcase || 'yes';
     document.getElementById('pDP').value = p.dpAllowed || 'yes';
@@ -790,24 +790,27 @@ window.editProduk = (id) => {
     document.getElementById('modalProduk').classList.add('show');
 };
 
-// "Lengan panjang | 15000" per baris -> [{nama, harga}] ; null kalau ada baris yang formatnya salah
+// "Lengan panjang | 15000 | ukuran" per baris -> [{nama, harga, perUkuran}] ; null kalau ada baris yang formatnya salah
+// Kolom ke-3 opsional: tulis "ukuran" kalau tambahan ini perlu direkap per ukuran (mis. lengan panjang). Syal/bundling: kosongkan.
 function parseTambahan(txt) {
     const out = [];
     for (const baris of String(txt || '').split('\n')) {
         const b = baris.trim();
         if (!b) continue;
-        const i = b.lastIndexOf('|');
-        const nama = (i >= 0 ? b.slice(0, i) : b).trim();
-        const harga = i >= 0 ? Number(b.slice(i + 1).replace(/\D/g, '')) : NaN;
-        if (!nama || !Number.isFinite(harga) || harga < 0 || i < 0) return null;
-        out.push({ nama, harga });
+        const p = b.split('|').map(x => x.trim());
+        const nama = (p[0] || '').replace(/,/g, ' ').replace(/\s{2,}/g, ' ').trim();   // tanpa koma: di order, tambahan dipisah koma
+        const harga = p.length > 1 ? Number(p[1].replace(/\D/g, '')) : NaN;
+        if (!nama || p.length < 2 || !p[1] || !Number.isFinite(harga) || harga < 0) return null;
+        const flag = (p[2] || '').toLowerCase();
+        if (p[2] && !/^(ukuran|size|per ?ukuran|per ?size)$/.test(flag)) return null;
+        out.push({ nama, harga, perUkuran: !!p[2] });
     }
     return out;
 }
 
 window.saveProdukData = async () => {
     const tambahan = parseTambahan(document.getElementById('pTambahan').value);
-    if (tambahan === null) return showToast('FORMAT TAMBAHAN: Nama | harga (satu per baris)', true);
+    if (tambahan === null) return showToast('FORMAT TAMBAHAN: Nama | harga  atau  Nama | harga | ukuran', true);
     if (document.getElementById('pBadge').value === 'pre' && !bersihkanPrefix(document.getElementById('pKode').value)) {
         return showToast('KODE AWAL ID ORDER WAJIB DIISI UNTUK PRE ORDER', true);
     }
@@ -1524,7 +1527,7 @@ window.tutupPo = async (pid, closed) => {
 // Memakai data allOrders/allProduk yang sama dengan tab ORDER. Penulisan: statusKirim (field baru, hanya admin lewat rules orders update)
 // dan resi lewat adminSimpanResi() yang sudah ada (order + Pantau/Cek Resi).
 // Dimuat dengan import() dinamis: bila file ini gagal dimuat, fitur admin lama tetap berjalan normal.
-import('./admin-kirim.js?v=20261016').then(({ initRekapKirim }) => {
+import('./admin-kirim.js?v=20261023').then(({ initRekapKirim }) => {
     rk = initRekapKirim({
         getOrders: () => allOrders,
         getProduk: () => allProduk,

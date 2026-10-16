@@ -623,3 +623,6 @@ body[data-tab="pelanggan"] { --tab-bg: #e5f6d6; --tab-accent: #b4ea8f; } /* hija
 .stok-foot small { flex: 1; min-width: 180px; color: var(--muted); font-family: var(--font-fun); font-size: 17px; line-height: 1.2; }
 .stok-foot .btn-sm { flex: none; }
 .stok-dirty { font-family: var(--font-fun); font-size: 17px; color: var(--pop); font-weight: 700; }
+
+/* tambahan opsional di Rekap / Pengiriman */
+.rk-add { color: var(--pop); font-weight: 700; }
