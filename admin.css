@@ -577,6 +577,7 @@ body[data-tab="kirim"]   { --tab-bg: #d9f2fc; --tab-accent: #86d6f2; }   /* biru
 body[data-tab="lacak"]   { --tab-bg: #fff3c4; --tab-accent: #ffd51e; }   /* kuning */
 body[data-tab="produk"]  { --tab-bg: #ffe5dc; --tab-accent: #ffb59e; }   /* peach */
 body[data-tab="aksesoris"] { --tab-bg: #e9f7d0; --tab-accent: #b9e86a; } /* lime */
+body[data-tab="tata"]   { --tab-bg: #dff1ff; --tab-accent: #8fc8ff; }   /* biru langit */
 body[data-tab="voucher"] { --tab-bg: #ffecd0; --tab-accent: #ffc980; }   /* apricot */
 body[data-tab="galeri"]  { --tab-bg: #ffe0f0; --tab-accent: #ff9fcf; }   /* pink */
 body[data-tab="banner"]  { --tab-bg: #e7e5ff; --tab-accent: #b7b2ff; }   /* periwinkle */
@@ -652,3 +653,21 @@ body[data-tab="pelanggan"] { --tab-bg: #e5f6d6; --tab-accent: #b4ea8f; } /* hija
 .stok-aks-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .stok-aks-row .stok-in { width: 110px; flex: none; }
 .stok-aks-row small { flex: 1 1 160px; opacity: .75; }
+
+/* ===== Tata Letak ===== */
+.tl-chips { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 12px; }
+.tl-chip { padding:9px 16px; border-radius:999px; border:2px solid #141414; background:#fff; font-weight:700; font-size:13px; cursor:pointer; }
+.tl-chip.on { background:var(--tab-accent); box-shadow:0 3px 0 #141414; }
+.tl-chip small { opacity:.6; font-weight:600; margin-left:4px; }
+.tl-info { font-size:12.5px; opacity:.75; line-height:1.5; margin-bottom:12px; }
+.tl-row { display:flex; align-items:center; gap:10px; background:#fff; border:2px solid #141414; border-radius:16px; padding:8px 10px; margin-bottom:8px; }
+.tl-row.baru { background:#fffbe0; }
+.tl-no { width:26px; text-align:center; font-weight:800; font-size:14px; flex:none; }
+.tl-row img { width:52px; height:52px; border-radius:10px; object-fit:cover; background:#eee; flex:none; }
+.tl-nm { flex:1; min-width:0; }
+.tl-nm b { display:block; font-size:14px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.tl-nm span { font-size:11px; opacity:.65; }
+.tl-btns { display:flex; gap:6px; flex:none; }
+.tl-btns .btn-icon { width:36px; height:36px; }
+.tl-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+.tl-actions button { flex:1 1 180px; }

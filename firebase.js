@@ -516,6 +516,14 @@ export function listenBannerText(cb) {
 }
 export async function saveBannerText(data) { await setDoc(doc(adminDb, "settings", "bannerText"), data); }
 
+/* ============== TATA LETAK (urutan kartu per halaman) ==============
+   Dokumen settings/tataLetak: { home:[id...], preorder:[id...], katalog:[id...], arsip:[id...] }  (id produk ATAU aksesoris)
+   Item yang belum tercantum (mis. baru ditambah) tampil paling atas; sisanya mengikuti urutan di array. */
+export function listenTataLetak(cb) {
+    return onSnapshot(doc(db, "settings", "tataLetak"), d => cb(d.exists() ? d.data() : {}), () => cb({}));
+}
+export async function saveTataLetak(data) { await setDoc(doc(adminDb, "settings", "tataLetak"), { ...data, updatedAt: new Date().toISOString() }); return true; }
+
 /* ============== VOUCHER ============== */
 export async function saveVoucher(data) { await addDoc(collection(adminDb, "vouchers"), { ...data, createdAt: new Date().toISOString() }); return true; }
 export async function deleteVoucher(id) { await deleteDoc(doc(adminDb, "vouchers", id)); return true; }

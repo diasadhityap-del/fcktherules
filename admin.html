@@ -63,6 +63,9 @@
         <div class="nav-item" id="nav-aksesoris" onclick="switchTab('aksesoris')">
             <i class="fas fa-glasses"></i> Aksesoris
         </div>
+        <div class="nav-item" id="nav-tata" onclick="switchTab('tata')">
+            <i class="fas fa-arrows-up-down"></i> Tata Letak
+        </div>
         <div class="nav-item" id="nav-stok" onclick="switchTab('stok')">
             <i class="fas fa-cubes"></i> Stok<span class="nav-badge" id="badgeStok"></span>
         </div>
@@ -212,6 +215,23 @@
             </div>
         </div>
 
+        <!-- TAB TATA LETAK -->
+        <div class="tab-content" id="tab-tata">
+            <div class="header-row">
+                <div>
+                    <div class="page-title">Tata Letak</div>
+                    <div class="page-desc">Susun urutan kartu produk &amp; aksesoris di web utama, per halaman. Item baru otomatis muncul paling atas sampai kamu menyusunnya.</div>
+                </div>
+            </div>
+            <div class="tl-chips" id="tlChips"></div>
+            <div id="tlInfo" class="tl-info"></div>
+            <div id="tlList"></div>
+            <div class="tl-actions">
+                <button class="btn-save" id="btnSimpanTL" onclick="simpanTL()">SIMPAN URUTAN</button>
+                <button class="btn-cancel" onclick="resetTL()">RESET KE URUTAN BAWAAN</button>
+            </div>
+        </div>
+
         <!-- TAB GALERI -->
         <div class="tab-content" id="tab-galeri">
             <div class="header-row">
@@ -307,6 +327,9 @@
         </div>
         <div class="mob-nav-item" id="mob-aksesoris" onclick="switchTab('aksesoris')">
             <i class="fas fa-glasses"></i> Aksesoris
+        </div>
+        <div class="mob-nav-item" id="mob-tata" onclick="switchTab('tata')">
+            <i class="fas fa-arrows-up-down"></i> Tata Letak
         </div>
         <div class="mob-nav-item" id="mob-galeri" onclick="switchTab('galeri')">
             <i class="fas fa-images"></i> Galeri
@@ -674,6 +697,6 @@
     </div>
 </div>
 
-<script type="module" src="admin.js?v=20261032"></script>
+<script type="module" src="admin.js?v=20261033"></script>
 </body>
 </html>

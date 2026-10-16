@@ -9,14 +9,15 @@ import {
     listenPelunasan, adminSimpanResi, adminKodeLacakAda, adminEditHarga, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
     listenPoTrack, adminTutupPo, adminHapusLacak,
     listenStok, stokId, adminSimpanStok, adminSesuaikanStok,
+    listenTataLetak, saveTataLetak,
     getAksesoris, saveAksesoris, updateAksesoris, deleteAksesoris, adminSimpanStokAks, stokIdAks,
     adminBackfillOrder, turunanPO, tsMillis,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js?v=20261030';
+} from './firebase.js?v=20261032';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js?v=20261030";
+import { adminDb } from "./firebase.js?v=20261032";
 
 let allOrders = [];
 let allProduk = [];
@@ -59,6 +60,7 @@ onAuthStateChanged(adminAuth, async (user) => {
         autoSinkron();
         listenPelunasan(data => { allPelunasan = data; renderOrders(); });
         listenPoTrack(data => { allPoTrack = data; renderPoAdmin(); });
+        listenTataLetak(d => { tlStored = d || {}; renderTL(); });
         listenStok(data => { stokDocs = Object.fromEntries(data.map(d => [d.id, d])); renderStok(); renderStokAks(); renderAksesoris(); });
     } else {
         document.getElementById('loginPage').style.display = 'flex';
@@ -699,6 +701,7 @@ async function loadProduk() {
     renderProduk();
     renderPoAdmin();
     renderStok();
+    renderTL();
     if (rk) rk.refresh();
 }
 
@@ -937,7 +940,7 @@ async function loadAksesoris() {
         allAks = [];
         showToast('AKSESORIS GAGAL DIMUAT: ' + errMsg(e) + ' (sudah publish firestore.rules terbaru?)', true);
     }
-    renderAksesoris(); renderPoAdmin(); renderStokAks();
+    renderAksesoris(); renderPoAdmin(); renderStokAks(); renderTL();
 }
 function chipStokAks(p) {
     if (p.badge === 'pre') return '';
@@ -1827,3 +1830,73 @@ import('./admin-kirim.js?v=20261025').then(({ initRekapKirim }) => {
     });
     rk.refresh();
 }).catch(e => console.error('Modul Rekap/Pengiriman gagal dimuat:', e));
+
+
+// ===== TATA LETAK (urutan kartu di web utama) =====
+// Disimpan di settings/tataLetak: { home, preorder, katalog, arsip } = daftar id (produk & aksesoris campur).
+// Item yang belum tercantum tampil paling atas (supaya produk baru langsung kelihatan).
+const TL_SEC = { home: 'Beranda', preorder: 'Pre Order', katalog: 'Katalog', arsip: 'Arsip' };
+let tlStored = {}, tlDraft = {}, tlSec = 'home';
+function tlItems(key) {
+    const all = [...allProduk.map(p => ({ ...p, _t: 'Produk' })), ...allAks.map(p => ({ ...p, _t: 'Aksesoris' }))]
+        .sort((a, b) => (b.order || 0) - (a.order || 0));
+    return all.filter(p => key === 'home' ? (p.showcase || 'no') === 'yes'
+        : key === 'preorder' ? p.badge === 'pre' : key === 'katalog' ? p.badge === 'ready' : p.badge === 'sold');
+}
+function tlEfektif(key) {
+    const items = tlItems(key);
+    const ids = tlDraft[key] || (Array.isArray(tlStored[key]) ? tlStored[key] : []);
+    const pos = new Map(ids.map((id, i) => [id, i]));
+    const baru = items.filter(p => !pos.has(p.id));
+    const lama = items.filter(p => pos.has(p.id)).sort((a, b) => pos.get(a.id) - pos.get(b.id));
+    return { list: [...baru, ...lama], baru: new Set(baru.map(p => p.id)), adaLayout: ids.length > 0 };
+}
+function renderTL() {
+    const chips = document.getElementById('tlChips'), list = document.getElementById('tlList');
+    if (!chips || !list) return;
+    chips.innerHTML = Object.entries(TL_SEC).map(([k, n]) => `<div class="tl-chip ${k === tlSec ? 'on' : ''}" onclick="setTLSection('${k}')">${n}<small>${tlItems(k).length}${tlDraft[k] ? ' •' : ''}</small></div>`).join('');
+    const { list: items, baru, adaLayout } = tlEfektif(tlSec);
+    document.getElementById('tlInfo').innerHTML = (tlSec === 'home' ? 'Beranda hanya berisi item dengan <b>Tampilkan di beranda = Ya</b>. ' : '') +
+        (tlDraft[tlSec] ? '<b>Ada perubahan belum disimpan.</b>' : (adaLayout ? 'Urutan khusus aktif.' : 'Belum disusun: memakai urutan bawaan (terbaru di atas).'));
+    if (!items.length) { list.innerHTML = '<div class="empty"><i class="fas fa-arrows-up-down"></i><p>Belum ada item di halaman ini</p></div>'; return; }
+    list.innerHTML = items.map((p, i) => `
+        <div class="tl-row ${baru.has(p.id) && adaLayout ? 'baru' : ''}">
+            <div class="tl-no">${i + 1}</div>
+            <img src="${esc(p.thumbnail || '')}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div class="tl-nm"><b>${esc(p.nama)}</b><span>${p._t} · ${esc(p.status || p.badge || '')}${baru.has(p.id) && adaLayout ? ' · baru (di atas)' : ''}</span></div>
+            <div class="tl-btns">
+                <div class="btn-icon" title="Paling atas" onclick="tlMove('${p.id}','top')">⤒</div>
+                <div class="btn-icon" title="Naik" onclick="tlMove('${p.id}','up')">↑</div>
+                <div class="btn-icon" title="Turun" onclick="tlMove('${p.id}','down')">↓</div>
+            </div>
+        </div>`).join('');
+}
+window.setTLSection = k => { tlSec = k; renderTL(); };
+window.tlMove = (id, dir) => {
+    const ids = tlEfektif(tlSec).list.map(p => p.id);
+    const i = ids.indexOf(id); if (i < 0) return;
+    if (dir === 'top') { ids.splice(i, 1); ids.unshift(id); }
+    else { const j = dir === 'up' ? i - 1 : i + 1; if (j < 0 || j >= ids.length) return; [ids[i], ids[j]] = [ids[j], ids[i]]; }
+    tlDraft[tlSec] = ids; renderTL();
+};
+window.simpanTL = async () => {
+    if (!Object.keys(tlDraft).length) return showToast('BELUM ADA PERUBAHAN');
+    const btn = document.getElementById('btnSimpanTL'); btn.disabled = true; btn.innerText = 'MENYIMPAN...';
+    try {
+        const data = {}; Object.keys(TL_SEC).forEach(k => { if (Array.isArray(tlStored[k])) data[k] = tlStored[k]; });
+        Object.assign(data, tlDraft);
+        await saveTataLetak(data);
+        tlStored = data; tlDraft = {}; renderTL();
+        showToast('TATA LETAK TERSIMPAN ✓');
+    } catch (e) { console.error(e); showToast('GAGAL SIMPAN: ' + errMsg(e), true); }
+    btn.disabled = false; btn.innerText = 'SIMPAN URUTAN';
+};
+window.resetTL = async () => {
+    if (!confirm('Kembalikan halaman "' + TL_SEC[tlSec] + '" ke urutan bawaan (terbaru di atas)?')) return;
+    try {
+        const data = {}; Object.keys(TL_SEC).forEach(k => { if (Array.isArray(tlStored[k])) data[k] = tlStored[k]; });
+        data[tlSec] = []; delete tlDraft[tlSec];
+        await saveTataLetak(data); tlStored = data; renderTL();
+        showToast('URUTAN DIRESET ✓');
+    } catch (e) { console.error(e); showToast('GAGAL RESET: ' + errMsg(e), true); }
+};

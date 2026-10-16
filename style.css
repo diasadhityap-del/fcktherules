@@ -1365,3 +1365,7 @@ label.upload:hover { background:#fff; border-color:var(--ink); }
 .option-box.addon-box div { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; letter-spacing: 0; }
 .option-box.addon-box div b { font-weight: 700; white-space: nowrap; opacity: .75; }
 .option-box.addon-box div.active b { opacity: 1; }
+
+/* aksesoris: foto utuh (tidak dipotong), mis. syal tinggi / PNG transparan */
+.card-acc .card-media img { object-fit: contain; padding: 8px; box-sizing: border-box; }
+.card-acc:hover .card-media img { transform: scale(1.02); }
