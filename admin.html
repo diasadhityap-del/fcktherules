@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="admin.css?v=20261025">
+    <link rel="stylesheet" href="admin.css?v=20261030">
 </head>
 <body data-tab="order">
 
@@ -59,6 +59,9 @@
         <div class="nav-group">Toko</div>
         <div class="nav-item" id="nav-produk" onclick="switchTab('produk')">
             <i class="fas fa-tshirt"></i> Produk
+        </div>
+        <div class="nav-item" id="nav-aksesoris" onclick="switchTab('aksesoris')">
+            <i class="fas fa-glasses"></i> Aksesoris
         </div>
         <div class="nav-item" id="nav-stok" onclick="switchTab('stok')">
             <i class="fas fa-cubes"></i> Stok<span class="nav-badge" id="badgeStok"></span>
@@ -178,6 +181,20 @@
             <div id="produkList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
         </div>
 
+        <!-- TAB AKSESORIS -->
+        <div class="tab-content" id="tab-aksesoris">
+            <div class="header-row">
+                <div>
+                    <div class="page-title">Aksesoris</div>
+                    <div class="page-desc">Pre Order, Ready &amp; Sold Out jadi satu di sini, sama seperti Produk tapi tanpa ukuran &amp; warna. Tampil di meja AKSESORIS di game.</div>
+                </div>
+                <button class="add-btn" onclick="openModalAksesoris()">
+                    <i class="fas fa-plus"></i> Tambah
+                </button>
+            </div>
+            <div id="aksesorisList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
+        </div>
+
         <!-- TAB STOK -->
         <div class="tab-content" id="tab-stok">
             <div class="header-row">
@@ -188,6 +205,11 @@
             </div>
             <div id="stokSummary" class="stok-summary"></div>
             <div id="stokList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
+            <div id="stokAksWrap" style="display:none">
+                <div class="page-title" style="font-size:26px;margin:26px 0 4px">Aksesoris</div>
+                <div class="page-desc" style="margin-bottom:14px">Jumlah stok per aksesoris (tanpa warna &amp; ukuran). Kosong = tidak dibatasi, 0 = habis.</div>
+                <div id="stokAksList"></div>
+            </div>
         </div>
 
         <!-- TAB GALERI -->
@@ -282,6 +304,9 @@
         </div>
         <div class="mob-nav-item" id="mob-produk" onclick="switchTab('produk')">
             <i class="fas fa-tshirt"></i> Produk
+        </div>
+        <div class="mob-nav-item" id="mob-aksesoris" onclick="switchTab('aksesoris')">
+            <i class="fas fa-glasses"></i> Aksesoris
         </div>
         <div class="mob-nav-item" id="mob-galeri" onclick="switchTab('galeri')">
             <i class="fas fa-images"></i> Galeri
@@ -431,6 +456,102 @@
     </div>
 </div>
 
+<!-- MODAL AKSESORIS -->
+<div class="modal-bg" id="modalAksesoris">
+    <div class="modal-box">
+        <div class="modal-title" id="modalAksesorisTitle">TAMBAH AKSESORIS</div>
+        <div class="form-section-title" style="margin-top:0">Informasi dasar</div>
+        <div class="form-group">
+            <label>NAMA AKSESORIS</label>
+            <input type="text" id="akNama" placeholder="Topi, Syal, Gantungan Kunci...">
+        </div>
+        <div class="form-group" id="akKodeWrap">
+            <label>KODE AWAL ID ORDER</label>
+            <input type="text" id="akKode" maxlength="8" placeholder="mis. FVCK" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+            <small style="font-size:12px; display:block; margin-top:6px;">Order baru jadi <b id="akKodeContoh">FVCK</b>-XXXXXX. Wajib untuk aksesoris Pre Order. Mengubahnya hanya berlaku untuk order baru; ID order lama tidak berubah.</small>
+        </div>
+        <div class="form-group">
+            <label>HARGA (tanpa titik)</label>
+            <input type="number" id="akHarga" inputmode="numeric" placeholder="50000">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>STATUS BADGE</label>
+                <select id="akBadge" onchange="toggleAksesorisForm()">
+                    <option value="pre">PRE ORDER</option>
+                    <option value="ready">READY</option>
+                    <option value="sold">SOLD OUT</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>LABEL STATUS (teks di badge)</label>
+                <input type="text" id="akStatus" placeholder="PRE ORDER / READY / SOLD OUT">
+            </div>
+        </div>
+        <div class="form-group" id="akStokWrap" style="display:none">
+            <label>STOK READY (jumlah)</label>
+            <input type="number" id="akStok" inputmode="numeric" min="0" step="1" placeholder="mis. 25">
+            <small style="font-size:12px; display:block; margin-top:6px;">Berkurang otomatis tiap ada order, dan kembali kalau order ditolak. Kosongkan = stok tidak dibatasi. 0 = habis. Bisa diubah kapan saja di menu Stok.</small>
+        </div>
+        <div class="form-group">
+            <label>SPESIFIKASI</label>
+            <textarea id="akSpecs" rows="3" placeholder="Bahan: ...&#10;Ukuran: ..."></textarea>
+        </div>
+        <div class="form-section-title">Pengaturan</div>
+        <div class="form-group">
+            <label>BISA DP?</label>
+            <select id="akDP" onchange="toggleAksesorisForm()">
+                <option value="yes">Bisa DP</option>
+                <option value="no">Tidak Bisa DP</option>
+            </select>
+        </div>
+        <div class="form-section-title">Foto</div>
+        <div class="form-group">
+            <label>FOTO THUMBNAIL</label>
+            <div class="img-slot" onclick="document.getElementById('inputAkThumb').click()" style="width:120px; height:120px;">
+                <i class="fas fa-plus"></i>
+                <img id="prevAkThumb" src="" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
+                <input type="file" id="inputAkThumb" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevAkThumb')">
+            </div>
+            <small style="display:block;margin-top:6px;opacity:.7;line-height:1.5">Foto ini juga dipajang di meja AKSESORIS di game.</small>
+        </div>
+        <div class="form-group">
+            <label>FOTO DETAIL (maks 5)</label>
+            <div class="img-upload-grid">
+                <div class="img-slot" onclick="document.getElementById('inputAkDet0').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevAkDet0" src="">
+                    <input type="file" id="inputAkDet0" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevAkDet0')">
+                </div>
+                <div class="img-slot" onclick="document.getElementById('inputAkDet1').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevAkDet1" src="">
+                    <input type="file" id="inputAkDet1" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevAkDet1')">
+                </div>
+                <div class="img-slot" onclick="document.getElementById('inputAkDet2').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevAkDet2" src="">
+                    <input type="file" id="inputAkDet2" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevAkDet2')">
+                </div>
+                <div class="img-slot" onclick="document.getElementById('inputAkDet3').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevAkDet3" src="">
+                    <input type="file" id="inputAkDet3" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevAkDet3')">
+                </div>
+                <div class="img-slot" onclick="document.getElementById('inputAkDet4').click()">
+                    <i class="fas fa-plus"></i>
+                    <img id="prevAkDet4" src="">
+                    <input type="file" id="inputAkDet4" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevAkDet4')">
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModalAksesoris()">BATAL</button>
+            <button class="btn-save" id="btnSaveAksesoris" onclick="saveAksesorisData()">SIMPAN</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL DETAIL ORDER (Rekap & Pengiriman) -->
 <div class="modal-bg" id="modalRkDetail">
     <div class="modal-box rk-modal"><div id="rkDetailBody"></div></div>
@@ -527,6 +648,6 @@
     </div>
 </div>
 
-<script type="module" src="admin.js?v=20261025"></script>
+<script type="module" src="admin.js?v=20261030"></script>
 </body>
 </html>

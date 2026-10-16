@@ -576,6 +576,7 @@ body[data-tab="rekap"]   { --tab-bg: #dcf8e9; --tab-accent: #5be39a; }   /* mint
 body[data-tab="kirim"]   { --tab-bg: #d9f2fc; --tab-accent: #86d6f2; }   /* biru muda */
 body[data-tab="lacak"]   { --tab-bg: #fff3c4; --tab-accent: #ffd51e; }   /* kuning */
 body[data-tab="produk"]  { --tab-bg: #ffe5dc; --tab-accent: #ffb59e; }   /* peach */
+body[data-tab="aksesoris"] { --tab-bg: #e9f7d0; --tab-accent: #b9e86a; } /* lime */
 body[data-tab="voucher"] { --tab-bg: #ffecd0; --tab-accent: #ffc980; }   /* apricot */
 body[data-tab="galeri"]  { --tab-bg: #ffe0f0; --tab-accent: #ff9fcf; }   /* pink */
 body[data-tab="banner"]  { --tab-bg: #e7e5ff; --tab-accent: #b7b2ff; }   /* periwinkle */
@@ -645,3 +646,9 @@ body[data-tab="pelanggan"] { --tab-bg: #e5f6d6; --tab-accent: #b4ea8f; } /* hija
 .tb-pisah input { width: 22px; height: 22px; accent-color: var(--ink); flex: none; }
 .tb-del { grid-column: 3; grid-row: 1 / 3; align-self: stretch; border: 2px solid var(--ink); background: var(--rose); color: var(--red); border-radius: var(--r-sm); width: 44px; cursor: pointer; }
 .tb-add { width: 100%; padding: 11px; border: 2px dashed var(--ink); border-radius: var(--r-sm); background: #fff; font-weight: 700; cursor: pointer; }
+
+
+/* ===== Aksesoris: kartu stok (satu angka, tanpa warna & ukuran) ===== */
+.stok-aks-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.stok-aks-row .stok-in { width: 110px; flex: none; }
+.stok-aks-row small { flex: 1 1 160px; opacity: .75; }

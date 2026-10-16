@@ -39,6 +39,15 @@ service cloud.firestore {
     }
 
     // ============================================================
+    // AKSESORIS (koleksi terpisah dari produk, tanpa warna/ukuran)
+    // Stok aksesoris memakai koleksi "stok" yang sama (lihat di bawah).
+    // ============================================================
+    match /aksesoris/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
     // STOK VARIAN (per warna + ukuran) - 1 dokumen per varian
     // - Publik boleh read, dan HANYA boleh MENURUNKAN qty (potong stok saat checkout).
     // - Admin: create, update, delete (isi/ubah stok, kembalikan stok order yang ditolak)

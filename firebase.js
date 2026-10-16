@@ -448,6 +448,42 @@ export async function adminSesuaikanStok(o, statusBaru) {
     return hasil;
 }
 
+/* ============== AKSESORIS ==============
+   Koleksi "aksesoris": bentuk dokumen sama dengan produk, TANPA warna / ukuran / tambahan / desain.
+   Field: nama, harga, badge (pre/ready/sold), status, specs, dpAllowed, kodePrefix, poClosed, thumbnail, details[], order.
+   Stok aksesoris memakai koleksi "stok" yang sama dengan produk (1 dokumen per aksesoris):
+   ID = stokId(pid, '-', '-')  ->  { pid, warna:'-', size:'-', qty }.  Dengan begitu kurangiStok() (checkout) dan
+   adminSesuaikanStok() (order ditolak -> stok kembali) otomatis berlaku untuk aksesoris tanpa kode tambahan.
+   Aksesoris TANPA dokumen stok = tidak dibatasi (sama seperti produk). */
+export const AKS_VARIAN = '-';
+export const stokIdAks = (pid) => stokId(pid, AKS_VARIAN, AKS_VARIAN);
+export async function saveAksesoris(data) {
+    const ref = await addDoc(collection(adminDb, "aksesoris"), { ...data, createdAt: new Date().toISOString() });
+    return ref.id;
+}
+export async function getAksesoris() {
+    const q = query(collection(db, "aksesoris"), orderBy("createdAt", "desc"));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+export async function updateAksesoris(id, data) { await updateDoc(doc(adminDb, "aksesoris", id), data); return true; }
+export async function deleteAksesoris(id) {
+    await deleteDoc(doc(adminDb, "aksesoris", id));
+    try { await deleteDoc(doc(adminDb, "stok", stokIdAks(id))); } catch (e) { console.warn("hapus stok aksesoris:", e); }
+    return true;
+}
+export function listenAksesoris(cb, onErr) {
+    const q = query(collection(db, "aksesoris"), orderBy("order", "desc"));
+    return onSnapshot(q, s => cb(s.docs.map(d => ({ id: d.id, ...d.data() }))), err => { console.error("Gagal baca aksesoris:", err); if (onErr) onErr(err); });
+}
+// Admin: simpan stok aksesoris. qty = null -> stok tidak dibatasi (dokumen dihapus)
+export async function adminSimpanStokAks(pid, qty) {
+    const ref = doc(adminDb, "stok", stokIdAks(pid));
+    if (qty === null) await deleteDoc(ref);
+    else await setDoc(ref, { pid, warna: AKS_VARIAN, size: AKS_VARIAN, qty, updatedAt: new Date().toISOString() });
+    return true;
+}
+
 /* ============== GALERI ============== */
 export async function saveGaleri(url) {
     await addDoc(collection(adminDb, "galeri"), { url, order: Date.now(), createdAt: new Date().toISOString() });
@@ -740,8 +776,8 @@ export async function getPoUpdates(pids) {
 /* ----- Admin: "Selesaikan Artikel Pre Order" -----
    HANYA keterangan: menandai produk poClosed dan menambah update "Pre Order selesai" di timeline semua order artikel itu.
    Tidak memblokir pembelian di katalog (itu diatur lewat badge SOLD OUT). Order/payment/timeline lama tidak disentuh. */
-export async function adminTutupPo(produkId, nama, closed) {
-    await updateDoc(doc(adminDb, "produk", produkId), { poClosed: !!closed, poClosedAt: closed ? new Date().toISOString() : null });
+export async function adminTutupPo(produkId, nama, closed, koleksi = "produk") {
+    await updateDoc(doc(adminDb, koleksi === "aksesoris" ? "aksesoris" : "produk", produkId), { poClosed: !!closed, poClosedAt: closed ? new Date().toISOString() : null });
     const ref = doc(adminDb, "poUpdates", produkId, "items", "closed");
     if (closed) {
         if (!(await getDoc(ref)).exists()) await setDoc(ref, { pid: produkId, text: 'Pre Order selesai', type: 'automatic', kind: 'closed', createdAt: serverTimestamp() });

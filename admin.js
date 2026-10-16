@@ -9,16 +9,18 @@ import {
     listenPelunasan, adminSimpanResi, adminKodeLacakAda, adminEditHarga, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
     listenPoTrack, adminTutupPo, adminHapusLacak,
     listenStok, stokId, adminSimpanStok, adminSesuaikanStok,
+    getAksesoris, saveAksesoris, updateAksesoris, deleteAksesoris, adminSimpanStokAks, stokIdAks,
     adminBackfillOrder, turunanPO, tsMillis,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js?v=20261016';
+} from './firebase.js?v=20261030';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js?v=20261016";
+import { adminDb } from "./firebase.js?v=20261030";
 
 let allOrders = [];
 let allProduk = [];
+let allAks = [];              // aksesoris (koleksi terpisah dari produk)
 let allGaleri = [];
 let allBanners = [];
 let allVouchers = [];
@@ -34,6 +36,7 @@ let rk = null;                                                       // diisi in
 let currentFilter = 'semua';
 let currentProdukFilter = 'semua';
 let editingProdukId = null;
+let editingAksId = null;
 let editingBannerId = null;
 
 // ===== AUTH =====
@@ -47,6 +50,7 @@ onAuthStateChanged(adminAuth, async (user) => {
         await Promise.all([
             loadOrders(),
             loadProduk(),
+            loadAksesoris(),
             loadGaleri(),
             loadBanners(),
             loadVouchers()
@@ -55,7 +59,7 @@ onAuthStateChanged(adminAuth, async (user) => {
         autoSinkron();
         listenPelunasan(data => { allPelunasan = data; renderOrders(); });
         listenPoTrack(data => { allPoTrack = data; renderPoAdmin(); });
-        listenStok(data => { stokDocs = Object.fromEntries(data.map(d => [d.id, d])); renderStok(); });
+        listenStok(data => { stokDocs = Object.fromEntries(data.map(d => [d.id, d])); renderStok(); renderStokAks(); renderAksesoris(); });
     } else {
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('adminPage').style.display = 'none';
@@ -220,7 +224,7 @@ function orderCardHTML(o, pel) {
         ? o.produk.map(p => ({ nama: p.nama, warna: p.warna, size: p.size, tambahan: p.tambahan }))
         : [{ nama: o.produk, warna: o.warna, size: o.size, tambahan: o.tambahan }];
     const itemsHTML = items.map(p => `
-        <div class="oc-item"><b>${esc(p.nama)}</b><span>${esc(p.warna)} / ${esc(p.size)}</span>${p.tambahan ? `<div class="oc-add">+ ${esc(p.tambahan)}</div>` : ''}</div>`).join('');
+        <div class="oc-item"><b>${esc(p.nama)}</b><span>${(p.warna === '-' && p.size === '-') ? 'Aksesoris' : esc(p.warna) + ' / ' + esc(p.size)}</span>${p.tambahan ? `<div class="oc-add">+ ${esc(p.tambahan)}</div>` : ''}</div>`).join('');
 
     const voucherHTML = o.voucherKode ? `
         <div class="info-item warn">Voucher <span>${esc(o.voucherKode)}${o.voucherDeskripsi ? ' · ' + esc(o.voucherDeskripsi) : ''}</span></div>` : '';
@@ -503,7 +507,7 @@ async function autoSinkron() {
     await loadOrders();
     showToast(`${ok} ORDER LAMA DISINKRONKAN ✓`);
 }
-const syncCtx = () => ({ produkList: allProduk, poTrackMap: Object.fromEntries(allPoTrack.map(t => [t.id, t])) });
+const syncCtx = () => ({ produkList: allProduk.concat(allAks), poTrackMap: Object.fromEntries(allPoTrack.map(t => [t.id, t])) });
 window.sinkronSemuaOrder = async () => {
     if (!confirm(`Sinkronkan ${allOrders.length} order?\n\nOrder tanpa ID akan diberi ID; timeline "Pesanan dibuat"/"Pelunasan" dan langkah lama dilengkapi. Tidak membuat order baru, tidak menghapus apa pun, aman diulang.`)) return;
     let ok = 0, gagal = 0, galatPertama = '';
@@ -918,6 +922,257 @@ window.moveProdukDown = async (id) => {
     await updateProduk(current.id, { order: next.order });
     await updateProduk(next.id, { order: temp });
     await loadProduk();
+};
+
+// ===== AKSESORIS =====
+// Sama seperti Produk (Pre Order / Ready / Sold Out jadi satu daftar), tetapi TANPA warna, ukuran, tambahan & desain 3D.
+// Koleksi Firestore "aksesoris". Stok = satu angka per aksesoris di koleksi "stok" (id stokIdAks) -> checkout memotong, order ditolak mengembalikan.
+let akStokAwal = null;   // angka stok saat form dibuka (supaya stok yang berubah karena order tidak tertimpa angka basi)
+const stokAksDirty = {};
+const stokAksDoc = pid => stokDocs[stokIdAks(pid)] || null;
+async function loadAksesoris() {
+    try { allAks = await getAksesoris(); }
+    catch (e) {
+        console.error('Gagal baca aksesoris', e);
+        allAks = [];
+        showToast('AKSESORIS GAGAL DIMUAT: ' + errMsg(e) + ' (sudah publish firestore.rules terbaru?)', true);
+    }
+    renderAksesoris(); renderPoAdmin(); renderStokAks();
+}
+function chipStokAks(p) {
+    if (p.badge === 'pre') return '';
+    const d = stokAksDoc(p.id);
+    if (!d) return '<div class="stok-chip off" style="margin-top:6px">Stok belum dibatasi</div>';
+    const q = Number(d.qty) || 0;
+    return q <= 0 ? '<div class="stok-chip habis" style="margin-top:6px">HABIS</div>' : `<div class="stok-chip ${q <= STOK_TIPIS ? 'tipis' : 'ok'}" style="margin-top:6px">Stok ${q}</div>`;
+}
+function renderAksesoris() {
+    const list = document.getElementById('aksesorisList');
+    if (!list) return;
+    const sorted = [...allAks].sort((a, b) => (b.order || 0) - (a.order || 0));
+    if (!sorted.length) { list.innerHTML = `<div class="empty"><i class="fas fa-glasses"></i><p>Belum ada aksesoris</p></div>`; return; }
+    list.innerHTML = `
+        <div class="produk-grid">
+            ${sorted.map(p => `
+            <div class="produk-card">
+                <img src="${esc(p.thumbnail || '')}" loading="lazy" alt="" onerror="this.style.visibility='hidden'">
+                <div class="produk-info">
+                    <div class="produk-badge badge-${esc(p.badge)}">${esc(p.status || p.badge)}</div>
+                    <div class="produk-name">${esc(p.nama)}</div>
+                    <div class="produk-price">Rp${Number(String(p.harga).replace(/\D/g, '')).toLocaleString('id-ID')}</div>
+                    ${chipStokAks(p)}
+                    <div class="produk-actions">
+                        <div class="btn-icon" title="Naikkan" onclick="moveAksesorisUp('${p.id}')">↑</div>
+                        <div class="btn-icon" title="Turunkan" onclick="moveAksesorisDown('${p.id}')">↓</div>
+                        <div class="btn-icon" title="Edit" onclick="editAksesoris('${p.id}')"><i class="fas fa-pen"></i></div>
+                        <div class="btn-icon del" title="Hapus" onclick="hapusAksesoris('${p.id}')"><i class="fas fa-trash"></i></div>
+                    </div>
+                </div>
+            </div>`).join('')}
+        </div>`;
+}
+
+window.toggleAksesorisForm = () => {
+    const kode = bersihkanPrefix(document.getElementById('akKode').value) || 'FVCK';
+    document.getElementById('akKodeContoh').innerText = kode;
+    const badge = document.getElementById('akBadge').value;
+    document.querySelector('#akKodeWrap label').innerText = badge === 'pre' ? 'KODE AWAL ID ORDER (WAJIB)' : 'KODE AWAL ID ORDER';
+    document.getElementById('akStokWrap').style.display = badge === 'ready' ? '' : 'none';
+};
+window.addEventListener('DOMContentLoaded', () => {
+    const k = document.getElementById('akKode'); if (k) k.addEventListener('input', () => window.toggleAksesorisForm());
+    const h = document.getElementById('akHarga'); if (h) h.addEventListener('input', e => { e.target.value = formatHarga(e.target.value); });
+});
+
+function aksResetFoto(details = [], thumb = '') {
+    const t = document.getElementById('prevAkThumb'); document.getElementById('inputAkThumb').value = '';
+    if (thumb) { t.src = thumb; t.style.display = 'block'; } else { t.src = ''; t.style.display = 'none'; }
+    [0, 1, 2, 3, 4].forEach(i => {
+        const img = document.getElementById('prevAkDet' + i); document.getElementById('inputAkDet' + i).value = '';
+        if (details[i]) { img.src = details[i]; img.style.display = 'block'; } else { img.src = ''; img.style.display = 'none'; }
+    });
+}
+window.openModalAksesoris = () => {
+    editingAksId = null; akStokAwal = null;
+    document.getElementById('modalAksesorisTitle').innerText = 'TAMBAH AKSESORIS';
+    document.getElementById('akNama').value = '';
+    document.getElementById('akHarga').value = '';
+    document.getElementById('akBadge').value = 'pre';
+    document.getElementById('akStatus').value = '';
+    document.getElementById('akStok').value = '';
+    document.getElementById('akSpecs').value = '';
+    document.getElementById('akDP').value = 'yes';
+    document.getElementById('akKode').value = '';
+    aksResetFoto();
+    toggleAksesorisForm();
+    document.getElementById('modalAksesoris').classList.add('show');
+};
+window.closeModalAksesoris = () => { document.getElementById('modalAksesoris').classList.remove('show'); };
+window.editAksesoris = (id) => {
+    const p = allAks.find(x => x.id === id);
+    if (!p) return;
+    editingAksId = id;
+    document.getElementById('modalAksesorisTitle').innerText = 'EDIT AKSESORIS';
+    document.getElementById('akNama').value = p.nama || '';
+    document.getElementById('akHarga').value = p.harga || '';
+    document.getElementById('akBadge').value = p.badge || 'pre';
+    document.getElementById('akStatus').value = p.status || '';
+    const d = stokAksDoc(id);
+    akStokAwal = d ? Number(d.qty) || 0 : null;
+    document.getElementById('akStok').value = akStokAwal === null ? '' : akStokAwal;
+    document.getElementById('akSpecs').value = p.specs || '';
+    document.getElementById('akDP').value = p.dpAllowed || 'yes';
+    document.getElementById('akKode').value = p.kodePrefix || '';
+    aksResetFoto(p.details || [], p.thumbnail || '');
+    toggleAksesorisForm();
+    document.getElementById('modalAksesoris').classList.add('show');
+};
+
+window.saveAksesorisData = async () => {
+    const badge = document.getElementById('akBadge').value;
+    const nama = document.getElementById('akNama').value.trim();
+    if (!nama) return showToast('NAMA AKSESORIS WAJIB DIISI', true);
+    if (badge === 'pre' && !bersihkanPrefix(document.getElementById('akKode').value)) {
+        return showToast('KODE AWAL ID ORDER WAJIB DIISI UNTUK PRE ORDER', true);
+    }
+    // stok (hanya relevan untuk READY). '' = tidak dibatasi
+    let stokBaru; // undefined = jangan sentuh
+    if (badge === 'ready') {
+        const v = document.getElementById('akStok').value.trim();
+        if (v === '') stokBaru = null;
+        else { const n = Number(v); if (!Number.isInteger(n) || n < 0) return showToast('STOK HARUS ANGKA BULAT ≥ 0', true); stokBaru = n; }
+    }
+    const btn = document.getElementById('btnSaveAksesoris');
+    btn.disabled = true; btn.innerText = 'MENYIMPAN...';
+    try {
+        const lama = editingAksId ? allAks.find(x => x.id === editingAksId) : null;
+        let thumbnailURL = lama?.thumbnail || '';
+        const thumbFile = document.getElementById('inputAkThumb').files[0];
+        if (thumbFile) { const u = await uploadGambar(thumbFile, 'produk'); if (u) thumbnailURL = u; }
+
+        const details = [], existing = lama?.details || [];
+        for (let i = 0; i < 5; i++) {
+            const file = document.getElementById('inputAkDet' + i).files[0];
+            if (file) { const url = await uploadGambar(file, 'produk'); if (url) details.push(url); }
+            else if (existing[i]) details.push(existing[i]);
+        }
+
+        const data = {
+            order: lama ? (lama.order ?? 0) : Date.now(),
+            nama,
+            harga: document.getElementById('akHarga').value,
+            badge,
+            status: document.getElementById('akStatus').value,
+            specs: document.getElementById('akSpecs').value,
+            dpAllowed: document.getElementById('akDP').value,
+            kodePrefix: bersihkanPrefix(document.getElementById('akKode').value),
+            thumbnail: thumbnailURL,
+            details
+        };
+
+        let id = editingAksId;
+        if (id) { await updateAksesoris(id, data); }
+        else { id = await saveAksesoris(data); }
+
+        // stok: hanya ditulis kalau angkanya memang diubah di form ini
+        if (stokBaru !== undefined && (!editingAksId || stokBaru !== akStokAwal)) {
+            try { await adminSimpanStokAks(id, stokBaru); }
+            catch (e) { console.error(e); showToast('AKSESORIS TERSIMPAN, STOK GAGAL: ' + errMsg(e), true); }
+        }
+        showToast(editingAksId ? 'AKSESORIS DIUPDATE ✓' : 'AKSESORIS DITAMBAHKAN ✓');
+        closeModalAksesoris();
+        await loadAksesoris();
+    } catch (err) {
+        console.error(err);
+        showToast('GAGAL SIMPAN: ' + errMsg(err), true);
+    }
+    btn.disabled = false; btn.innerText = 'SIMPAN';
+};
+
+window.hapusAksesoris = async (id) => {
+    if (!confirm('Hapus aksesoris ini? (stoknya ikut dihapus)')) return;
+    try {
+        await deleteAksesoris(id);
+        allAks = allAks.filter(p => p.id !== id);
+        renderAksesoris(); renderPoAdmin(); renderStokAks();
+        showToast('AKSESORIS DIHAPUS');
+    } catch (e) { console.error(e); showToast('GAGAL HAPUS: ' + errMsg(e), true); }
+};
+async function geserAksesoris(id, arah) {
+    const sorted = [...allAks].sort((a, b) => (b.order || 0) - (a.order || 0));
+    const i = sorted.findIndex(p => p.id === id), j = i + arah;
+    if (i < 0 || j < 0 || j >= sorted.length) return;
+    const a = sorted[i], b = sorted[j];
+    try {
+        await updateAksesoris(a.id, { order: b.order }); await updateAksesoris(b.id, { order: a.order });
+        await loadAksesoris();
+    } catch (e) { console.error(e); showToast('GAGAL: ' + errMsg(e), true); }
+}
+window.moveAksesorisUp = id => geserAksesoris(id, -1);
+window.moveAksesorisDown = id => geserAksesoris(id, 1);
+
+// ----- Tab STOK: bagian aksesoris (satu angka per aksesoris) -----
+function stokAksCardHTML(p) {
+    const d = stokAksDoc(p.id);
+    const q = d ? Number(d.qty) || 0 : null;
+    const chip = q === null ? `<span class="stok-chip off">Belum dibatasi</span>`
+        : q <= 0 ? `<span class="stok-chip habis">HABIS</span>` : `<span class="stok-chip ${q <= STOK_TIPIS ? 'tipis' : 'ok'}">Sisa ${q} pcs</span>`;
+    const cls = q === null ? '' : q <= 0 ? 'habis' : q <= STOK_TIPIS ? 'tipis' : '';
+    return `
+        <div class="stok-head">
+            <img src="${esc(p.thumbnail || '')}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div style="min-width:0;flex:1">
+                <div class="produk-name">${esc(p.nama)}</div>
+                <div class="stok-meta"><span class="produk-badge badge-${esc(p.badge)}">${esc(p.status || p.badge)}</span> ${chip}</div>
+            </div>
+        </div>
+        <div class="stok-aks-row">
+            <input class="stok-in ${cls}" type="number" inputmode="numeric" min="0" step="1" placeholder="–" value="${q === null ? '' : q}" oninput="stokAksInput('${p.id}')">
+            <small>Kosong = tidak dibatasi · 0 = habis.</small>
+            <span class="stok-dirty" id="stokaks-dirty-${p.id}" style="display:none">belum disimpan</span>
+            <button class="btn-sm btn-approve" onclick="simpanStokAks('${p.id}')"><i class="fas fa-save"></i> Simpan stok</button>
+        </div>`;
+}
+window.stokAksInput = (pid) => {
+    stokAksDirty[pid] = true;
+    const tag = document.getElementById('stokaks-dirty-' + pid);
+    if (tag) tag.style.display = 'inline-block';
+};
+function renderStokAks() {
+    const wrap = document.getElementById('stokAksWrap'), list = document.getElementById('stokAksList');
+    if (!wrap || !list) return;
+    // Pre Order tidak dibatasi stok; aksesoris yang sudah punya data stok tetap tampil supaya tidak "hilang"
+    const prods = allAks.filter(p => p.badge === 'ready' || p.badge === 'sold' || stokAksDoc(p.id))
+        .sort((a, b) => ((b.badge === 'ready') - (a.badge === 'ready')) || ((b.order || 0) - (a.order || 0)));
+    wrap.style.display = prods.length ? '' : 'none';
+    if (!prods.length) { list.innerHTML = ''; return; }
+    const ids = prods.map(p => p.id).join(',');
+    if (list.dataset.ids !== ids) {
+        list.innerHTML = prods.map(p => `<div class="stok-card" id="stokaks-card-${p.id}">${stokAksCardHTML(p)}</div>`).join('');
+        list.dataset.ids = ids;
+        Object.keys(stokAksDirty).forEach(k => delete stokAksDirty[k]);
+    } else {
+        prods.forEach(p => {     // stok bisa berubah sendiri (pembeli checkout) -> segarkan kartu yang tidak sedang diketik
+            if (stokAksDirty[p.id]) return;
+            const el = document.getElementById('stokaks-card-' + p.id);
+            if (el) el.innerHTML = stokAksCardHTML(p);
+        });
+    }
+}
+window.simpanStokAks = async (pid) => {
+    const card = document.getElementById('stokaks-card-' + pid);
+    if (!card) return;
+    const v = card.querySelector('.stok-in').value.trim();
+    let qty = null;
+    if (v !== '') { const n = Number(v); if (!Number.isInteger(n) || n < 0) return showToast('STOK HARUS ANGKA BULAT ≥ 0', true); qty = n; }
+    const btn = card.querySelector('.btn-approve'); if (btn) btn.disabled = true;
+    try {
+        await adminSimpanStokAks(pid, qty);
+        delete stokAksDirty[pid];
+        renderStokAks(); renderAksesoris();      // segarkan kartu (snapshot lokal sudah datang saat kartu masih ditandai "belum disimpan")
+        showToast('STOK AKSESORIS DISIMPAN ✓');
+    } catch (e) { console.error(e); showToast('GAGAL SIMPAN STOK: ' + errMsg(e), true); }
+    if (btn) btn.disabled = false;
 };
 
 // ===== GALERI =====
@@ -1444,7 +1699,7 @@ window.renderPoAdmin = (force) => {
     if (!box) return;
     const ae = document.activeElement;
     if (!force && ae && box.contains(ae) && ae.tagName === 'INPUT') return;   // jangan timpa yang sedang diketik
-    const prods = allProduk
+    const prods = allProduk.concat(allAks.map(a => ({ ...a, _aks: true })))
         .filter(p => p.badge === 'pre' || p.poClosed)
         .sort((a, b) => Number(!!a.poClosed) - Number(!!b.poClosed));
     if (!prods.length) {
@@ -1461,7 +1716,7 @@ window.renderPoAdmin = (force) => {
                 <div>
                     <div class="order-name">${esc(p.nama)}</div>
                     <div class="oc-meta">
-                        <span class="chip id">${esc(p.kodePrefix || 'kode belum diisi')}</span>
+                        <span class="chip id">${esc(p.kodePrefix || 'kode belum diisi')}</span>${p._aks ? '<span class="chip">aksesoris</span>' : ''}
                         <span class="chip">${ords.length} order</span>
                         <span class="chip ready">${lunasN} lunas</span>
                     </div>
@@ -1519,15 +1774,17 @@ window.hapusUpdatePo = async (pid, id) => {
     catch (e) { console.error(e); showToast('GAGAL: ' + errMsg(e), true); }
 };
 window.tutupPo = async (pid, closed) => {
-    const p = allProduk.find(x => x.id === pid);
+    const p = allProduk.find(x => x.id === pid) || allAks.find(x => x.id === pid);
     if (!p) return;
+    const isAks = !allProduk.some(x => x.id === pid);
     const msg = closed
         ? `Tandai PO "${p.nama}" SELESAI?\n\nDi Pantau semua order artikel ini muncul keterangan "Pre Order selesai". Katalog TIDAK ditutup: masih bisa dibeli selama badge belum SOLD OUT.`
         : `Batalkan tanda "PO selesai" untuk "${p.nama}"?`;
     if (!confirm(msg)) return;
     try {
-        await adminTutupPo(pid, p.nama, closed);
-        allProduk = allProduk.map(x => x.id === pid ? { ...x, poClosed: closed } : x);
+        await adminTutupPo(pid, p.nama, closed, isAks ? 'aksesoris' : 'produk');
+        if (isAks) allAks = allAks.map(x => x.id === pid ? { ...x, poClosed: closed } : x);
+        else allProduk = allProduk.map(x => x.id === pid ? { ...x, poClosed: closed } : x);
         renderPoAdmin(true);
         showToast(closed ? 'PO DITANDAI SELESAI ✓' : 'TANDA PO SELESAI DIBATALKAN');
     } catch (e) {
