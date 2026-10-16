@@ -960,6 +960,7 @@ function renderAksesoris() {
                     <div class="produk-badge badge-${esc(p.badge)}">${esc(p.status || p.badge)}</div>
                     <div class="produk-name">${esc(p.nama)}</div>
                     <div class="produk-price">Rp${Number(String(p.harga).replace(/\D/g, '')).toLocaleString('id-ID')}</div>
+                    ${p.besar ? '<div class="stok-chip off" style="margin-top:6px">BESAR · tembok</div>' : ''}
                     ${chipStokAks(p)}
                     <div class="produk-actions">
                         <div class="btn-icon" title="Naikkan" onclick="moveAksesorisUp('${p.id}')">↑</div>
@@ -1002,6 +1003,8 @@ window.openModalAksesoris = () => {
     document.getElementById('akStok').value = '';
     document.getElementById('akSpecs').value = '';
     document.getElementById('akDP').value = 'yes';
+    document.getElementById('akShowcase').value = 'yes';
+    document.getElementById('akBesar').checked = false;
     document.getElementById('akKode').value = '';
     aksResetFoto();
     toggleAksesorisForm();
@@ -1022,6 +1025,8 @@ window.editAksesoris = (id) => {
     document.getElementById('akStok').value = akStokAwal === null ? '' : akStokAwal;
     document.getElementById('akSpecs').value = p.specs || '';
     document.getElementById('akDP').value = p.dpAllowed || 'yes';
+    document.getElementById('akShowcase').value = p.showcase || 'yes';
+    document.getElementById('akBesar').checked = !!p.besar;
     document.getElementById('akKode').value = p.kodePrefix || '';
     aksResetFoto(p.details || [], p.thumbnail || '');
     toggleAksesorisForm();
@@ -1065,6 +1070,8 @@ window.saveAksesorisData = async () => {
             status: document.getElementById('akStatus').value,
             specs: document.getElementById('akSpecs').value,
             dpAllowed: document.getElementById('akDP').value,
+            showcase: document.getElementById('akShowcase').value,
+            besar: document.getElementById('akBesar').checked,
             kodePrefix: bersihkanPrefix(document.getElementById('akKode').value),
             thumbnail: thumbnailURL,
             details

@@ -498,12 +498,28 @@
             <textarea id="akSpecs" rows="3" placeholder="Bahan: ...&#10;Ukuran: ..."></textarea>
         </div>
         <div class="form-section-title">Pengaturan</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>TAMPILKAN DI BERANDA?</label>
+                <select id="akShowcase">
+                    <option value="yes">Ya</option>
+                    <option value="no">Tidak</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>BISA DP?</label>
+                <select id="akDP" onchange="toggleAksesorisForm()">
+                    <option value="yes">Bisa DP</option>
+                    <option value="no">Tidak Bisa DP</option>
+                </select>
+            </div>
+        </div>
         <div class="form-group">
-            <label>BISA DP?</label>
-            <select id="akDP" onchange="toggleAksesorisForm()">
-                <option value="yes">Bisa DP</option>
-                <option value="no">Tidak Bisa DP</option>
-            </select>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0">
+                <input type="checkbox" id="akBesar" style="width:22px;height:22px;flex:none;margin:0;accent-color:#141414">
+                <span><b>BESAR (tempel di tembok meja, di game)</b></span>
+            </label>
+            <small style="display:block;margin-top:6px;opacity:.7;line-height:1.5">Dicentang: di game foto dipasang besar menempel di tembok di atas meja AKSESORIS, seperti syal/scarf, <b>tanpa bingkai</b> (pakai PNG transparan supaya bentuknya pas). Tidak dicentang: tampil kecil berbingkai di atas meja seperti biasa. Tidak berpengaruh di web utama.</small>
         </div>
         <div class="form-section-title">Foto</div>
         <div class="form-group">
@@ -513,7 +529,7 @@
                 <img id="prevAkThumb" src="" style="display:none; position:absolute; inset:0; width:100%; height:100%; object-fit:cover;">
                 <input type="file" id="inputAkThumb" accept="image/*" style="display:none" onchange="prevImgSlot(this,'prevAkThumb')">
             </div>
-            <small style="display:block;margin-top:6px;opacity:.7;line-height:1.5">Foto ini juga dipajang di meja AKSESORIS di game.</small>
+            <small style="display:block;margin-top:6px;opacity:.7;line-height:1.5">Foto ini juga dipajang di meja AKSESORIS di game. Untuk mode BESAR gunakan PNG transparan (tanpa latar).</small>
         </div>
         <div class="form-group">
             <label>FOTO DETAIL (maks 5)</label>
@@ -648,6 +664,6 @@
     </div>
 </div>
 
-<script type="module" src="admin.js?v=20261030"></script>
+<script type="module" src="admin.js?v=20261031"></script>
 </body>
 </html>

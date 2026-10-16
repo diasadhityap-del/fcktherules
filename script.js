@@ -1,5 +1,5 @@
 import {
-    listenProduk, listenStok, stokId, listenGaleri, listenBanners, listenBannerText,
+    listenProduk, listenAksesoris, listenStok, stokId, listenGaleri, listenBanners, listenBannerText,
     auth, customerSignUp, customerSignIn, customerSignOut, customerSignInGoogle, onAuthStateChanged,
     getCustomerProfile, updateCustomerProfile, getCustomerOrders
 } from './firebase.js?v=20261016';
@@ -107,6 +107,7 @@ let stokPids = {};   // id produk -> true
 const stokTracked = p => !!(p && stokPids[p.id]);
 const stokQty = (p, color, size) => Number(stokMap[stokId(p.id, color, size)]) || 0;
 function stokTotal(p, color) {
+    if (p.acc) return stokQty(p, '-', '-');   // aksesoris: satu angka stok, tanpa warna/ukuran
     return STOK_SIZES.reduce((sum, s) => sum + (color
         ? stokQty(p, color, s)
         : p.colors.reduce((a, c) => a + stokQty(p, c, s), 0)), 0);
@@ -125,6 +126,9 @@ const hargaItem = (prod, names) => hargaAngka(prod.price) + addonsItem(prod, nam
 const namaAddons = (prod, names) => addonsItem(prod, names).map(a => a.nama).join(', ');
 const labelAddons = (prod, names) => { const t = namaAddons(prod, names); return t ? ` + ${t}` : ''; };
 const produkHabis = p => p.badge === 'sold' || (stokTracked(p) && stokTotal(p) <= 0);
+// Aksesoris: tanpa warna & ukuran -> varian tunggal '-' (sama dengan stokIdAks di firebase.js)
+const varLabel = (prod, color, size, names) => prod.acc ? 'Aksesoris' : `${color} | ${size}${labelAddons(prod, names)}`;
+const awalCart = p => ({ prod: p, size: p.acc ? '-' : '', color: p.acc ? '-' : (p.colors.length === 1 ? p.colors[0] : ''), addons: [] });
 
 // ── CART FUNCTIONS ──────────────────────────────────────────
 let addToCartLock = false;
@@ -239,7 +243,7 @@ function renderCartPage() {
             <img src="${item.prod.thumbnail}" alt="">
             <div class="ci">
                 <p class="ci-name">${item.prod.name}</p>
-                <p class="ci-var">${item.color} | ${item.size}${escA(labelAddons(item.prod, item.addons))}</p>
+                <p class="ci-var">${escA(varLabel(item.prod, item.color, item.size, item.addons))}</p>
                 <p class="ci-price">${formatRupiah(hargaItem(item.prod, item.addons))}</p>
             </div>
             <button type="button" class="ci-del" onclick="removeCartItem(${item.id})" aria-label="Hapus">
@@ -293,7 +297,7 @@ function validateCartForm() {
         <div class="sum-item">
             <div>
                 <p class="n">${item.prod.name}</p>
-                <p class="v">${item.color} | ${item.size}${escA(labelAddons(item.prod, item.addons))}</p>
+                <p class="v">${escA(varLabel(item.prod, item.color, item.size, item.addons))}</p>
             </div>
             <p class="pr">${formatRupiah(hargaItem(item.prod, item.addons))}</p>
         </div>
@@ -378,6 +382,7 @@ async function executeCheckout() {
                 nama: n, wa: p, email: email, alamat: a,
                 customerUid: currentCustomer?.uid || null,
                 produk: cart.prod.name, warna: cart.color, size: cart.size,
+                ...(cart.prod.acc ? { jenis: 'aksesoris' } : {}),
                 tambahan: namaAddons(cart.prod, cart.addons),
                 hargaKaos: hargaProduk,
                 ongkir: ongkirSaatIni,
@@ -438,8 +443,8 @@ async function executeCheckout() {
             const orderData = {
                 nama: n, wa: p, email: email, alamat: a,
                 customerUid: currentCustomer?.uid || null,
-                produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: hargaItem(i.prod, i.addons), tambahan: namaAddons(i.prod, i.addons) })),
-                produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size}${labelAddons(i.prod, i.addons)})`).join(', '),
+                produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: hargaItem(i.prod, i.addons), tambahan: namaAddons(i.prod, i.addons), ...(i.prod.acc ? { jenis: 'aksesoris' } : {}) })),
+                produkText: cartItems.map(i => i.prod.acc ? i.prod.name : `${i.prod.name} (${i.color}|${i.size}${labelAddons(i.prod, i.addons)})`).join(', '),
                 hargaKaos: totalProduk,
                 ongkir: ongkirSaatIni,
                 voucherKode: appliedVoucher ? appliedVoucher.kode : "",
@@ -631,7 +636,7 @@ function handleInitialRoute() {
         const found = products.find(p => slugify(p.name) === productSlug);
 
         if (found) {
-            cart = { prod: found, size: '', color: found.colors.length === 1 ? found.colors[0] : '', addons: [] };
+            cart = awalCart(found);
             goDetailSilent(found);
             showPageSilent('detail');
             if (!document.referrer.includes(window.location.hostname)) {
@@ -681,8 +686,10 @@ window.onload = async () => {
             renderBannerSlider(firestoreBanners);
         });
 
-        listenProduk((firestoreProducts) => {
-            products = firestoreProducts.map(p => ({
+        // Produk + aksesoris digabung ke satu daftar `products` (aksesoris = varian tunggal '-', tanpa warna/ukuran)
+        let rawProduk = [], rawAks = [];
+        const gabungProduk = () => {
+            const dariProduk = rawProduk.map(p => ({
                 id: p.id,
                 name: p.nama,
                 price: p.harga,
@@ -700,11 +707,33 @@ window.onload = async () => {
                 poClosed: !!p.poClosed,
                 order: p.order || 0
             }));
-
+            const dariAks = rawAks.map(p => ({
+                id: p.id,
+                acc: true,
+                name: p.nama,
+                price: p.harga,
+                badge: p.badge?.toLowerCase() || '',
+                status: p.status || '',
+                colors: ['-'],
+                stock: ['-'],
+                thumbnail: p.thumbnail || '',
+                details: p.details || [],
+                specs: p.specs || '',
+                showcase: p.showcase || 'no',
+                dpAllowed: p.dpAllowed || 'yes',
+                kodePrefix: p.kodePrefix || '',
+                addons: [],
+                poClosed: !!p.poClosed,
+                order: p.order || 0
+            }));
+            products = [...dariProduk, ...dariAks];
             products.sort((a, b) => (b.order || 0) - (a.order || 0));
             renderAllSections();
             handleInitialRoute();
-        });
+        };
+
+        listenProduk((firestoreProducts) => { rawProduk = firestoreProducts; gabungProduk(); });
+        listenAksesoris((firestoreAks) => { rawAks = firestoreAks; gabungProduk(); }, () => { rawAks = []; gabungProduk(); });
 
         listenStok((docs) => {
             stokMap = {}; stokPids = {};
@@ -968,11 +997,22 @@ function renderDetailContent(p, selectedColor) {
             : "Spesifikasi belum tersedia.";
     }
 
+    const guide = document.querySelector('#detail .det-guide');
+    if (guide) guide.style.display = p.acc ? 'none' : '';
+
     renderVarianOptions(p, selectedColor);
 }
 
 // Pilihan warna & ukuran (+ info stok). Dipanggil saat buka detail, saat pilih opsi, dan saat stok berubah realtime.
 function renderVarianOptions(p, selectedColor) {
+    if (p.acc) {   // aksesoris: tanpa pilihan warna/ukuran, hanya info stok
+        const ca = document.getElementById('colorArea'); if (ca) ca.innerHTML = '';
+        const sa = document.getElementById('sizeArea'); if (sa) sa.innerHTML = `<div class="stok-info" id="stokInfo"></div>`;
+        updateStokInfo(p, '-');
+        const ep = document.getElementById('detPrice');
+        if (ep && cart.prod && cart.prod.id === p.id) ep.innerText = formatRupiah(p.price);
+        return;
+    }
     const col = selectedColor !== undefined ? selectedColor : cart.color;
     if (cart.prod && cart.prod.id === p.id) {
         // ukuran yang terpilih tapi sudah habis (mis. barusan dibeli orang lain) -> batalkan pilihan
@@ -1040,13 +1080,13 @@ function goDetail(id) {
         toggleSidebar();
     }
 
-    cart = { prod: p, size: '', color: p.colors.length === 1 ? p.colors[0] : '', addons: [] };
+    cart = awalCart(p);
     renderDetailContent(p, cart.color);
     showPage('detail');
 }
 
 function goDetailSilent(p) {
-    renderDetailContent(p, p.colors.length === 1 ? p.colors[0] : '');
+    renderDetailContent(p, p.acc ? '-' : (p.colors.length === 1 ? p.colors[0] : ''));
 }
 
 function selOpt(type, val, el) {
@@ -1098,7 +1138,7 @@ function validateForm() {
     if (sumP) sumP.innerText = cart.prod.name;
 
     const sumV = document.getElementById('sumVar');
-    if (sumV) sumV.innerText = `${cart.color} | ${cart.size}${labelAddons(cart.prod, cart.addons)}`;
+    if (sumV) sumV.innerText = varLabel(cart.prod, cart.color, cart.size, cart.addons);
 
     const idArea = document.getElementById('inAreaId');
     if (!idArea || !idArea.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
@@ -2303,7 +2343,7 @@ function renderPantauDetail(d, timeline, mode) {
         ${baris('Nama', escH(d.nama || '-'))}
         ${d.email ? baris('Email', escH(d.email)) : ''}
         ${d.hp ? baris('Nomor HP', escH(d.hp)) : ''}
-        ${items.map(i => baris('Produk', escH(i.nama)) + (i.warna || i.size ? baris('Warna / Size', escH(i.warna) + ' / ' + escH(i.size)) : '')).join('')}
+        ${items.map(i => baris('Produk', escH(i.nama)) + ((i.warna || i.size) && i.jenis !== 'aksesoris' && !(i.warna === '-' && i.size === '-') ? baris('Warna / Size', escH(i.warna) + ' / ' + escH(i.size)) : '')).join('')}
         <div style="border-top:1px solid rgba(128,128,128,.35);margin:8px 0"></div>
         ${d.total ? baris('Total', rpFmt(d.total)) : ''}
         ${pay === 'dp' && d.dpNominal ? baris('DP', rpFmt(d.dpNominal)) + baris('Sisa', rpFmt(d.sisa)) : ''}
