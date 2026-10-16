@@ -1,8 +1,9 @@
 import {
-    listenProduk, listenAksesoris, listenStok, stokId, listenGaleri, listenBanners, listenBannerText,
+    listenProduk, listenStok, stokId, listenGaleri, listenBanners, listenBannerText,
     auth, customerSignUp, customerSignIn, customerSignOut, customerSignInGoogle, onAuthStateChanged,
     getCustomerProfile, updateCustomerProfile, getCustomerOrders
-} from './firebase.js?v=20261016';
+} from './firebase.js?v=20261031';
+import * as FBX from './firebase.js?v=20261031';   // namespace: listenAksesoris dicek manual supaya firebase.js lama (cache) tidak mematikan seluruh situs
 
 let cartItems = [];
 const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyDTEPvP5yndja35U02nkC4lsYRy3vQqVe2s4NTx-MxBE8MCSB9co2ztG5ZDMtJzuAO/exec";
@@ -358,7 +359,7 @@ async function executeCheckout() {
 
     let kodeBaru = null;
     try {
-        const { saveOrder, kurangiStok } = await import('./firebase.js?v=20261016');
+        const { saveOrder, kurangiStok } = await import('./firebase.js?v=20261031');
 
         if (currentCheckoutType === 'single') {
             const n = document.getElementById('inName').value;
@@ -405,7 +406,7 @@ async function executeCheckout() {
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261016');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261031');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('single');
@@ -466,7 +467,7 @@ async function executeCheckout() {
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261016');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261031');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('cart');
@@ -540,7 +541,7 @@ async function previewCartBukti(input) {
     const label = document.getElementById('cartLabelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261016');
+    const { uploadGambar } = await import('./firebase.js?v=20261031');
     uploadedCartBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('cartFileChip');
@@ -577,7 +578,7 @@ async function previewBukti(input) {
     const label = document.getElementById('labelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261016');
+    const { uploadGambar } = await import('./firebase.js?v=20261031');
     uploadedBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('fileChip');
@@ -733,7 +734,10 @@ window.onload = async () => {
         };
 
         listenProduk((firestoreProducts) => { rawProduk = firestoreProducts; gabungProduk(); });
-        listenAksesoris((firestoreAks) => { rawAks = firestoreAks; gabungProduk(); }, () => { rawAks = []; gabungProduk(); });
+        if (typeof FBX.listenAksesoris === 'function') {
+            try { FBX.listenAksesoris((firestoreAks) => { rawAks = firestoreAks; gabungProduk(); }, () => { rawAks = []; gabungProduk(); }); }
+            catch (e) { console.warn('Aksesoris tidak dimuat:', e); }
+        } else console.warn('firebase.js belum memuat listenAksesoris (cache lama?)');
 
         listenStok((docs) => {
             stokMap = {}; stokPids = {};
@@ -1678,7 +1682,7 @@ window.applyVoucherModal = async () => {
     msgEl.style.color = '#555'; msgEl.innerText = "Mengecek voucher...";
 
     try {
-        const { getVoucherByKode } = await import('./firebase.js?v=20261016');
+        const { getVoucherByKode } = await import('./firebase.js?v=20261031');
         const v = await getVoucherByKode(kode);
 
         if (!v) {
@@ -2164,7 +2168,7 @@ async function cekKodePelunasan() {
     pelBuktiURL = null; pelData = null;
     let list = null;
     try {
-        const { cariPelunasan } = await import('./firebase.js?v=20261016');
+        const { cariPelunasan } = await import('./firebase.js?v=20261031');
         list = await cariPelunasan(klasifikasiPantau(val));
     } catch (e) { console.error(e); }
     btn.disabled = false; btn.innerText = 'CARI PESANAN';
@@ -2247,7 +2251,7 @@ async function previewPelBukti(input) {
     if (!file) return;
     lbl.innerText = 'Mengunggah...';
     pelBuktiURL = null;
-    const { uploadGambar } = await import('./firebase.js?v=20261016');
+    const { uploadGambar } = await import('./firebase.js?v=20261031');
     pelBuktiURL = await uploadGambar(file, 'bukti');
     if (pelBuktiURL) lbl.innerText = '✓ ' + file.name;
     else { lbl.innerText = 'Gagal upload, coba lagi'; input.value = ''; }
@@ -2259,7 +2263,7 @@ async function kirimPelunasan() {
     const btn = document.getElementById('pelBtnKirim');
     btn.disabled = true; btn.innerText = 'MENGIRIM...';
     try {
-        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261016');
+        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261031');
         await kirimBuktiPelunasan(pelData.kode, pelBuktiURL);
         pelData.status = 'menunggu_verifikasi';
         pelBuktiURL = null;
@@ -2362,7 +2366,7 @@ async function tampilPantau(kode) {
     box.innerHTML = '<p style="font-size:13px;opacity:.7;margin-top:14px">Memuat...</p>';
     let tl = [];
     try {
-        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261016');
+        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261031');
         tl = (await getTimeline(kode)).filter(e => e.kind !== 'legacy');
         // update per artikel (mis. "Kaos dikirim") ikut tampil, hanya yang terjadi setelah order dibuat
         const mulai = tsMillis(d.createdAt);
@@ -2408,7 +2412,7 @@ async function cekPantau() {
     const btn = document.getElementById('pantauBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
-        const { cariLacak } = await import('./firebase.js?v=20261016');
+        const { cariLacak } = await import('./firebase.js?v=20261031');
         renderPantau(await cariLacak(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);
@@ -2453,7 +2457,7 @@ async function cekResi() {
     const btn = document.getElementById('resiBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
-        const { cariResi } = await import('./firebase.js?v=20261016');
+        const { cariResi } = await import('./firebase.js?v=20261031');
         renderResi(await cariResi(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);
