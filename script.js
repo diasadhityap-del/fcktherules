@@ -1,8 +1,8 @@
 import {
-    listenProduk, listenGaleri, listenBanners, listenBannerText,
+    listenProduk, listenStok, stokId, listenGaleri, listenBanners, listenBannerText,
     auth, customerSignUp, customerSignIn, customerSignOut, customerSignInGoogle, onAuthStateChanged,
     getCustomerProfile, updateCustomerProfile, getCustomerOrders
-} from './firebase.js?v=20261013';
+} from './firebase.js?v=20261016';
 
 let cartItems = [];
 const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyDTEPvP5yndja35U02nkC4lsYRy3vQqVe2s4NTx-MxBE8MCSB9co2ztG5ZDMtJzuAO/exec";
@@ -99,6 +99,26 @@ let cart = { prod: null, size: '', color: '' };
 let lastPage = 'home';
 let routed = false;
 
+// ── STOK VARIAN (per warna + ukuran) ────────────────────────
+// Produk yang punya dokumen stok = stoknya dibatasi per varian. Produk tanpa dokumen stok = perilaku lama.
+const STOK_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL"];
+let stokMap = {};    // id varian -> qty
+let stokPids = {};   // id produk -> true
+const stokTracked = p => !!(p && stokPids[p.id]);
+const stokQty = (p, color, size) => Number(stokMap[stokId(p.id, color, size)]) || 0;
+function stokTotal(p, color) {
+    return STOK_SIZES.reduce((sum, s) => sum + (color
+        ? stokQty(p, color, s)
+        : p.colors.reduce((a, c) => a + stokQty(p, c, s), 0)), 0);
+}
+const stokDiKeranjang = (p, color, size) => cartItems.filter(i => i.prod.id === p.id && i.color === color && i.size === size).length;
+function sizeTersedia(p, color, size) {
+    if (!stokTracked(p)) return p.stock.includes(size);
+    return color ? stokQty(p, color, size) > 0 : p.colors.some(c => stokQty(p, c, size) > 0);
+}
+const warnaTersedia = (p, color) => !stokTracked(p) || STOK_SIZES.some(s => stokQty(p, color, s) > 0);
+const produkHabis = p => p.badge === 'sold' || (stokTracked(p) && stokTotal(p) <= 0);
+
 // ── CART FUNCTIONS ──────────────────────────────────────────
 let addToCartLock = false;
 function addToCart() {
@@ -106,6 +126,12 @@ function addToCart() {
     if (!cart.prod) return triggerAlert("PRODUK TIDAK DITEMUKAN!");
     if (!cart.color) return triggerAlert("PILIH WARNA DULU!");
     if (!cart.size) return triggerAlert("PILIH UKURAN DULU!");
+
+    if (stokTracked(cart.prod)) {
+        const q = stokQty(cart.prod, cart.color, cart.size);
+        if (q <= 0) return triggerAlert("STOK VARIAN INI HABIS!");
+        if (stokDiKeranjang(cart.prod, cart.color, cart.size) + 1 > q) return triggerAlert(`STOK TINGGAL ${q}, SUDAH DI KERANJANG!`);
+    }
 
     addToCartLock = true;
     setTimeout(() => { addToCartLock = false; }, 800);
@@ -320,7 +346,7 @@ async function executeCheckout() {
 
     let kodeBaru = null;
     try {
-        const { saveOrder } = await import('./firebase.js?v=20261013');
+        const { saveOrder, kurangiStok } = await import('./firebase.js?v=20261016');
 
         if (currentCheckoutType === 'single') {
             const n = document.getElementById('inName').value;
@@ -358,13 +384,14 @@ async function executeCheckout() {
                 poNames: cart.prod.badge === 'pre' ? [cart.prod.name] : []
             };
 
+            if (!(await potongStokCheckout([{ prod: cart.prod, color: cart.color, size: cart.size }], orderData, kurangiStok))) return;
             const orderId = await saveOrder(orderData);
             if (!orderId) throw new Error('saveOrder gagal');
             kodeBaru = orderData.kodePelunasan || null;
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261013');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261016');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('single');
@@ -418,13 +445,14 @@ async function executeCheckout() {
                 poNames: [...new Set(cartItems.filter(i => i.prod.badge === 'pre').map(i => i.prod.name))]
             };
 
+            if (!(await potongStokCheckout(cartItems, orderData, kurangiStok))) return;
             const orderId = await saveOrder(orderData);
             if (!orderId) throw new Error('saveOrder gagal');
             kodeBaru = orderData.kodePelunasan || null;
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261013');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261016');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('cart');
@@ -457,6 +485,24 @@ async function executeCheckout() {
     }
 }
 
+
+// Potong stok varian (atomik) SEBELUM order disimpan, supaya tidak oversell. false = stok tidak cukup (order dibatalkan).
+async function potongStokCheckout(items, orderData, kurangiStok) {
+    const dilacak = items.filter(i => stokTracked(i.prod));
+    if (!dilacak.length) return true;
+    try {
+        orderData.stokItems = await kurangiStok(dilacak.map(i => ({ pid: i.prod.id, warna: i.color, size: i.size })));
+        return true;
+    } catch (e) {
+        if (e && e.code === 'STOK_HABIS') {
+            const h = e.habis[0];
+            triggerAlert(h.sisa > 0 ? `STOK ${h.warna} ${h.size} TINGGAL ${h.sisa}!` : `${h.warna} ${h.size} BARUSAN HABIS!`);
+            return false;
+        }
+        throw e;
+    }
+}
+
 let uploadedCartBuktiURL = null;
 async function previewCartBukti(input) {
     const file = input.files[0];
@@ -480,7 +526,7 @@ async function previewCartBukti(input) {
     const label = document.getElementById('cartLabelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261013');
+    const { uploadGambar } = await import('./firebase.js?v=20261016');
     uploadedCartBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('cartFileChip');
@@ -517,7 +563,7 @@ async function previewBukti(input) {
     const label = document.getElementById('labelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261013');
+    const { uploadGambar } = await import('./firebase.js?v=20261016');
     uploadedBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('fileChip');
@@ -650,6 +696,16 @@ window.onload = async () => {
             handleInitialRoute();
         });
 
+        listenStok((docs) => {
+            stokMap = {}; stokPids = {};
+            docs.forEach(d => { stokMap[d.id] = Number(d.qty) || 0; if (d.pid) stokPids[d.pid] = true; });
+            renderAllSections();
+            if (cart.prod && document.getElementById('detail')?.classList.contains('active')) {
+                const p = products.find(x => x.id === cart.prod.id);
+                if (p) { cart.prod = p; renderVarianOptions(p); }
+            }
+        });
+
         listenGaleri((firestoreGaleri) => {
             galleryImages = firestoreGaleri.map(g => g.url);
             renderGallery();
@@ -709,11 +765,12 @@ function renderList(items, containerId) {
     if (!container) return;
     container.innerHTML = '';
     items.forEach(p => {
-        const isSold = p.badge === 'sold';
+        const isSold = produkHabis(p);
+        const habisStok = isSold && p.badge !== 'sold';
         container.innerHTML += `
             <div class="card ${isSold ? 'sold-out-display' : ''}">
                 <div class="card-media">
-                    <div class="badge ${p.badge}">${p.status}</div>
+                    <div class="badge ${habisStok ? 'sold' : p.badge}">${habisStok ? 'SOLD OUT' : p.status}</div>
                     <img src="${p.thumbnail}" alt="${String(p.name).replace(/"/g, '&quot;')}" loading="lazy">
                 </div>
                 <div class="card-body">
@@ -901,20 +958,48 @@ function renderDetailContent(p, selectedColor) {
             : "Spesifikasi belum tersedia.";
     }
 
+    renderVarianOptions(p, selectedColor);
+}
+
+// Pilihan warna & ukuran (+ info stok). Dipanggil saat buka detail, saat pilih opsi, dan saat stok berubah realtime.
+function renderVarianOptions(p, selectedColor) {
+    const col = selectedColor !== undefined ? selectedColor : cart.color;
+    if (cart.prod && cart.prod.id === p.id) {
+        // ukuran yang terpilih tapi sudah habis (mis. barusan dibeli orang lain) -> batalkan pilihan
+        if (cart.size && !sizeTersedia(p, col, cart.size)) cart.size = '';
+        if (col && !warnaTersedia(p, col)) { cart.color = ''; }
+    }
+    const warnaAktif = (cart.prod && cart.prod.id === p.id) ? cart.color : col;
+
     let cHTML = `<div class="section-label">PILIH WARNA</div><div class="option-box">`;
     p.colors.forEach(c => {
-        cHTML += `<div class="${selectedColor === c ? 'active' : ''}" onclick="selOpt('color','${c}',this)">${c}</div>`;
+        const ok = warnaTersedia(p, c);
+        cHTML += `<div class="${warnaAktif === c ? 'active' : ''} ${ok ? '' : 'disabled'}" onclick="${ok ? `selOpt('color','${c}',this)` : ''}">${c}</div>`;
     });
     const colArea = document.getElementById('colorArea');
     if (colArea) colArea.innerHTML = cHTML + `</div>`;
 
     let sHTML = `<div class="section-label">PILIH UKURAN</div><div class="option-box">`;
-    ["S", "M", "L", "XL", "XXL", "XXXL"].forEach(s => {
-        const isAvail = p.stock.includes(s);
-        sHTML += `<div class="${isAvail ? '' : 'disabled'}" onclick="${isAvail ? `selOpt('size','${s}',this)` : ''}">${s}</div>`;
+    STOK_SIZES.forEach(sz => {
+        const ok = sizeTersedia(p, warnaAktif, sz);
+        sHTML += `<div class="${cart.size === sz && ok ? 'active' : ''} ${ok ? '' : 'disabled'}" onclick="${ok ? `selOpt('size','${sz}',this)` : ''}">${sz}</div>`;
     });
+    sHTML += `</div><div class="stok-info" id="stokInfo"></div>`;
     const szArea = document.getElementById('sizeArea');
-    if (szArea) szArea.innerHTML = sHTML + `</div>`;
+    if (szArea) szArea.innerHTML = sHTML;
+    updateStokInfo(p, warnaAktif);
+}
+
+// Seperti Shopee: tanpa pilihan -> total stok; pilih warna -> stok warna itu; pilih warna+ukuran -> stok varian itu
+function updateStokInfo(p, warnaAktif) {
+    const el = document.getElementById('stokInfo');
+    if (!el) return;
+    if (!stokTracked(p)) { el.innerHTML = ''; return; }
+    const sz = (cart.prod && cart.prod.id === p.id) ? cart.size : '';
+    const q = (warnaAktif && sz) ? stokQty(p, warnaAktif, sz) : stokTotal(p, warnaAktif || '');
+    const label = (warnaAktif && sz) ? 'Stok' : (warnaAktif ? `Stok ${warnaAktif}` : 'Total stok');
+    el.className = 'stok-info' + (q <= 0 ? ' habis' : q <= 5 ? ' tipis' : '');
+    el.innerText = q <= 0 ? `${label}: habis` : `${label}: ${q}${q <= 5 ? ' · tinggal sedikit!' : ''}`;
 }
 
 function goDetail(id) {
@@ -937,6 +1022,7 @@ function goDetailSilent(p) {
 function selOpt(type, val, el) {
     vibrate(20);
     cart[type] = val;
+    if (cart.prod && stokTracked(cart.prod)) { renderVarianOptions(cart.prod); return; }
     el.parentElement.querySelectorAll('div').forEach(d => d.classList.remove('active'));
     el.classList.add('active');
 }
@@ -956,6 +1042,7 @@ function validateDetail() {
     if (!cart.color && !cart.size) return triggerAlert("PILIH WARNA & UKURAN!");
     if (!cart.color) return triggerAlert("PILIH WARNA!");
     if (!cart.size) return triggerAlert("PILIH UKURAN!");
+    if (stokTracked(cart.prod) && stokQty(cart.prod, cart.color, cart.size) <= 0) return triggerAlert("STOK VARIAN INI HABIS!");
     vibrate(40);
     showPage('form');
     autofillCheckoutFromProfile('single');
@@ -1521,7 +1608,7 @@ window.applyVoucherModal = async () => {
     msgEl.style.color = '#555'; msgEl.innerText = "Mengecek voucher...";
 
     try {
-        const { getVoucherByKode } = await import('./firebase.js?v=20261013');
+        const { getVoucherByKode } = await import('./firebase.js?v=20261016');
         const v = await getVoucherByKode(kode);
 
         if (!v) {
@@ -2007,7 +2094,7 @@ async function cekKodePelunasan() {
     pelBuktiURL = null; pelData = null;
     let list = null;
     try {
-        const { cariPelunasan } = await import('./firebase.js?v=20261013');
+        const { cariPelunasan } = await import('./firebase.js?v=20261016');
         list = await cariPelunasan(klasifikasiPantau(val));
     } catch (e) { console.error(e); }
     btn.disabled = false; btn.innerText = 'CARI PESANAN';
@@ -2090,7 +2177,7 @@ async function previewPelBukti(input) {
     if (!file) return;
     lbl.innerText = 'Mengunggah...';
     pelBuktiURL = null;
-    const { uploadGambar } = await import('./firebase.js?v=20261013');
+    const { uploadGambar } = await import('./firebase.js?v=20261016');
     pelBuktiURL = await uploadGambar(file, 'bukti');
     if (pelBuktiURL) lbl.innerText = '✓ ' + file.name;
     else { lbl.innerText = 'Gagal upload, coba lagi'; input.value = ''; }
@@ -2102,7 +2189,7 @@ async function kirimPelunasan() {
     const btn = document.getElementById('pelBtnKirim');
     btn.disabled = true; btn.innerText = 'MENGIRIM...';
     try {
-        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261013');
+        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261016');
         await kirimBuktiPelunasan(pelData.kode, pelBuktiURL);
         pelData.status = 'menunggu_verifikasi';
         pelBuktiURL = null;
@@ -2205,7 +2292,7 @@ async function tampilPantau(kode) {
     box.innerHTML = '<p style="font-size:13px;opacity:.7;margin-top:14px">Memuat...</p>';
     let tl = [];
     try {
-        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261013');
+        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261016');
         tl = (await getTimeline(kode)).filter(e => e.kind !== 'legacy');
         // update per artikel (mis. "Kaos dikirim") ikut tampil, hanya yang terjadi setelah order dibuat
         const mulai = tsMillis(d.createdAt);
@@ -2251,7 +2338,7 @@ async function cekPantau() {
     const btn = document.getElementById('pantauBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
-        const { cariLacak } = await import('./firebase.js?v=20261013');
+        const { cariLacak } = await import('./firebase.js?v=20261016');
         renderPantau(await cariLacak(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);
@@ -2296,7 +2383,7 @@ async function cekResi() {
     const btn = document.getElementById('resiBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
-        const { cariResi } = await import('./firebase.js?v=20261013');
+        const { cariResi } = await import('./firebase.js?v=20261016');
         renderResi(await cariResi(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);

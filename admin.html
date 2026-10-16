@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="admin.css?v=20261017">
+    <link rel="stylesheet" href="admin.css?v=20261018">
 </head>
 <body data-tab="order">
 
@@ -59,6 +59,9 @@
         <div class="nav-group">Toko</div>
         <div class="nav-item" id="nav-produk" onclick="switchTab('produk')">
             <i class="fas fa-tshirt"></i> Produk
+        </div>
+        <div class="nav-item" id="nav-stok" onclick="switchTab('stok')">
+            <i class="fas fa-cubes"></i> Stok<span class="nav-badge" id="badgeStok"></span>
         </div>
         <div class="nav-item" id="nav-voucher" onclick="switchTab('voucher')">
             <i class="fas fa-ticket-alt"></i> Voucher
@@ -175,6 +178,18 @@
             <div id="produkList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
         </div>
 
+        <!-- TAB STOK -->
+        <div class="tab-content" id="tab-stok">
+            <div class="header-row">
+                <div>
+                    <div class="page-title">Stok</div>
+                    <div class="page-desc">Sisa stok per warna &amp; ukuran. Berkurang otomatis tiap ada order, dan dikembalikan kalau order ditolak.</div>
+                </div>
+            </div>
+            <div id="stokSummary" class="stok-summary"></div>
+            <div id="stokList"><div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
+        </div>
+
         <!-- TAB GALERI -->
         <div class="tab-content" id="tab-galeri">
             <div class="header-row">
@@ -273,6 +288,9 @@
         </div>
         <div class="mob-nav-item" id="mob-banner" onclick="switchTab('banner')">
             <i class="fas fa-flag"></i> Banner
+        </div>
+        <div class="mob-nav-item" id="mob-stok" onclick="switchTab('stok')">
+            <i class="fas fa-cubes"></i> Stok
         </div>
         <div class="mob-nav-item" id="mob-voucher" onclick="switchTab('voucher')">
             <i class="fas fa-ticket-alt"></i> Voucher
@@ -503,6 +521,6 @@
     </div>
 </div>
 
-<script type="module" src="admin.js?v=20261017"></script>
+<script type="module" src="admin.js?v=20261018"></script>
 </body>
 </html>

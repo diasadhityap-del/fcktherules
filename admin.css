@@ -590,3 +590,34 @@ body[data-tab="pelanggan"] { --tab-bg: #e5f6d6; --tab-accent: #b4ea8f; } /* hija
 .cust-row:hover { background: var(--tab-bg); }
 .upload-area:hover { background: var(--tab-bg); }
 .mobile-header { background: var(--tab-bg) !important; }
+
+
+/* ===== TAB STOK ===== */
+.stok-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.stok-card { background: var(--card); border: 2px solid var(--ink); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 14px; margin-bottom: 16px; }
+.stok-head { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+.stok-head img { width: 56px; height: 70px; object-fit: cover; border: 2px solid var(--ink); border-radius: var(--r-sm); background: var(--paper); flex: none; }
+.stok-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.stok-meta .produk-badge { margin: 0; }
+.stok-chip { display: inline-block; font-family: var(--font-fun); font-size: 18px; font-weight: 700; line-height: 1; padding: 5px 11px; border: 2px solid var(--ink); border-radius: var(--pill); background: #fff; }
+.stok-chip.ok { background: var(--mint); }
+.stok-chip.tipis { background: var(--sun); }
+.stok-chip.habis { background: var(--rose); color: var(--red); }
+.stok-chip.off { background: var(--paper); color: var(--muted); border-style: dashed; }
+.stok-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.stok-table { width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 430px; }
+.stok-table th { font-family: var(--font-fun); font-size: 19px; font-weight: 700; text-align: center; color: var(--ink-2); }
+.stok-table th:first-child, .stok-warna { text-align: left; }
+.stok-warna { font-weight: 700; font-size: 15px; white-space: nowrap; padding-right: 6px; }
+.stok-sum { text-align: center; font-family: var(--font-fun); font-size: 22px; font-weight: 700; color: var(--green); }
+.stok-kosong { color: var(--muted); text-align: center; padding: 14px 0; }
+.stok-in { width: 100%; min-width: 46px; padding: 10px 4px; text-align: center; font-size: 17px; font-weight: 700; border: 2px solid var(--ink); border-radius: var(--r-sm); background: #fff; color: var(--ink); -moz-appearance: textfield; }
+.stok-in::-webkit-outer-spin-button, .stok-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stok-in:focus { outline: none; box-shadow: 0 0 0 4px var(--sky); }
+.stok-in:placeholder-shown { background: var(--paper); border-style: dashed; }
+.stok-in.tipis { background: var(--sun); }
+.stok-in.habis { background: var(--rose); color: var(--red); }
+.stok-foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.stok-foot small { flex: 1; min-width: 180px; color: var(--muted); font-family: var(--font-fun); font-size: 17px; line-height: 1.2; }
+.stok-foot .btn-sm { flex: none; }
+.stok-dirty { font-family: var(--font-fun); font-size: 17px; color: var(--pop); font-weight: 700; }

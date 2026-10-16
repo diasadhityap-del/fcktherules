@@ -286,7 +286,8 @@ export async function adminLunaskan(orderId) {
 export async function adminSetStatus(o, status) {
     await updateDoc(doc(adminDb, "orders", o.id), { status });
     await adminSyncPay(o.kodePelunasan, status, o.sisaBayar, o.dpNominal);
-    return true;
+    // Stok: ditolak -> dikembalikan, dipulihkan dari ditolak -> dipotong lagi. Hasil: 'kembali' | 'potong' | null
+    return { stok: await adminSesuaikanStok(o, status) };
 }
 
 /* ============== ORDER ============== */
@@ -370,6 +371,81 @@ export async function deleteProduk(id) { await deleteDoc(doc(adminDb, "produk", 
 export function listenProduk(cb) {
     const q = query(collection(db, "produk"), orderBy("order", "desc"));
     return onSnapshot(q, s => cb(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+}
+
+
+/* ============== STOK VARIAN (per warna + ukuran, seperti Shopee) ==============
+   Koleksi "stok": 1 dokumen per varian.
+   ID dokumen = {produkId}__{warna-slug}__{UKURAN}   field: pid, warna, size, qty
+   Produk TANPA dokumen stok = tidak dibatasi stok per varian (perilaku lama: field "stok" di produk). */
+export const stokId = (pid, warna, size) =>
+    `${pid}__${String(warna ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}__${String(size ?? '').trim().toUpperCase()}`;
+
+export function listenStok(cb) {
+    return onSnapshot(collection(db, "stok"),
+        s => cb(s.docs.map(d => ({ id: d.id, ...d.data() }))),
+        err => console.error("Gagal baca stok:", err));
+}
+
+// Admin: simpan angka stok. cells = [{warna, size, qty}] ; qty null = varian tidak dijual (dokumen dihapus)
+export async function adminSimpanStok(pid, cells) {
+    await Promise.all(cells.map(c => {
+        const ref = doc(adminDb, "stok", stokId(pid, c.warna, c.size));
+        return c.qty === null
+            ? deleteDoc(ref)
+            : setDoc(ref, { pid, warna: c.warna, size: c.size, qty: c.qty, updatedAt: new Date().toISOString() });
+    }));
+    return true;
+}
+
+// Pembeli (checkout): kurangi stok secara atomik. items = [{pid, warna, size}] (1 item = 1 pcs).
+// Kalau ada varian yang kurang -> throw Error dengan code 'STOK_HABIS' dan .habis = [{warna,size,sisa}]; tidak ada yang dipotong.
+// Return [{id, n}] -> disimpan di order (stokItems) supaya bisa dikembalikan admin saat order ditolak.
+export async function kurangiStok(items) {
+    const need = {};
+    items.forEach(i => { const id = stokId(i.pid, i.warna, i.size); need[id] = need[id] || { n: 0, warna: i.warna, size: i.size }; need[id].n++; });
+    const ids = Object.keys(need);
+    return await runTransaction(db, async (tx) => {
+        const snaps = [];
+        for (const id of ids) snaps.push(await tx.get(doc(db, "stok", id)));
+        const habis = [];
+        snaps.forEach((sn, i) => {
+            const q = sn.exists() ? (Number(sn.data().qty) || 0) : 0;
+            if (q < need[ids[i]].n) habis.push({ warna: need[ids[i]].warna, size: need[ids[i]].size, sisa: q });
+        });
+        if (habis.length) { const e = new Error('Stok tidak cukup'); e.code = 'STOK_HABIS'; e.habis = habis; throw e; }
+        snaps.forEach((sn, i) => tx.update(sn.ref, { qty: (Number(sn.data().qty) || 0) - need[ids[i]].n }));
+        return ids.map(id => ({ id, n: need[id].n }));
+    });
+}
+
+// Admin: order ditolak -> stok dikembalikan; order yang tadinya ditolak dipulihkan -> stok dipotong lagi.
+// Idempotent lewat flag order.stokDikembalikan (dicek ulang di dalam transaksi).
+export async function adminSesuaikanStok(o, statusBaru) {
+    const items = o.stokItems;
+    if (!Array.isArray(items) || !items.length) return null;
+    const kembalikan = statusBaru === 'rejected' && !o.stokDikembalikan;
+    const potongLagi = statusBaru !== 'rejected' && !!o.stokDikembalikan;
+    if (!kembalikan && !potongLagi) return null;
+    const oRef = doc(adminDb, "orders", o.id);
+    let hasil = null;
+    await runTransaction(adminDb, async (tx) => {
+        const oSnap = await tx.get(oRef);
+        const cur = oSnap.data() || {};
+        if (kembalikan && cur.stokDikembalikan) return;
+        if (potongLagi && !cur.stokDikembalikan) return;
+        const refs = items.map(i => doc(adminDb, "stok", i.id));
+        const snaps = [];
+        for (const r of refs) snaps.push(await tx.get(r));
+        snaps.forEach((sn, i) => {
+            if (!sn.exists()) return;
+            const q = Number(sn.data().qty) || 0;
+            tx.update(refs[i], { qty: kembalikan ? q + items[i].n : Math.max(0, q - items[i].n) });
+        });
+        tx.update(oRef, { stokDikembalikan: kembalikan });
+        hasil = kembalikan ? 'kembali' : 'potong';
+    });
+    return hasil;
 }
 
 /* ============== GALERI ============== */

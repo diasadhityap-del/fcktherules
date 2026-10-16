@@ -39,6 +39,21 @@ service cloud.firestore {
     }
 
     // ============================================================
+    // STOK VARIAN (per warna + ukuran) - 1 dokumen per varian
+    // - Publik boleh read, dan HANYA boleh MENURUNKAN qty (potong stok saat checkout).
+    // - Admin: create, update, delete (isi/ubah stok, kembalikan stok order yang ditolak)
+    // ============================================================
+    match /stok/{id} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty'])
+            && request.resource.data.qty is int
+            && request.resource.data.qty >= 0
+            && request.resource.data.qty < resource.data.qty);
+    }
+
+    // ============================================================
     // VOUCHERS
     // - Publik boleh read (cek kode) dan HANYA boleh menurunkan kuota
     //   (potong kuota saat checkout). Field lain tidak bisa diubah publik.

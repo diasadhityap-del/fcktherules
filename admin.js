@@ -8,13 +8,14 @@ import {
     listenCustomers, deleteCustomer,
     listenPelunasan, adminSimpanResi, adminKodeLacakAda, adminEditHarga, adminSimpanDP, adminLunaskan, adminSetStatus, buatKodePelunasan, buatOrderNo, bersihkanPrefix,
     listenPoTrack, adminTutupPo, adminHapusLacak,
+    listenStok, stokId, adminSimpanStok, adminSesuaikanStok,
     adminBackfillOrder, turunanPO, tsMillis,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js?v=20261014';
+} from './firebase.js?v=20261016';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js?v=20261014";
+import { adminDb } from "./firebase.js?v=20261016";
 
 let allOrders = [];
 let allProduk = [];
@@ -54,6 +55,7 @@ onAuthStateChanged(adminAuth, async (user) => {
         autoSinkron();
         listenPelunasan(data => { allPelunasan = data; renderOrders(); });
         listenPoTrack(data => { allPoTrack = data; renderPoAdmin(); });
+        listenStok(data => { stokDocs = Object.fromEntries(data.map(d => [d.id, d])); renderStok(); });
     } else {
         document.getElementById('loginPage').style.display = 'flex';
         document.getElementById('adminPage').style.display = 'none';
@@ -346,6 +348,14 @@ window.hitungSisaDP = (id) => {
     out.style.color = (total - nom) < 0 ? 'var(--red)' : 'var(--green)';
 };
 
+// Order yang tadinya DITOLAK lalu dipulihkan jadi DP/LUNAS: stok dipotong lagi (kebalikan dari "kembalikan stok saat ditolak")
+async function stokSetelahPulih(o, statusBaru) {
+    try {
+        const h = await adminSesuaikanStok(o, statusBaru);
+        return h === 'potong' ? { stokDikembalikan: false } : {};
+    } catch (e) { console.error(e); showToast('STATUS OK, TAPI STOK GAGAL DIPOTONG LAGI — CEK TAB STOK', true); return {}; }
+}
+
 window.simpanDP = async (id) => {
     const o = allOrders.find(x => x.id === id);
     if (!o) return;
@@ -358,7 +368,8 @@ window.simpanDP = async (id) => {
         const orderNo = o.orderNo || buatOrderNo(namaProdukText(o));
         const { sisa } = await adminSimpanDP(o, nom, kode, orderNo);
         delete uiDP[id];
-        allOrders = allOrders.map(x => x.id === id ? { ...x, status: 'dp', dpNominal: nom, sisaBayar: sisa, kodePelunasan: kode, orderNo } : x);
+        const flagStok = await stokSetelahPulih(o, 'dp');
+        allOrders = allOrders.map(x => x.id === id ? { ...x, status: 'dp', dpNominal: nom, sisaBayar: sisa, kodePelunasan: kode, orderNo, ...flagStok } : x);
         renderOrders(true);
         showToast('DP DISIMPAN ✓ SISA ' + rp(sisa));
     } catch (e) {
@@ -441,9 +452,10 @@ window.gantiStatusOrder = async (id, statusBaru) => {
     if (statusBaru === lama) return renderOrders(true);
     if (statusBaru === 'lunas') return window.lunaskanOrder(id);
     try {
-        await adminSetStatus(o, statusBaru);
-        allOrders = allOrders.map(x => x.id === id ? { ...x, status: statusBaru } : x);
-        showToast('STATUS DIPERBARUI ✓');
+        const r = await adminSetStatus(o, statusBaru);
+        const flag = r && r.stok === 'kembali' ? { stokDikembalikan: true } : r && r.stok === 'potong' ? { stokDikembalikan: false } : {};
+        allOrders = allOrders.map(x => x.id === id ? { ...x, status: statusBaru, ...flag } : x);
+        showToast(r && r.stok === 'kembali' ? 'STATUS DIPERBARUI ✓ · STOK DIKEMBALIKAN' : r && r.stok === 'potong' ? 'STATUS DIPERBARUI ✓ · STOK DIPOTONG LAGI' : 'STATUS DIPERBARUI ✓');
     } catch (e) {
         console.error(e);
         showToast('GAGAL UPDATE STATUS!', true);
@@ -460,7 +472,8 @@ window.lunaskanOrder = async (id) => {
     if (!confirm(msg)) { delete uiDP[id]; return renderOrders(true); }
     try {
         const r = await adminLunaskan(id);
-        allOrders = allOrders.map(x => x.id === id ? { ...x, status: 'lunas', sisaBayar: 0 } : x);
+        const flagStok = await stokSetelahPulih(o, 'lunas');
+        allOrders = allOrders.map(x => x.id === id ? { ...x, status: 'lunas', sisaBayar: 0, ...flagStok } : x);
         showToast(r.changed ? 'ORDER LUNAS ✓' : 'ORDER SUDAH LUNAS');
     } catch (e) {
         console.error(e);
@@ -539,12 +552,146 @@ window.hapusProdukOrder = async () => {
     }
 };
 
+
+// ===== STOK (per warna + ukuran, seperti Shopee) =====
+const STOK_SIZES = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
+const STOK_TIPIS = 3;        // <= angka ini ditandai "menipis"
+let stokDocs = {};           // id varian -> {pid, warna, size, qty}
+const stokDirty = {};        // id produk -> true kalau ada angka yang belum disimpan
+const warnaProduk = p => String(p.warna || '').split('/').map(x => x.trim()).filter(Boolean);
+const stokDocsProduk = pid => Object.values(stokDocs).filter(d => d.pid === pid);
+
+function stokCardHTML(p) {
+    const warna = warnaProduk(p);
+    const docs = stokDocsProduk(p.id);
+    const tracked = docs.length > 0;
+    const total = docs.reduce((a, d) => a + (Number(d.qty) || 0), 0);
+    const chip = !tracked ? `<span class="stok-chip off">Belum dibatasi</span>`
+        : total <= 0 ? `<span class="stok-chip habis">HABIS</span>`
+        : `<span class="stok-chip ok">Total ${total} pcs</span>`;
+    const baris = warna.length ? warna.map(w => `
+        <tr>
+            <td class="stok-warna">${esc(w)}</td>
+            ${STOK_SIZES.map(sz => {
+                const d = stokDocs[stokId(p.id, w, sz)];
+                const q = d ? Number(d.qty) : null;
+                const cls = q === null ? '' : q <= 0 ? 'habis' : q <= STOK_TIPIS ? 'tipis' : '';
+                return `<td><input class="stok-in ${cls}" type="number" inputmode="numeric" min="0" step="1" placeholder="–"
+                    value="${q === null ? '' : q}" data-w="${esc(w)}" data-s="${sz}" oninput="stokInput('${p.id}')"></td>`;
+            }).join('')}
+            <td class="stok-sum" data-sum>0</td>
+        </tr>`).join('') : `<tr><td colspan="${STOK_SIZES.length + 2}" class="stok-kosong">Isi dulu daftar WARNA di Edit Produk.</td></tr>`;
+    return `
+        <div class="stok-head">
+            <img src="${esc(p.thumbnail || '')}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div style="min-width:0;flex:1">
+                <div class="produk-name">${esc(p.nama)}</div>
+                <div class="stok-meta"><span class="produk-badge badge-${esc(p.badge)}">${esc(p.status || p.badge)}</span> ${chip}</div>
+            </div>
+        </div>
+        <div class="stok-scroll">
+            <table class="stok-table">
+                <thead><tr><th>Warna</th>${STOK_SIZES.map(sz => `<th>${sz}</th>`).join('')}<th>Total</th></tr></thead>
+                <tbody>${baris}</tbody>
+            </table>
+        </div>
+        <div class="stok-foot">
+            <small>Kosong = ukuran tidak dijual · 0 = habis. Semua kosong lalu simpan = stok tidak dibatasi.</small>
+            <span class="stok-dirty" id="stok-dirty-${p.id}" style="display:none">belum disimpan</span>
+            <button class="btn-sm btn-approve" onclick="simpanStok('${p.id}')"><i class="fas fa-save"></i> Simpan stok</button>
+        </div>`;
+}
+
+function hitungSumStok(pid) {
+    const card = document.getElementById('stok-card-' + pid);
+    if (!card) return;
+    card.querySelectorAll('tbody tr').forEach(tr => {
+        let t = 0;
+        tr.querySelectorAll('.stok-in').forEach(i => { t += Math.max(0, parseInt(i.value, 10) || 0); });
+        const c = tr.querySelector('[data-sum]');
+        if (c) c.textContent = t;
+    });
+}
+
+window.stokInput = (pid) => {
+    stokDirty[pid] = true;
+    const tag = document.getElementById('stok-dirty-' + pid);
+    if (tag) tag.style.display = 'inline-block';
+    hitungSumStok(pid);
+};
+
+function renderStok() {
+    const list = document.getElementById('stokList');
+    if (!list) return;
+    const prods = [...allProduk].sort((a, b) => ((b.badge === 'ready') - (a.badge === 'ready')) || ((b.order || 0) - (a.order || 0)));
+    if (!prods.length) { list.innerHTML = `<div class="empty"><i class="fas fa-cubes"></i><p>Belum ada produk</p></div>`; return; }
+    const ids = prods.map(p => p.id).join(',');
+    if (list.dataset.ids !== ids) {
+        list.innerHTML = prods.map(p => `<div class="stok-card" id="stok-card-${p.id}">${stokCardHTML(p)}</div>`).join('');
+        list.dataset.ids = ids;
+        Object.keys(stokDirty).forEach(k => delete stokDirty[k]);
+        prods.forEach(p => hitungSumStok(p.id));
+    } else {
+        // stok bisa berubah sendiri (ada pembeli checkout) -> segarkan kartu yang tidak sedang diketik
+        prods.forEach(p => {
+            if (stokDirty[p.id]) return;
+            const el = document.getElementById('stok-card-' + p.id);
+            if (el) { el.innerHTML = stokCardHTML(p); hitungSumStok(p.id); }
+        });
+    }
+    const all = Object.values(stokDocs);
+    const habis = all.filter(d => Number(d.qty) <= 0).length;
+    const tipis = all.filter(d => Number(d.qty) > 0 && Number(d.qty) <= STOK_TIPIS).length;
+    const sum = document.getElementById('stokSummary');
+    if (sum) sum.innerHTML = all.length
+        ? `<span class="stok-chip ${habis ? 'habis' : 'ok'}">${habis} varian habis</span> <span class="stok-chip ${tipis ? 'tipis' : 'ok'}">${tipis} menipis (≤${STOK_TIPIS})</span>`
+        : '';
+    const bd = document.getElementById('badgeStok');
+    if (bd) { const n = habis + tipis; bd.textContent = n || ''; bd.style.display = n ? '' : 'none'; }
+}
+
+window.simpanStok = async (pid) => {
+    const card = document.getElementById('stok-card-' + pid);
+    const p = allProduk.find(x => x.id === pid);
+    if (!card || !p) return;
+    const cells = [];
+    for (const inp of card.querySelectorAll('.stok-in')) {
+        const v = inp.value.trim();
+        if (v === '') { cells.push({ warna: inp.dataset.w, size: inp.dataset.s, qty: null }); continue; }
+        const n = Number(v);
+        if (!Number.isInteger(n) || n < 0) return showToast('STOK HARUS ANGKA BULAT ≥ 0', true);
+        cells.push({ warna: inp.dataset.w, size: inp.dataset.s, qty: n });
+    }
+    const btn = card.querySelector('.btn-approve');
+    if (btn) btn.disabled = true;
+    try {
+        await adminSimpanStok(pid, cells);
+        // field lama "stok" (daftar ukuran) disamakan, supaya Rekap/Pengiriman tetap jalan
+        const ukuran = STOK_SIZES.filter(sz => cells.some(c => c.size === sz && c.qty !== null && c.qty > 0));
+        if (cells.some(c => c.qty !== null)) {
+            const stokStr = ukuran.join(' / ');
+            await updateProduk(pid, { stok: stokStr });
+            allProduk = allProduk.map(x => x.id === pid ? { ...x, stok: stokStr } : x);
+        }
+        delete stokDirty[pid];
+        const tag = document.getElementById('stok-dirty-' + pid);
+        if (tag) tag.style.display = 'none';
+        // dokumen stok yang baru ditulis akan datang lewat listener; kartu otomatis segar
+        showToast('STOK DISIMPAN ✓');
+    } catch (e) {
+        console.error(e);
+        showToast('GAGAL SIMPAN STOK: ' + (e && e.code ? e.code : 'cek rules Firestore'), true);
+    }
+    if (btn) btn.disabled = false;
+};
+
 // ===== PRODUK =====
 async function loadProduk() {
     allProduk = await getProduk();
     produkReady = true;
     renderProduk();
     renderPoAdmin();
+    renderStok();
     if (rk) rk.refresh();
 }
 
@@ -1354,7 +1501,7 @@ window.tutupPo = async (pid, closed) => {
 // Memakai data allOrders/allProduk yang sama dengan tab ORDER. Penulisan: statusKirim (field baru, hanya admin lewat rules orders update)
 // dan resi lewat adminSimpanResi() yang sudah ada (order + Pantau/Cek Resi).
 // Dimuat dengan import() dinamis: bila file ini gagal dimuat, fitur admin lama tetap berjalan normal.
-import('./admin-kirim.js?v=20261014').then(({ initRekapKirim }) => {
+import('./admin-kirim.js?v=20261016').then(({ initRekapKirim }) => {
     rk = initRekapKirim({
         getOrders: () => allOrders,
         getProduk: () => allProduk,

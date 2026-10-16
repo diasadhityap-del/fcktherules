@@ -1353,3 +1353,9 @@ label.upload:hover { background:#fff; border-color:var(--ink); }
 .gallery-grid img:nth-child(n):hover { transform: translateY(-2px) scale(1.01); }
 @media (min-width: 640px) { .gallery-grid { --g: 14px; } }
 @media (min-width: 960px) { .gallery-grid { --g: 16px; } .gallery-grid img { border-radius: 24px; } }
+
+
+/* ===== Info stok per varian (seperti Shopee) ===== */
+.stok-info { margin-top: 12px; font-size: 15px; font-weight: 700; color: var(--ink); min-height: 1.2em; }
+.stok-info.tipis { color: #c4302b; }
+.stok-info.habis { color: #c4302b; text-decoration: none; }
