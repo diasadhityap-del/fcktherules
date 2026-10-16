@@ -157,6 +157,10 @@ export function hitungRekap(orders, produkList, namaProduk, opt = {}) {
         String(def.stok || '').split('/').forEach(s => tambah(sizeMap, s, false));
     }
     const mx = {}, perColor = {}, perSize = {}, rows = [], orderSet = new Set(), tambahMap = new Map();
+    // Tambahan yang ditandai "pisah" (mis. lengan panjang) = jenis kaos lain: direkap sendiri, tidak masuk rekap dasar
+    const defAdds = def && Array.isArray(def.tambahan) ? def.tambahan : [];
+    const pisahSet = new Set(defAdds.filter(a => a.perUkuran).map(a => normKey(a.nama)));
+    const grp = new Map();
     let totalPcs = 0, pendingTidakDihitung = 0, batalDiabaikan = 0;
 
     (orders || []).forEach(o => {
@@ -175,14 +179,20 @@ export function hitungRekap(orders, produkList, namaProduk, opt = {}) {
             perColor[wk] = (perColor[wk] || 0) + i.qty;
             perSize[sk] = (perSize[sk] || 0) + i.qty;
             totalPcs += i.qty;
-            daftarTambahan(i.tambahan).forEach(t => {
+            const adds = daftarTambahan(i.tambahan);
+            const pisah = adds.find(t => pisahSet.has(normKey(t))) || '';
+            const gk = normKey(pisah);
+            const g = grp.get(gk) || { key: gk, nama: pisah, mx: {}, perColor: {}, perSize: {}, totalPcs: 0 };
+            g.mx[wk] = g.mx[wk] || {};
+            g.mx[wk][sk] = (g.mx[wk][sk] || 0) + i.qty;
+            g.perColor[wk] = (g.perColor[wk] || 0) + i.qty;
+            g.perSize[sk] = (g.perSize[sk] || 0) + i.qty;
+            g.totalPcs += i.qty;
+            grp.set(gk, g);
+            adds.forEach(t => {            // tambahan biasa (syal, dll): cukup total
+                if (pisahSet.has(normKey(t))) return;
                 const tk = normKey(t);
-                const e = tambahMap.get(tk) || { nama: t, qty: 0, ps: {}, pc: {} };
-                e.qty += i.qty;
-                e.ps[sk] = (e.ps[sk] || 0) + i.qty;
-                e.pc[wk] = e.pc[wk] || {};
-                e.pc[wk][sk] = (e.pc[wk][sk] || 0) + i.qty;
-                tambahMap.set(tk, e);
+                tambahMap.set(tk, { nama: t, qty: (tambahMap.get(tk)?.qty || 0) + i.qty });
             });
             rows.push({ docId: o.id, idx, nama: String(o.nama || '').trim(), warna: i.warna, size: i.size, qty: i.qty, tambahan: i.tambahan, wk, sk, o });
         });
@@ -193,16 +203,15 @@ export function hitungRekap(orders, produkList, namaProduk, opt = {}) {
     rows.sort((a, b) => a.nama.localeCompare(b.nama, 'id', { sensitivity: 'base' })
         || String(a.o.createdAt || '').localeCompare(String(b.o.createdAt || ''))
         || String(a.docId).localeCompare(String(b.docId)) || (a.idx - b.idx));
+    const groups = [...grp.values()].sort((a, b) => (a.key === '' ? -1 : b.key === '' ? 1 : a.nama.localeCompare(b.nama, 'id')));
+    const adaPisah = groups.some(g => g.key !== '');
+    const namaPisah = defAdds.filter(a => a.perUkuran).map(a => a.nama);
+    const labelDasar = namaPisah.some(n => /panjang|long/i.test(n)) ? 'LENGAN PENDEK' : 'TANPA ' + namaPisah.join(' / ').toUpperCase();
+    groups.forEach(g => { g.label = g.key === '' ? (adaPisah ? labelDasar : '') : String(g.nama).toUpperCase(); });
     return {
         nama: namaProduk, def, colors, sizes, mx, perColor, perSize, rows, totalPcs,
-        tambahan: [...tambahMap.values()].map(t => {
-            const dA = (def && Array.isArray(def.tambahan) ? def.tambahan : []).find(a => normKey(a.nama) === normKey(t.nama));
-            return {
-                nama: t.nama, qty: t.qty, perUkuran: !!(dA && dA.perUkuran),
-                perSize: sizes.filter(s => t.ps[s.key]).map(s => ({ label: s.label, qty: t.ps[s.key] })),
-                perColor: colors.filter(c => t.pc[c.key]).map(c => ({ label: c.label, sizes: sizes.filter(s => t.pc[c.key][s.key]).map(s => ({ label: s.label, qty: t.pc[c.key][s.key] })) }))
-            };
-        }).sort((a, b) => (b.perUkuran - a.perUkuran) || b.qty - a.qty || a.nama.localeCompare(b.nama, 'id')),
+        groups,
+        tambahan: [...tambahMap.values()].sort((a, b) => b.qty - a.qty || a.nama.localeCompare(b.nama, 'id')),
         totalOrder: orderSet.size, pendingTidakDihitung, batalDiabaikan,
         adaExtra: colors.some(c => c.extra) || sizes.some(s => s.extra)
     };
@@ -210,24 +219,30 @@ export function hitungRekap(orders, produkList, namaProduk, opt = {}) {
 
 export function teksRekap(r) {
     const out = ['REKAP PRODUK — ' + String(r.nama).toUpperCase(), ''];
-    r.colors.forEach(c => {
-        out.push(c.label);
-        r.sizes.forEach(s => out.push(`${s.label} : ${(r.mx[c.key] && r.mx[c.key][s.key]) || 0} pcs`));
-        out.push(`Total ${titleCase(c.label)}: ${r.perColor[c.key] || 0} pcs`, '');
-    });
-    out.push('TOTAL PER SIZE');
-    r.sizes.forEach(s => out.push(`${s.label} : ${r.perSize[s.key] || 0} pcs`));
-    if (r.tambahan && r.tambahan.length) {
-        out.push('', 'TAMBAHAN');
-        r.tambahan.forEach(t => {
-            out.push(`${t.nama} : ${t.qty} pcs`);
-            if (t.perUkuran) {
-                out.push('  Per size: ' + t.perSize.map(s => `${s.label} ${s.qty}`).join(', '));
-                t.perColor.forEach(c => out.push(`  ${c.label}: ` + c.sizes.map(s => `${s.label} ${s.qty}`).join(', ')));
-            }
+    const gs = (r.groups && r.groups.length) ? r.groups : [{ key: '', label: '', mx: r.mx, perColor: r.perColor, perSize: r.perSize, totalPcs: r.totalPcs }];
+    const banyak = gs.some(g => g.label);
+    gs.forEach(g => {
+        if (g.label) out.push(`=== ${g.label} ===`, '');
+        out.push('REKAP WARNA & SIZE');
+        r.colors.forEach(c => {
+            if (banyak && !(g.perColor[c.key] || 0)) return;
+            out.push(c.label);
+            r.sizes.forEach(s => out.push(`${s.label} : ${(g.mx[c.key] && g.mx[c.key][s.key]) || 0} pcs`));
+            out.push(`Total ${titleCase(c.label)}: ${g.perColor[c.key] || 0} pcs`, '');
         });
+        if (!banyak) {
+            out.push('TOTAL PER SIZE');
+            r.sizes.forEach(s => out.push(`${s.label} : ${g.perSize[s.key] || 0} pcs`), '');
+        } else {
+            out.push(`TOTAL ${g.label}: ${g.totalPcs} PCS`, '');
+        }
+    });
+    if (banyak) out.push(...gs.map(g => `${g.label} : ${g.totalPcs} pcs`));
+    out.push(`TOTAL KESELURUHAN: ${r.totalPcs} PCS`);
+    if (r.tambahan && r.tambahan.length) {
+        out.push('');
+        r.tambahan.forEach(t => out.push(`${t.nama} : ${t.qty} pcs`));
     }
-    out.push('', `TOTAL KESELURUHAN: ${r.totalPcs} PCS`);
     return out.join('\n');
 }
 
@@ -399,13 +414,39 @@ export function initRekapKirim(deps) {
     }
 
     function rekapCardHTML(r, i) {
-        const cell = (c, s) => (r.mx[c.key] && r.mx[c.key][s.key]) || 0;
         const notes = [];
-        if (r.pendingTidakDihitung) notes.push(`${r.pendingTidakDihitung} order PENDING belum dihitung (ubah pilihan "Pesanan yang dihitung" untuk menyertakan).`);
+        if (r.pendingTidakDihitung) notes.push(`${r.pendingTidakDihitung} order PENDING belum dihitung (ubah pilihan \"Pesanan yang dihitung\" untuk menyertakan).`);
         if (r.batalDiabaikan) notes.push(`${r.batalDiabaikan} order DITOLAK/batal diabaikan.`);
         if (r.adaExtra) notes.push('Tanda * = warna/size ada di order tetapi tidak ada di data produk; tetap dihitung agar total sesuai pesanan.');
         if (!r.def) notes.push('Produk ini tidak ada di katalog saat ini (data dari order saja).');
         const mark = x => x.extra ? '*' : '';
+        const gs = (r.groups && r.groups.length) ? r.groups : [{ key: '', label: '', mx: r.mx, perColor: r.perColor, perSize: r.perSize, totalPcs: r.totalPcs }];
+        const banyak = gs.some(g => g.label);
+
+        const blok = g => {
+            const cell = (c, s) => (g.mx[c.key] && g.mx[c.key][s.key]) || 0;
+            const warnaAda = banyak ? r.colors.filter(c => g.perColor[c.key]) : r.colors;
+            const matriks = `
+            <div class="rk-sub">REKAP WARNA &amp; SIZE</div>
+            <div class="rk-colors">
+                ${warnaAda.map(c => `
+                <div class="rk-color">
+                    <div class="rk-color-name">${esc(c.label)}${mark(c)}</div>
+                    ${r.sizes.map(s => `<div class="rk-line"><span>${esc(s.label)}${mark(s)} :</span><b>${cell(c, s)} pcs</b></div>`).join('')}
+                    <div class="rk-line rk-total"><span>Total ${esc(titleCase(c.label))}:</span><b>${g.perColor[c.key] || 0} pcs</b></div>
+                </div>`).join('')}
+            </div>`;
+            const isi = banyak ? matriks : `
+            <div class="rk-sub">TOTAL PER WARNA</div>
+            <div class="rk-chips">${warnaAda.length ? warnaAda.map(c => `<span class="rk-chip">${esc(c.label)}${mark(c)}: <b>${g.perColor[c.key] || 0}</b> pcs</span>`).join('') : '<span class="rk-muted">Belum ada data warna</span>'}</div>
+            <div class="rk-sub">TOTAL PER SIZE</div>
+            <div class="rk-chips">${r.sizes.length ? r.sizes.map(s => `<span class="rk-chip">${esc(s.label)}${mark(s)}: <b>${g.perSize[s.key] || 0}</b> pcs</span>`).join('') : '<span class="rk-muted">Belum ada data size</span>'}</div>` + matriks;
+            return banyak
+                ? `<div class="rk-group"><div class="rk-group-title"><span>${esc(g.label)}</span><b>${g.totalPcs} pcs</b></div>${isi}
+                    <div class="rk-line rk-total rk-grand"><span>TOTAL ${esc(g.label)}</span><b>${g.totalPcs} PCS</b></div></div>`
+                : isi;
+        };
+
         return `
         <div class="rk-card">
             <div class="rk-card-head">
@@ -416,30 +457,12 @@ export function initRekapKirim(deps) {
                 <div class="rk-stat"><b>${r.totalOrder}</b><span>TOTAL ORDER</span></div>
                 <div class="rk-stat"><b>${r.totalPcs}</b><span>TOTAL KAOS (PCS)</span></div>
             </div>
-            <div class="rk-sub">TOTAL PER WARNA</div>
-            <div class="rk-chips">${r.colors.length ? r.colors.map(c => `<span class="rk-chip">${esc(c.label)}${mark(c)}: <b>${r.perColor[c.key] || 0}</b> pcs</span>`).join('') : '<span class="rk-muted">Belum ada data warna</span>'}</div>
-            <div class="rk-sub">TOTAL PER SIZE</div>
-            <div class="rk-chips">${r.sizes.length ? r.sizes.map(s => `<span class="rk-chip">${esc(s.label)}${mark(s)}: <b>${r.perSize[s.key] || 0}</b> pcs</span>`).join('') : '<span class="rk-muted">Belum ada data size</span>'}</div>
-            <div class="rk-sub">REKAP WARNA &amp; SIZE</div>
-            <div class="rk-colors">
-                ${r.colors.map(c => `
-                <div class="rk-color">
-                    <div class="rk-color-name">${esc(c.label)}${mark(c)}</div>
-                    ${r.sizes.map(s => `<div class="rk-line"><span>${esc(s.label)}${mark(s)} :</span><b>${cell(c, s)} pcs</b></div>`).join('')}
-                    <div class="rk-line rk-total"><span>Total ${esc(titleCase(c.label))}:</span><b>${r.perColor[c.key] || 0} pcs</b></div>
-                </div>`).join('')}
-            </div>
-            ${r.tambahan && r.tambahan.length ? `
-            <div class="rk-sub">TAMBAHAN</div>
-            ${r.tambahan.filter(t => t.perUkuran).map(t => `
-            <div class="rk-color">
-                <div class="rk-color-name">${esc(t.nama)} — ${t.qty} pcs (per ukuran)</div>
-                ${t.perSize.map(s => `<div class="rk-line"><span>${esc(s.label)} :</span><b>${s.qty} pcs</b></div>`).join('')}
-                <div class="rk-line rk-total"><span>Per warna:</span><b></b></div>
-                ${t.perColor.map(c => `<div class="rk-line"><span>${esc(c.label)}</span><b>${c.sizes.map(s => esc(s.label) + ' ' + s.qty).join(', ')}</b></div>`).join('')}
-            </div>`).join('')}
-            ${r.tambahan.some(t => !t.perUkuran) ? `<div class="rk-chips">${r.tambahan.filter(t => !t.perUkuran).map(t => `<span class="rk-chip">${esc(t.nama)}: <b>${t.qty}</b> pcs</span>`).join('')}</div>` : ''}` : ''}
+            ${gs.map(blok).join('')}
+            ${banyak ? `<div class="rk-sub">TOTAL PER JENIS</div>${gs.map(g => `<div class="rk-line"><span>${esc(g.label || 'LAINNYA')}</span><b>${g.totalPcs} pcs</b></div>`).join('')}` : ''}
             <div class="rk-line rk-total rk-grand"><span>TOTAL KESELURUHAN</span><b>${r.totalPcs} PCS</b></div>
+            ${r.tambahan && r.tambahan.length ? `
+            <div class="rk-sub">TAMBAHAN LAIN</div>
+            <div class="rk-chips">${r.tambahan.map(t => `<span class="rk-chip">${esc(t.nama)}: <b>${t.qty}</b> pcs</span>`).join('')}</div>` : ''}
             ${notes.map(n => `<div class="rk-note">${esc(n)}</div>`).join('')}
         </div>`;
     }

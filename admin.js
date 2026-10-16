@@ -220,7 +220,7 @@ function orderCardHTML(o, pel) {
         ? o.produk.map(p => ({ nama: p.nama, warna: p.warna, size: p.size, tambahan: p.tambahan }))
         : [{ nama: o.produk, warna: o.warna, size: o.size, tambahan: o.tambahan }];
     const itemsHTML = items.map(p => `
-        <div class="oc-item"><b>${esc(p.nama)}</b><span>${esc(p.warna)} / ${esc(p.size)}${p.tambahan ? ' · + ' + esc(p.tambahan) : ''}</span></div>`).join('');
+        <div class="oc-item"><b>${esc(p.nama)}</b><span>${esc(p.warna)} / ${esc(p.size)}</span>${p.tambahan ? `<div class="oc-add">+ ${esc(p.tambahan)}</div>` : ''}</div>`).join('');
 
     const voucherHTML = o.voucherKode ? `
         <div class="info-item warn">Voucher <span>${esc(o.voucherKode)}${o.voucherDeskripsi ? ' · ' + esc(o.voucherDeskripsi) : ''}</span></div>` : '';
@@ -736,7 +736,7 @@ window.openModalProduk = () => {
     document.getElementById('pStatus').value = '';
     document.getElementById('pWarna').value = '';
     document.getElementById('pStok').value = '';
-    document.getElementById('pTambahan').value = '';
+    isiTambahan([]);
     document.getElementById('pSpecs').value = '';
     document.getElementById('pShowcase').value = 'yes';
     document.getElementById('pDP').value = 'yes';
@@ -768,7 +768,7 @@ window.editProduk = (id) => {
     document.getElementById('pStatus').value = p.status || '';
     document.getElementById('pWarna').value = p.warna || '';
     document.getElementById('pStok').value = p.stok || '';
-    document.getElementById('pTambahan').value = (Array.isArray(p.tambahan) ? p.tambahan : []).map(t => `${t.nama} | ${t.harga}${t.perUkuran ? ' | ukuran' : ''}`).join('\n');
+    isiTambahan(p.tambahan);
     document.getElementById('pSpecs').value = p.specs || '';
     document.getElementById('pShowcase').value = p.showcase || 'yes';
     document.getElementById('pDP').value = p.dpAllowed || 'yes';
@@ -790,27 +790,40 @@ window.editProduk = (id) => {
     document.getElementById('modalProduk').classList.add('show');
 };
 
-// "Lengan panjang | 15000 | ukuran" per baris -> [{nama, harga, perUkuran}] ; null kalau ada baris yang formatnya salah
-// Kolom ke-3 opsional: tulis "ukuran" kalau tambahan ini perlu direkap per ukuran (mis. lengan panjang). Syal/bundling: kosongkan.
-function parseTambahan(txt) {
+// ===== TAMBAHAN OPSIONAL: baris kotak input (nama, harga, centang "rekap terpisah") =====
+function barisTambahanHTML(t = {}) {
+    return `<div class="tb-row">
+        <input class="tb-nama" type="text" placeholder="Nama (mis. Lengan panjang)" value="${esc(t.nama || '')}">
+        <input class="tb-harga" type="number" inputmode="numeric" min="0" placeholder="+ Harga" value="${t.harga ?? ''}">
+        <label class="tb-pisah"><input type="checkbox" class="tb-cek" ${t.perUkuran ? 'checked' : ''}> Rekap terpisah</label>
+        <button type="button" class="tb-del" title="Hapus" onclick="this.closest('.tb-row').remove()"><i class="fas fa-trash"></i></button>
+    </div>`;
+}
+window.tambahBarisTambahan = () => {
+    const box = document.getElementById('tambahanList');
+    box.insertAdjacentHTML('beforeend', barisTambahanHTML());
+    box.lastElementChild.querySelector('.tb-nama').focus();
+};
+function isiTambahan(list) {
+    document.getElementById('tambahanList').innerHTML = (Array.isArray(list) ? list : []).map(barisTambahanHTML).join('');
+}
+// -> [{nama, harga, perUkuran}] ; null kalau ada baris yang belum lengkap
+function bacaTambahan() {
     const out = [];
-    for (const baris of String(txt || '').split('\n')) {
-        const b = baris.trim();
-        if (!b) continue;
-        const p = b.split('|').map(x => x.trim());
-        const nama = (p[0] || '').replace(/,/g, ' ').replace(/\s{2,}/g, ' ').trim();   // tanpa koma: di order, tambahan dipisah koma
-        const harga = p.length > 1 ? Number(p[1].replace(/\D/g, '')) : NaN;
-        if (!nama || p.length < 2 || !p[1] || !Number.isFinite(harga) || harga < 0) return null;
-        const flag = (p[2] || '').toLowerCase();
-        if (p[2] && !/^(ukuran|size|per ?ukuran|per ?size)$/.test(flag)) return null;
-        out.push({ nama, harga, perUkuran: !!p[2] });
+    for (const row of document.querySelectorAll('#tambahanList .tb-row')) {
+        const nama = row.querySelector('.tb-nama').value.replace(/,/g, ' ').replace(/\s{2,}/g, ' ').trim();   // tanpa koma: di order, tambahan dipisah koma
+        const hargaTxt = row.querySelector('.tb-harga').value.trim();
+        if (!nama && !hargaTxt) continue;                       // baris kosong diabaikan
+        const harga = Number(hargaTxt);
+        if (!nama || hargaTxt === '' || !Number.isFinite(harga) || harga < 0) return null;
+        out.push({ nama, harga: Math.round(harga), perUkuran: row.querySelector('.tb-cek').checked });
     }
     return out;
 }
 
 window.saveProdukData = async () => {
-    const tambahan = parseTambahan(document.getElementById('pTambahan').value);
-    if (tambahan === null) return showToast('FORMAT TAMBAHAN: Nama | harga  atau  Nama | harga | ukuran', true);
+    const tambahan = bacaTambahan();
+    if (tambahan === null) return showToast('TAMBAHAN: isi nama DAN harga, atau hapus barisnya', true);
     if (document.getElementById('pBadge').value === 'pre' && !bersihkanPrefix(document.getElementById('pKode').value)) {
         return showToast('KODE AWAL ID ORDER WAJIB DIISI UNTUK PRE ORDER', true);
     }
@@ -1527,7 +1540,7 @@ window.tutupPo = async (pid, closed) => {
 // Memakai data allOrders/allProduk yang sama dengan tab ORDER. Penulisan: statusKirim (field baru, hanya admin lewat rules orders update)
 // dan resi lewat adminSimpanResi() yang sudah ada (order + Pantau/Cek Resi).
 // Dimuat dengan import() dinamis: bila file ini gagal dimuat, fitur admin lama tetap berjalan normal.
-import('./admin-kirim.js?v=20261023').then(({ initRekapKirim }) => {
+import('./admin-kirim.js?v=20261025').then(({ initRekapKirim }) => {
     rk = initRekapKirim({
         getOrders: () => allOrders,
         getProduk: () => allProduk,

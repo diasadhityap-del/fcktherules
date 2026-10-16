@@ -626,3 +626,22 @@ body[data-tab="pelanggan"] { --tab-bg: #e5f6d6; --tab-accent: #b4ea8f; } /* hija
 
 /* tambahan opsional di Rekap / Pengiriman */
 .rk-add { color: var(--pop); font-weight: 700; }
+
+/* kartu order: tambahan turun ke baris sendiri, nama produk tidak terjepit */
+.oc-item { flex-wrap: wrap; }
+.oc-item b { flex: 1 1 150px; min-width: 0; }
+.oc-add { flex: 1 0 100%; font-family: var(--font-fun); font-size: 19px; font-weight: 700; color: var(--pop); line-height: 1.2; word-break: break-word; }
+
+/* rekap: kelompok jenis kaos (pendek / panjang / dst) */
+.rk-group { border: 2px solid var(--ink); border-radius: var(--r); padding: 12px 14px 14px; margin-top: 16px; background: #fff; }
+.rk-group-title { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-family: var(--font-fun); font-size: 26px; font-weight: 700; line-height: 1.1; }
+.rk-group-title b { color: var(--green); }
+
+/* ===== Input tambahan opsional (kotak, bukan teks pakai |) ===== */
+.tb-row { display: grid; grid-template-columns: 1fr 110px 44px; gap: 8px; align-items: center; background: var(--paper); border: 2px dashed var(--rule); border-radius: var(--r-sm); padding: 10px; margin-bottom: 10px; }
+.tb-row input[type="text"], .tb-row input[type="number"] { width: 100%; padding: 11px 12px; border: 2px solid var(--ink); border-radius: var(--r-sm); background: #fff; font-size: 15px; color: var(--ink); }
+.tb-row input:focus { outline: none; box-shadow: 0 0 0 4px var(--sky); }
+.tb-pisah { grid-column: 1 / 3; grid-row: 2; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 0; text-transform: none; letter-spacing: 0; }
+.tb-pisah input { width: 22px; height: 22px; accent-color: var(--ink); flex: none; }
+.tb-del { grid-column: 3; grid-row: 1 / 3; align-self: stretch; border: 2px solid var(--ink); background: var(--rose); color: var(--red); border-radius: var(--r-sm); width: 44px; cursor: pointer; }
+.tb-add { width: 100%; padding: 11px; border: 2px dashed var(--ink); border-radius: var(--r-sm); background: #fff; font-weight: 700; cursor: pointer; }
