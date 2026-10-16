@@ -660,14 +660,12 @@ body[data-tab="pelanggan"] { --tab-bg: #e5f6d6; --tab-accent: #b4ea8f; } /* hija
 .tl-chip.on { background:var(--tab-accent); box-shadow:0 3px 0 #141414; }
 .tl-chip small { opacity:.6; font-weight:600; margin-left:4px; }
 .tl-info { font-size:12.5px; opacity:.75; line-height:1.5; margin-bottom:12px; }
-.tl-row { display:flex; align-items:center; gap:10px; background:#fff; border:2px solid #141414; border-radius:16px; padding:8px 10px; margin-bottom:8px; }
-.tl-row.baru { background:#fffbe0; }
-.tl-no { width:26px; text-align:center; font-weight:800; font-size:14px; flex:none; }
-.tl-row img { width:52px; height:52px; border-radius:10px; object-fit:cover; background:#eee; flex:none; }
-.tl-nm { flex:1; min-width:0; }
-.tl-nm b { display:block; font-size:14px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-.tl-nm span { font-size:11px; opacity:.65; }
-.tl-btns { display:flex; gap:6px; flex:none; }
-.tl-btns .btn-icon { width:36px; height:36px; }
+.tl-card { position: relative; }
+.tl-card.baru { background: #fffbe0; }
+.tl-card .tl-no { position: absolute; top: 8px; left: 8px; min-width: 30px; height: 30px; padding: 0 6px; display: flex; align-items: center; justify-content: center; background: #fff; border: 2px solid var(--ink); border-radius: 999px; font-weight: 800; font-size: 14px; z-index: 1; }
+.tl-card img { width: 100%; max-width: 100%; aspect-ratio: 4/5; object-fit: cover; display: block; }
+.tl-tipe { font-size: 12px; opacity: .65; margin-bottom: 10px; }
 .tl-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
 .tl-actions button { flex:1 1 180px; }
+
+@media (max-width: 600px) { #tlList .produk-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }

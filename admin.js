@@ -1859,17 +1859,25 @@ function renderTL() {
     document.getElementById('tlInfo').innerHTML = (tlSec === 'home' ? 'Beranda hanya berisi item dengan <b>Tampilkan di beranda = Ya</b>. ' : '') +
         (tlDraft[tlSec] ? '<b>Ada perubahan belum disimpan.</b>' : (adaLayout ? 'Urutan khusus aktif.' : 'Belum disusun: memakai urutan bawaan (terbaru di atas).'));
     if (!items.length) { list.innerHTML = '<div class="empty"><i class="fas fa-arrows-up-down"></i><p>Belum ada item di halaman ini</p></div>'; return; }
-    list.innerHTML = items.map((p, i) => `
-        <div class="tl-row ${baru.has(p.id) && adaLayout ? 'baru' : ''}">
+    list.innerHTML = `<div class="produk-grid">${items.map((p, i) => {
+        const isBaru = baru.has(p.id) && adaLayout;
+        const badge = ['pre', 'ready', 'sold'].includes(p.badge) ? p.badge : 'pre';
+        return `
+        <div class="produk-card tl-card ${isBaru ? 'baru' : ''}">
             <div class="tl-no">${i + 1}</div>
             <img src="${esc(p.thumbnail || '')}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
-            <div class="tl-nm"><b>${esc(p.nama)}</b><span>${p._t} · ${esc(p.status || p.badge || '')}${baru.has(p.id) && adaLayout ? ' · baru (di atas)' : ''}</span></div>
-            <div class="tl-btns">
-                <div class="btn-icon" title="Paling atas" onclick="tlMove('${p.id}','top')">⤒</div>
-                <div class="btn-icon" title="Naik" onclick="tlMove('${p.id}','up')">↑</div>
-                <div class="btn-icon" title="Turun" onclick="tlMove('${p.id}','down')">↓</div>
+            <div class="produk-info">
+                <div class="produk-badge badge-${badge}">${esc(p.status || p.badge || '')}</div>
+                <div class="produk-name">${esc(p.nama)}</div>
+                <div class="tl-tipe">${p._t}${isBaru ? ' · baru (di atas)' : ''}</div>
+                <div class="produk-actions">
+                    <div class="btn-icon" title="Paling atas" onclick="tlMove('${p.id}','top')">⤒</div>
+                    <div class="btn-icon" title="Naik" onclick="tlMove('${p.id}','up')">↑</div>
+                    <div class="btn-icon" title="Turun" onclick="tlMove('${p.id}','down')">↓</div>
+                </div>
             </div>
-        </div>`).join('');
+        </div>`;
+    }).join('')}</div>`;
 }
 window.setTLSection = k => { tlSec = k; renderTL(); };
 window.tlMove = (id, dir) => {
