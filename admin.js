@@ -925,7 +925,7 @@ window.moveProdukDown = async (id) => {
 };
 
 // ===== AKSESORIS =====
-// Sama seperti Produk (Pre Order / Ready / Sold Out jadi satu daftar), tetapi TANPA warna, ukuran, tambahan & desain 3D.
+// Sama seperti Produk (Pre Order / Ready / Sold Out jadi satu daftar), tetapi TANPA warna, ukuran & tambahan (desain 3D opsional: dipajang di game menggantikan thumbnail).
 // Koleksi Firestore "aksesoris". Stok = satu angka per aksesoris di koleksi "stok" (id stokIdAks) -> checkout memotong, order ditolak mengembalikan.
 let akStokAwal = null;   // angka stok saat form dibuka (supaya stok yang berubah karena order tidak tertimpa angka basi)
 const stokAksDirty = {};
@@ -985,7 +985,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const h = document.getElementById('akHarga'); if (h) h.addEventListener('input', e => { e.target.value = formatHarga(e.target.value); });
 });
 
-function aksResetFoto(details = [], thumb = '') {
+let hapusDesainAksFlag = false;
+window.hapusDesainAks = () => { hapusDesainAksFlag = true; const d = document.getElementById('prevAkDesain'); d.src = ''; d.style.display = 'none'; document.getElementById('inputAkDesain').value = ''; };
+function aksResetFoto(details = [], thumb = '', desain = '') {
+    const ds = document.getElementById('prevAkDesain'); document.getElementById('inputAkDesain').value = ''; hapusDesainAksFlag = false;
+    if (desain) { ds.src = desain; ds.style.display = 'block'; } else { ds.src = ''; ds.style.display = 'none'; }
     const t = document.getElementById('prevAkThumb'); document.getElementById('inputAkThumb').value = '';
     if (thumb) { t.src = thumb; t.style.display = 'block'; } else { t.src = ''; t.style.display = 'none'; }
     [0, 1, 2, 3, 4].forEach(i => {
@@ -1028,7 +1032,7 @@ window.editAksesoris = (id) => {
     document.getElementById('akShowcase').value = p.showcase || 'yes';
     document.getElementById('akBesar').checked = !!p.besar;
     document.getElementById('akKode').value = p.kodePrefix || '';
-    aksResetFoto(p.details || [], p.thumbnail || '');
+    aksResetFoto(p.details || [], p.thumbnail || '', p.desain || '');
     toggleAksesorisForm();
     document.getElementById('modalAksesoris').classList.add('show');
 };
@@ -1055,6 +1059,10 @@ window.saveAksesorisData = async () => {
         const thumbFile = document.getElementById('inputAkThumb').files[0];
         if (thumbFile) { const u = await uploadGambar(thumbFile, 'produk'); if (u) thumbnailURL = u; }
 
+        let desainURL = lama?.desain || '';
+        const desainFile = document.getElementById('inputAkDesain').files[0];
+        if (desainFile) { const u = await uploadGambar(desainFile, 'produk'); if (u) desainURL = u; } else if (hapusDesainAksFlag) desainURL = '';
+
         const details = [], existing = lama?.details || [];
         for (let i = 0; i < 5; i++) {
             const file = document.getElementById('inputAkDet' + i).files[0];
@@ -1074,6 +1082,7 @@ window.saveAksesorisData = async () => {
             besar: document.getElementById('akBesar').checked,
             kodePrefix: bersihkanPrefix(document.getElementById('akKode').value),
             thumbnail: thumbnailURL,
+            desain: desainURL,
             details
         };
 
