@@ -605,7 +605,9 @@ body[data-tab="pelanggan"] { --tab-bg: #e5f6d6; --tab-accent: #b4ea8f; } /* hija
 .stok-chip.habis { background: var(--rose); color: var(--red); }
 .stok-chip.off { background: var(--paper); color: var(--muted); border-style: dashed; }
 .stok-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.stok-table { width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 430px; }
+.stok-table { width: 100%; border-collapse: separate; border-spacing: 6px; min-width: 430px; table-layout: fixed; }
+.stok-table th:first-child, .stok-table td:first-child { width: 74px; }
+.stok-table th:last-child, .stok-table td:last-child { width: 44px; }
 .stok-table th { font-family: var(--font-fun); font-size: 19px; font-weight: 700; text-align: center; color: var(--ink-2); }
 .stok-table th:first-child, .stok-warna { text-align: left; }
 .stok-warna { font-weight: 700; font-size: 15px; white-space: nowrap; padding-right: 6px; }

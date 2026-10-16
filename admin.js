@@ -623,8 +623,11 @@ window.stokInput = (pid) => {
 function renderStok() {
     const list = document.getElementById('stokList');
     if (!list) return;
-    const prods = [...allProduk].sort((a, b) => ((b.badge === 'ready') - (a.badge === 'ready')) || ((b.order || 0) - (a.order || 0)));
-    if (!prods.length) { list.innerHTML = `<div class="empty"><i class="fas fa-cubes"></i><p>Belum ada produk</p></div>`; return; }
+    // Hanya produk READY (Pre Order tidak dibatasi stok). Produk yang sudah punya data stok tetap tampil supaya tidak "hilang".
+    const prods = allProduk
+        .filter(p => p.badge === 'ready' || p.badge === 'sold' || stokDocsProduk(p.id).length > 0)
+        .sort((a, b) => ((b.badge === 'ready') - (a.badge === 'ready')) || ((b.order || 0) - (a.order || 0)));
+    if (!prods.length) { list.innerHTML = `<div class="empty"><i class="fas fa-cubes"></i><p>Belum ada produk Ready</p></div>`; return; }
     const ids = prods.map(p => p.id).join(',');
     if (list.dataset.ids !== ids) {
         list.innerHTML = prods.map(p => `<div class="stok-card" id="stok-card-${p.id}">${stokCardHTML(p)}</div>`).join('');
@@ -668,7 +671,7 @@ window.simpanStok = async (pid) => {
         await adminSimpanStok(pid, cells);
         // field lama "stok" (daftar ukuran) disamakan, supaya Rekap/Pengiriman tetap jalan
         const ukuran = STOK_SIZES.filter(sz => cells.some(c => c.size === sz && c.qty !== null && c.qty > 0));
-        if (cells.some(c => c.qty !== null)) {
+        if (p.badge === 'ready' && cells.some(c => c.qty !== null)) {   // artikel PO/lainnya: daftar ukuran di Edit Produk tidak disentuh
             const stokStr = ukuran.join(' / ');
             await updateProduk(pid, { stok: stokStr });
             allProduk = allProduk.map(x => x.id === pid ? { ...x, stok: stokStr } : x);
