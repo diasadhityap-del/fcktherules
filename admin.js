@@ -217,10 +217,10 @@ function orderCardHTML(o, pel) {
     if (status === 'rejected') { sc = 's-rejected'; st = 'DITOLAK'; }
 
     const items = Array.isArray(o.produk)
-        ? o.produk.map(p => ({ nama: p.nama, warna: p.warna, size: p.size }))
-        : [{ nama: o.produk, warna: o.warna, size: o.size }];
+        ? o.produk.map(p => ({ nama: p.nama, warna: p.warna, size: p.size, tambahan: p.tambahan }))
+        : [{ nama: o.produk, warna: o.warna, size: o.size, tambahan: o.tambahan }];
     const itemsHTML = items.map(p => `
-        <div class="oc-item"><b>${esc(p.nama)}</b><span>${esc(p.warna)} / ${esc(p.size)}</span></div>`).join('');
+        <div class="oc-item"><b>${esc(p.nama)}</b><span>${esc(p.warna)} / ${esc(p.size)}${p.tambahan ? ' · + ' + esc(p.tambahan) : ''}</span></div>`).join('');
 
     const voucherHTML = o.voucherKode ? `
         <div class="info-item warn">Voucher <span>${esc(o.voucherKode)}${o.voucherDeskripsi ? ' · ' + esc(o.voucherDeskripsi) : ''}</span></div>` : '';
@@ -736,6 +736,7 @@ window.openModalProduk = () => {
     document.getElementById('pStatus').value = '';
     document.getElementById('pWarna').value = '';
     document.getElementById('pStok').value = '';
+    document.getElementById('pTambahan').value = '';
     document.getElementById('pSpecs').value = '';
     document.getElementById('pShowcase').value = 'yes';
     document.getElementById('pDP').value = 'yes';
@@ -767,6 +768,7 @@ window.editProduk = (id) => {
     document.getElementById('pStatus').value = p.status || '';
     document.getElementById('pWarna').value = p.warna || '';
     document.getElementById('pStok').value = p.stok || '';
+    document.getElementById('pTambahan').value = (Array.isArray(p.tambahan) ? p.tambahan : []).map(t => `${t.nama} | ${t.harga}`).join('\n');
     document.getElementById('pSpecs').value = p.specs || '';
     document.getElementById('pShowcase').value = p.showcase || 'yes';
     document.getElementById('pDP').value = p.dpAllowed || 'yes';
@@ -788,7 +790,24 @@ window.editProduk = (id) => {
     document.getElementById('modalProduk').classList.add('show');
 };
 
+// "Lengan panjang | 15000" per baris -> [{nama, harga}] ; null kalau ada baris yang formatnya salah
+function parseTambahan(txt) {
+    const out = [];
+    for (const baris of String(txt || '').split('\n')) {
+        const b = baris.trim();
+        if (!b) continue;
+        const i = b.lastIndexOf('|');
+        const nama = (i >= 0 ? b.slice(0, i) : b).trim();
+        const harga = i >= 0 ? Number(b.slice(i + 1).replace(/\D/g, '')) : NaN;
+        if (!nama || !Number.isFinite(harga) || harga < 0 || i < 0) return null;
+        out.push({ nama, harga });
+    }
+    return out;
+}
+
 window.saveProdukData = async () => {
+    const tambahan = parseTambahan(document.getElementById('pTambahan').value);
+    if (tambahan === null) return showToast('FORMAT TAMBAHAN: Nama | harga (satu per baris)', true);
     if (document.getElementById('pBadge').value === 'pre' && !bersihkanPrefix(document.getElementById('pKode').value)) {
         return showToast('KODE AWAL ID ORDER WAJIB DIISI UNTUK PRE ORDER', true);
     }
@@ -825,6 +844,7 @@ window.saveProdukData = async () => {
             status: document.getElementById('pStatus').value,
             warna: document.getElementById('pWarna').value,
             stok: document.getElementById('pStok').value,
+            tambahan,
             specs: document.getElementById('pSpecs').value,
             showcase: document.getElementById('pShowcase').value,
             dpAllowed: document.getElementById('pDP').value,

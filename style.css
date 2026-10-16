@@ -1359,3 +1359,9 @@ label.upload:hover { background:#fff; border-color:var(--ink); }
 .stok-info { margin-top: 12px; font-size: 15px; font-weight: 700; color: var(--ink); min-height: 1.2em; }
 .stok-info.tipis { color: #c4302b; }
 .stok-info.habis { color: #c4302b; text-decoration: none; }
+
+/* ===== Tambahan opsional (lengan panjang, bundling, dll) ===== */
+.option-box.addon-box { grid-template-columns: 1fr !important; }
+.option-box.addon-box div { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; letter-spacing: 0; }
+.option-box.addon-box div b { font-weight: 700; white-space: nowrap; opacity: .75; }
+.option-box.addon-box div.active b { opacity: 1; }

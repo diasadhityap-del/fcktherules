@@ -90,7 +90,7 @@ function hargaAngka(value) {
 }
 
 function totalKeranjang() {
-    return cartItems.reduce((sum, i) => sum + hargaAngka(i.prod.price), 0);
+    return cartItems.reduce((sum, i) => sum + hargaItem(i.prod, i.addons), 0);
 }
 
 let galleryImages = [];
@@ -117,6 +117,13 @@ function sizeTersedia(p, color, size) {
     return color ? stokQty(p, color, size) > 0 : p.colors.some(c => stokQty(p, c, size) > 0);
 }
 const warnaTersedia = (p, color) => !stokTracked(p) || STOK_SIZES.some(s => stokQty(p, color, s) > 0);
+// ── TAMBAHAN OPSIONAL (mis. lengan panjang, bundling syal) ──
+// Produk punya p.addons = [{nama, harga}]; pilihan pembeli disimpan sebagai daftar nama di cart.addons / item.addons
+const escA = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const addonsItem = (prod, names) => (names || []).map(n => (prod.addons || []).find(a => a.nama === n)).filter(Boolean);
+const hargaItem = (prod, names) => hargaAngka(prod.price) + addonsItem(prod, names).reduce((sum, a) => sum + a.harga, 0);
+const namaAddons = (prod, names) => addonsItem(prod, names).map(a => a.nama).join(', ');
+const labelAddons = (prod, names) => { const t = namaAddons(prod, names); return t ? ` + ${t}` : ''; };
 const produkHabis = p => p.badge === 'sold' || (stokTracked(p) && stokTotal(p) <= 0);
 
 // ── CART FUNCTIONS ──────────────────────────────────────────
@@ -140,7 +147,8 @@ function addToCart() {
         id: Date.now(),
         prod: cart.prod,
         size: cart.size,
-        color: cart.color
+        color: cart.color,
+        addons: [...(cart.addons || [])]
     });
 
     vibrate([30, 30, 30]);
@@ -231,8 +239,8 @@ function renderCartPage() {
             <img src="${item.prod.thumbnail}" alt="">
             <div class="ci">
                 <p class="ci-name">${item.prod.name}</p>
-                <p class="ci-var">${item.color} | ${item.size}</p>
-                <p class="ci-price">${formatRupiah(item.prod.price)}</p>
+                <p class="ci-var">${item.color} | ${item.size}${escA(labelAddons(item.prod, item.addons))}</p>
+                <p class="ci-price">${formatRupiah(hargaItem(item.prod, item.addons))}</p>
             </div>
             <button type="button" class="ci-del" onclick="removeCartItem(${item.id})" aria-label="Hapus">
                 <i class="fas fa-trash-alt"></i>
@@ -285,9 +293,9 @@ function validateCartForm() {
         <div class="sum-item">
             <div>
                 <p class="n">${item.prod.name}</p>
-                <p class="v">${item.color} | ${item.size}</p>
+                <p class="v">${item.color} | ${item.size}${escA(labelAddons(item.prod, item.addons))}</p>
             </div>
-            <p class="pr">${formatRupiah(item.prod.price)}</p>
+            <p class="pr">${formatRupiah(hargaItem(item.prod, item.addons))}</p>
         </div>
     `).join('');
 
@@ -362,7 +370,7 @@ async function executeCheckout() {
             const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
             const buktiURL = uploadedBuktiURL;
-            const hargaProduk = hargaAngka(cart.prod.price);
+            const hargaProduk = hargaItem(cart.prod, cart.addons);
 
             const totalAkhir = hargaProduk + ongkirSaatIni - nilaiDiskon;
 
@@ -370,6 +378,7 @@ async function executeCheckout() {
                 nama: n, wa: p, email: email, alamat: a,
                 customerUid: currentCustomer?.uid || null,
                 produk: cart.prod.name, warna: cart.color, size: cart.size,
+                tambahan: namaAddons(cart.prod, cart.addons),
                 hargaKaos: hargaProduk,
                 ongkir: ongkirSaatIni,
                 voucherKode: appliedVoucher ? appliedVoucher.kode : "",
@@ -429,8 +438,8 @@ async function executeCheckout() {
             const orderData = {
                 nama: n, wa: p, email: email, alamat: a,
                 customerUid: currentCustomer?.uid || null,
-                produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: i.prod.price })),
-                produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size})`).join(', '),
+                produk: cartItems.map(i => ({ nama: i.prod.name, warna: i.color, size: i.size, harga: hargaItem(i.prod, i.addons), tambahan: namaAddons(i.prod, i.addons) })),
+                produkText: cartItems.map(i => `${i.prod.name} (${i.color}|${i.size}${labelAddons(i.prod, i.addons)})`).join(', '),
                 hargaKaos: totalProduk,
                 ongkir: ongkirSaatIni,
                 voucherKode: appliedVoucher ? appliedVoucher.kode : "",
@@ -622,7 +631,7 @@ function handleInitialRoute() {
         const found = products.find(p => slugify(p.name) === productSlug);
 
         if (found) {
-            cart = { prod: found, size: '', color: found.colors.length === 1 ? found.colors[0] : '' };
+            cart = { prod: found, size: '', color: found.colors.length === 1 ? found.colors[0] : '', addons: [] };
             goDetailSilent(found);
             showPageSilent('detail');
             if (!document.referrer.includes(window.location.hostname)) {
@@ -687,6 +696,7 @@ window.onload = async () => {
                 showcase: p.showcase || 'no',
                 dpAllowed: p.dpAllowed || 'yes',
                 kodePrefix: p.kodePrefix || '',
+                addons: Array.isArray(p.tambahan) ? p.tambahan.filter(a => a && a.nama).map(a => ({ nama: String(a.nama), harga: Number(a.harga) || 0 })) : [],
                 poClosed: !!p.poClosed,
                 order: p.order || 0
             }));
@@ -985,10 +995,30 @@ function renderVarianOptions(p, selectedColor) {
         sHTML += `<div class="${cart.size === sz && ok ? 'active' : ''} ${ok ? '' : 'disabled'}" onclick="${ok ? `selOpt('size','${sz}',this)` : ''}">${sz}</div>`;
     });
     sHTML += `</div><div class="stok-info" id="stokInfo"></div>`;
+    if ((p.addons || []).length) {
+        const dipilih = (cart.prod && cart.prod.id === p.id) ? (cart.addons || []) : [];
+        sHTML += `<div class="section-label" style="margin-top:22px">TAMBAHAN (OPSIONAL)</div><div class="option-box addon-box">` +
+            p.addons.map((a, i) => `<div class="${dipilih.includes(a.nama) ? 'active' : ''}" onclick="toggleAddon(${i})"><span>${escA(a.nama)}</span><b>+${formatRupiah(a.harga)}</b></div>`).join('') + `</div>`;
+    }
     const szArea = document.getElementById('sizeArea');
     if (szArea) szArea.innerHTML = sHTML;
     updateStokInfo(p, warnaAktif);
+    // harga di atas ikut tambahan yang dipilih
+    const elPrice = document.getElementById('detPrice');
+    if (elPrice && cart.prod && cart.prod.id === p.id) elPrice.innerText = formatRupiah(hargaItem(p, cart.addons));
 }
+
+function toggleAddon(i) {
+    const p = cart.prod;
+    const a = p && (p.addons || [])[i];
+    if (!a) return;
+    vibrate(20);
+    cart.addons = cart.addons || [];
+    const k = cart.addons.indexOf(a.nama);
+    if (k >= 0) cart.addons.splice(k, 1); else cart.addons.push(a.nama);
+    renderVarianOptions(p);
+}
+window.toggleAddon = toggleAddon;
 
 // Seperti Shopee: tanpa pilihan -> total stok; pilih warna -> stok warna itu; pilih warna+ukuran -> stok varian itu
 function updateStokInfo(p, warnaAktif) {
@@ -1010,7 +1040,7 @@ function goDetail(id) {
         toggleSidebar();
     }
 
-    cart = { prod: p, size: '', color: p.colors.length === 1 ? p.colors[0] : '' };
+    cart = { prod: p, size: '', color: p.colors.length === 1 ? p.colors[0] : '', addons: [] };
     renderDetailContent(p, cart.color);
     showPage('detail');
 }
@@ -1068,12 +1098,12 @@ function validateForm() {
     if (sumP) sumP.innerText = cart.prod.name;
 
     const sumV = document.getElementById('sumVar');
-    if (sumV) sumV.innerText = `${cart.color} | ${cart.size}`;
+    if (sumV) sumV.innerText = `${cart.color} | ${cart.size}${labelAddons(cart.prod, cart.addons)}`;
 
     const idArea = document.getElementById('inAreaId');
     if (!idArea || !idArea.value || ongkirSaatIni === 0) return triggerAlert("TUNGGU ONGKIR MUNCUL DULU!");
 
-    const hargaProduk = hargaAngka(cart.prod.price);
+    const hargaProduk = hitungTotalProduk('single');
     const sumPr = document.getElementById('sumPrice');
     if (sumPr) sumPr.innerText = formatRupiah(hargaProduk);
 
@@ -1551,7 +1581,7 @@ let appliedVoucher = null;
 let nilaiDiskon = 0;
 
 function hitungTotalProduk(type) {
-    if (type === 'single') return cart.prod ? hargaAngka(cart.prod.price) : 0;
+    if (type === 'single') return cart.prod ? hargaItem(cart.prod, cart.addons) : 0;
     return totalKeranjang();
 }
 
