@@ -523,12 +523,19 @@ window.sinkronSemuaOrder = async () => {
     showToast(`SINKRON SELESAI: ${ok} OK${gagal ? ', ' + gagal + ' GAGAL (' + galatPertama + ')' : ''}`, gagal > 0);
 };
 
+// Hapus sisa order: pelacakan (lacak + timeline) DAN data pelunasan (supaya tidak muncul lagi di halaman Pelunasan)
+const hapusJejakOrder = async (kode) => {
+    if (!kode) return;
+    await adminHapusLacak(kode);
+    try { await deleteDoc(doc(adminDb, "pelunasan", kode)); } catch (e) { console.warn('hapus pelunasan:', e); }
+};
+
 window.hapusOrder = async (id) => {
     if (!confirm("Hapus order ini beserta timeline-nya? (tidak bisa dibatalkan)")) return;
     try {
         const oHapus = allOrders.find(x => x.id === id);
         await deleteDoc(doc(adminDb, "orders", id));
-        if (oHapus && oHapus.kodePelunasan) await adminHapusLacak(oHapus.kodePelunasan);
+        if (oHapus && oHapus.kodePelunasan) await hapusJejakOrder(oHapus.kodePelunasan);
         allOrders = allOrders.filter(o => o.id !== id);
         isiFilterProduk();
         renderOrders(true);
@@ -550,7 +557,7 @@ window.hapusProdukOrder = async () => {
         if (data.length === 0) return alert("Tidak ada order untuk dihapus");
         for (const order of data) {
             await deleteDoc(doc(adminDb, "orders", order.id));
-            if (order.kodePelunasan) await adminHapusLacak(order.kodePelunasan);
+            if (order.kodePelunasan) await hapusJejakOrder(order.kodePelunasan);
         }
         showToast(`${data.length} ORDER DIHAPUS`);
         await loadOrders();
