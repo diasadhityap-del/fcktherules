@@ -516,6 +516,28 @@ export function listenBannerText(cb) {
 }
 export async function saveBannerText(data) { await setDoc(doc(adminDb, "settings", "bannerText"), data); }
 
+/* ============== PENGATURAN PEMBAYARAN (minimal DP) ==============
+   Dokumen settings/payment: { dpMode: 'percent' | 'nominal', dpValue: angka }
+   percent -> % dari total, dibulatkan ke kelipatan Rp5.000 terdekat (tepat di tengah dibulatkan ke atas:
+              87.500 -> 90.000, 86.000 -> 85.000). nominal -> angka rupiah apa adanya.
+   Aturan yang sama dipakai ulang di API pembayaran (payment-worker/worker.js) -- ubah keduanya bersamaan. */
+export const DP_DEFAULT = { dpMode: 'nominal', dpValue: 70000 };
+export function hitungMinDP(total, s) {
+    const val = Number(s && s.dpValue) || 0;
+    if (s && s.dpMode === 'percent') return Math.max(5000, Math.floor((Number(total) * val / 100 + 2500) / 5000) * 5000);
+    return Math.max(1, Math.round(val));
+}
+export async function getPaymentSettings() {
+    try {
+        const s = await getDoc(doc(db, "settings", "payment"));
+        return { ...DP_DEFAULT, ...(s.exists() ? s.data() : {}) };
+    } catch (e) { console.error("Gagal baca pengaturan pembayaran:", e); return { ...DP_DEFAULT }; }
+}
+export async function savePaymentSettings(data) {
+    await setDoc(doc(adminDb, "settings", "payment"), { dpMode: data.dpMode === 'percent' ? 'percent' : 'nominal', dpValue: Number(data.dpValue) || 0, updatedAt: new Date().toISOString() });
+    return true;
+}
+
 /* ============== TATA LETAK (urutan kartu per halaman) ==============
    Dokumen settings/tataLetak: { home:[id...], preorder:[id...], katalog:[id...], arsip:[id...] }  (id produk ATAU aksesoris)
    Item yang belum tercantum (mis. baru ditambah) tampil paling atas; sisanya mengikuti urutan di array. */

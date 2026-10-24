@@ -2,8 +2,8 @@ import {
     listenProduk, listenStok, stokId, listenGaleri, listenBanners, listenBannerText,
     auth, customerSignUp, customerSignIn, customerSignOut, customerSignInGoogle, onAuthStateChanged,
     getCustomerProfile, updateCustomerProfile, getCustomerOrders
-} from './firebase.js?v=20261032';
-import * as FBX from './firebase.js?v=20261032';   // namespace: listenAksesoris dicek manual supaya firebase.js lama (cache) tidak mematikan seluruh situs
+} from './firebase.js?v=20261033';
+import * as FBX from './firebase.js?v=20261033';   // namespace: listenAksesoris dicek manual supaya firebase.js lama (cache) tidak mematikan seluruh situs
 
 let cartItems = [];
 const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyDTEPvP5yndja35U02nkC4lsYRy3vQqVe2s4NTx-MxBE8MCSB9co2ztG5ZDMtJzuAO/exec";
@@ -282,18 +282,6 @@ function validateCartForm() {
 
     if (!n || !p || !alamatDetail || !prov || !kel) return triggerAlert("LENGKAPI DATA!");
 
-    const adaProdukTanpaDP = cartItems.some(item => item.prod.dpAllowed === 'no');
-    const cartDpNote = document.getElementById('cartDpNoteArea');
-
-    if (adaProdukTanpaDP) {
-        if (cartDpNote) cartDpNote.style.display = 'none';
-    } else {
-        if (cartDpNote) {
-            cartDpNote.style.display = 'block';
-            cartDpNote.innerHTML = '<p class="info-note"><i class="fas fa-info-circle"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
-        }
-    }
-
     const itemsHTML = cartItems.map(item => `
         <div class="sum-item">
             <div>
@@ -316,11 +304,12 @@ function validateCartForm() {
     if (sumOngkirCart) sumOngkirCart.innerText = formatRupiah(ongkirSaatIni);
 
     const sumTotal = document.getElementById('cartSumTotal');
-    if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni);
+    if (sumTotal) sumTotal.innerText = formatRupiah(total + ongkirSaatIni - nilaiDiskon);
 
     const sumCust = document.getElementById('cartSumCust');
     if (sumCust) sumCust.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
 
+    renderPay('cart');
     showPage('cartSummary');
 }
 
@@ -328,15 +317,8 @@ let currentCheckoutType = '';
 
 function confirmCheckout(type) {
     vibrate(30);
-    if (type === 'single') {
-        const inputB = document.getElementById('inputBukti');
-        if (!inputB || !inputB.files[0]) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
-        if (!uploadedBuktiURL) return triggerAlert("TUNGGU UPLOAD SELESAI!");
-    } else {
-        const inputB = document.getElementById('cartInputBukti');
-        if (!inputB || !inputB.files[0]) return triggerAlert("UPLOAD BUKTI BAYAR DULU!");
-        if (!uploadedCartBuktiURL) return triggerAlert("TUNGGU UPLOAD SELESAI!");
-    }
+    const err = validasiPay(type);
+    if (err) return triggerAlert(err);
 
     currentCheckoutType = type;
     const m = document.getElementById('confirmModal');
@@ -359,7 +341,7 @@ async function executeCheckout() {
 
     let kodeBaru = null;
     try {
-        const { saveOrder, kurangiStok } = await import('./firebase.js?v=20261032');
+        const { saveOrder, kurangiStok } = await import('./firebase.js?v=20261033');
 
         if (currentCheckoutType === 'single') {
             const n = document.getElementById('inName').value;
@@ -374,10 +356,10 @@ async function executeCheckout() {
             const kodePos = document.getElementById('inKodePos').value;
             const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
-            const buktiURL = uploadedBuktiURL;
             const hargaProduk = hargaItem(cart.prod, cart.addons);
 
-            const totalAkhir = hargaProduk + ongkirSaatIni - nilaiDiskon;
+            const totalAkhir = Math.round(hargaProduk + ongkirSaatIni - nilaiDiskon);
+            const bayar = infoBayar('single', totalAkhir);
 
             const orderData = {
                 nama: n, wa: p, email: email, alamat: a,
@@ -390,8 +372,9 @@ async function executeCheckout() {
                 voucherKode: appliedVoucher ? appliedVoucher.kode : "",
                 voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "",
                 totalAkhir: totalAkhir,
-                tipeBayar: 'Cek Bukti Bayar',
-                dp: '', buktiURL: buktiURL,
+                tipeBayar: 'Midtrans',
+                dp: '', buktiURL: '',
+                payMode: bayar.mode, payAmount: bayar.nominal,
                 dpEligible: cart.prod.dpAllowed !== 'no',
                 kodePrefix: cart.prod.kodePrefix || '',
                 isPO: cart.prod.badge === 'pre',
@@ -406,7 +389,7 @@ async function executeCheckout() {
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261032');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261033');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('single');
@@ -417,11 +400,11 @@ async function executeCheckout() {
                 headers: { "Content-Type": "text/plain" }, body: JSON.stringify(orderData)
             }).catch(err => console.error(err));
 
-            hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti');
             document.getElementById('inName').value = '';
             document.getElementById('inPhone').value = '';
             document.getElementById('inAddress').value = '';
             cart = { prod: null, size: '', color: '' };
+            resetPay('single');
 
         } else if (currentCheckoutType === 'cart') {
             const n = document.getElementById('cartInName').value;
@@ -436,10 +419,10 @@ async function executeCheckout() {
             const kodePos = document.getElementById('cartInKodePos').value;
             const a = `${alamatDetail}, ${kel}, Kec. ${kec}, ${kota}, ${prov} ${kodePos}`;
 
-            const buktiURL = uploadedCartBuktiURL;
             const totalProduk = totalKeranjang();
 
-            const totalAkhir = totalProduk + ongkirSaatIni - nilaiDiskon;
+            const totalAkhir = Math.round(totalProduk + ongkirSaatIni - nilaiDiskon);
+            const bayar = infoBayar('cart', totalAkhir);
 
             const orderData = {
                 nama: n, wa: p, email: email, alamat: a,
@@ -451,9 +434,10 @@ async function executeCheckout() {
                 voucherKode: appliedVoucher ? appliedVoucher.kode : "",
                 voucherDeskripsi: appliedVoucher ? appliedVoucher.deskripsi : "",
                 totalAkhir: totalAkhir,
-                tipeBayar: 'Cek Bukti Bayar',
-                dp: '', buktiURL: buktiURL,
-                dpEligible: cartItems.some(i => i.prod.dpAllowed !== 'no'),
+                tipeBayar: 'Midtrans',
+                dp: '', buktiURL: '',
+                payMode: bayar.mode, payAmount: bayar.nominal,
+                dpEligible: !cartItems.some(i => i.prod.dpAllowed === 'no'),
                 kodePrefix: (cartItems.find(i => i.prod.badge === 'pre' && i.prod.kodePrefix) || cartItems.find(i => i.prod.kodePrefix) || { prod: {} }).prod.kodePrefix || '',
                 isPO: cartItems.some(i => i.prod.badge === 'pre'),
                 poIds: [...new Set(cartItems.filter(i => i.prod.badge === 'pre').map(i => i.prod.id))],
@@ -467,7 +451,7 @@ async function executeCheckout() {
 
             if (appliedVoucher) {
                 try {
-                    const { updateVoucherKuota } = await import('./firebase.js?v=20261032');
+                    const { updateVoucherKuota } = await import('./firebase.js?v=20261033');
                     if (updateVoucherKuota) await updateVoucherKuota(appliedVoucher.id, appliedVoucher.kuota - 1);
                 } catch (e) { console.error(e); }
                 removeVoucher('cart');
@@ -480,17 +464,14 @@ async function executeCheckout() {
 
             cartItems = [];
             updateCartBadge();
-            hapusBukti('cartInputBukti', 'cartFileChip', 'cartPreviewImg', 'cartLabelBukti');
+            resetPay('cart');
             document.getElementById('cartInName').value = '';
             document.getElementById('cartInPhone').value = '';
             document.getElementById('cartInAddress').value = '';
         }
 
         showPage('home');
-        setTimeout(() => {
-            triggerAlert("PESANAN BERHASIL DITERIMA!");
-            if (kodeBaru) setTimeout(() => tampilKodePelunasan(kodeBaru), 900);
-        }, 500);
+        if (kodeBaru) { const k = kodeBaru; setTimeout(() => mulaiBayar(k, 'F'), 400); }
 
     } catch (err) {
         console.error(err);
@@ -541,7 +522,7 @@ async function previewCartBukti(input) {
     const label = document.getElementById('cartLabelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261032');
+    const { uploadGambar } = await import('./firebase.js?v=20261033');
     uploadedCartBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('cartFileChip');
@@ -578,7 +559,7 @@ async function previewBukti(input) {
     const label = document.getElementById('labelBukti');
     if (label) label.innerText = ' Mengupload...';
 
-    const { uploadGambar } = await import('./firebase.js?v=20261032');
+    const { uploadGambar } = await import('./firebase.js?v=20261033');
     uploadedBuktiURL = await uploadGambar(file, 'bukti');
 
     const fileChip = document.getElementById('fileChip');
@@ -1168,28 +1149,17 @@ function validateForm() {
     if (sumOng) sumOng.innerText = formatRupiah(ongkirSaatIni);
 
     const sumTot = document.getElementById('sumTotal');
-    if (sumTot) sumTot.innerText = formatRupiah(hargaProduk + ongkirSaatIni);
+    if (sumTot) sumTot.innerText = formatRupiah(hargaProduk + ongkirSaatIni - nilaiDiskon);
 
     const sumC = document.getElementById('sumCust');
     if (sumC) sumC.innerHTML = `<strong>${n}</strong><br>${p}<br>${a}`;
 
-    const dpNote = document.getElementById('dpNoteArea');
-    if (cart.prod.dpAllowed === 'no') {
-        if (dpNote) dpNote.style.display = 'none';
-    } else {
-        if (dpNote) {
-            dpNote.style.display = 'block';
-            dpNote.innerHTML = '<p class="info-note"><i class="fas fa-info-circle"></i> Pembayaran dapat dilakukan secara Full (Lunas) atau DP minimal Rp70.000.</p>';
-        }
-    }
-
+    renderPay('single');
     showPage('summary');
 }
 
 function openSize() { const m = document.getElementById('sizeModal'); if (m) m.style.display = 'flex'; }
 function closeSize() { const m = document.getElementById('sizeModal'); if (m) m.style.display = 'none'; }
-function openQRIS() { vibrate(30); const m = document.getElementById('qrisModal'); if (m) m.style.display = 'flex'; }
-function closeQRIS() { const m = document.getElementById('qrisModal'); if (m) m.style.display = 'none'; }
 
 function showPageSilent(id) {
     const menuBtn = document.getElementById('mast');
@@ -1672,6 +1642,7 @@ window.removeVoucher = (type) => {
 
     const totalProduk = hitungTotalProduk(type);
     if (totalEl) totalEl.innerText = formatRupiah(totalProduk + ongkirSaatIni);
+    renderPay(type);
 };
 
 window.applyVoucherModal = async () => {
@@ -1695,7 +1666,7 @@ window.applyVoucherModal = async () => {
     msgEl.style.color = '#555'; msgEl.innerText = "Mengecek voucher...";
 
     try {
-        const { getVoucherByKode } = await import('./firebase.js?v=20261032');
+        const { getVoucherByKode } = await import('./firebase.js?v=20261033');
         const v = await getVoucherByKode(kode);
 
         if (!v) {
@@ -1741,6 +1712,7 @@ window.applyVoucherModal = async () => {
         document.getElementById('lblVoucherDesc_' + type).innerText = appliedVoucher.deskripsi;
         document.getElementById('btnOpenVoucher_' + type).style.display = 'none';
 
+        renderPay(type);
         showCartToast("Voucher Berhasil Dipakai!");
 
     } catch (e) {
@@ -2122,8 +2094,6 @@ window.validateDetail = validateDetail;
 window.validateForm = validateForm;
 window.openSize = openSize;
 window.closeSize = closeSize;
-window.openQRIS = openQRIS;
-window.closeQRIS = closeQRIS;
 window.previewBukti = previewBukti;
 window.openImage = openImage;
 window.closeImage = closeImage;
@@ -2181,7 +2151,7 @@ async function cekKodePelunasan() {
     pelBuktiURL = null; pelData = null;
     let list = null;
     try {
-        const { cariPelunasan } = await import('./firebase.js?v=20261032');
+        const { cariPelunasan } = await import('./firebase.js?v=20261033');
         list = await cariPelunasan(klasifikasiPantau(val));
     } catch (e) { console.error(e); }
     btn.disabled = false; btn.innerText = 'CARI PESANAN';
@@ -2237,24 +2207,14 @@ function renderPelunasan() {
     }
     const menunggu = d.status === 'menunggu_verifikasi';
     out.innerHTML = ringkas + `
-        <div class="card-box">
-            <span class="cap">Rekening pembayaran</span>
-            <div class="pay-lines">
-                MANDIRI: 1370023790229<br>
-                GOPAY: 081910421976<br>
-                <span class="pay-name">A.N Dias Adhitya Purnama Putra</span>
-            </div>
-            <button type="button" class="qris-link" onclick="vibrate(30); openQRIS()"><i class="fas fa-qrcode"></i> Atau lihat QRIS pembayaran</button>
+        ${menunggu ? '<p class="info-note" style="margin-top:14px"><i class="fas fa-info-circle"></i> Bukti pelunasan manual sudah terkirim dan menunggu verifikasi admin. Kamu juga bisa membayar langsung lewat tombol di bawah.</p>' : ''}
+        <div class="card-box" style="margin-top:14px">
+            <span class="cap">Pembayaran</span>
+            <div class="pay-single"><span>Sisa pelunasan</span><b>${rpFmt(d.sisa)}</b></div>
+            <p class="pay-note">Bayar lewat QRIS, e-wallet, virtual account bank, dan metode lain. Metode dipilih di langkah berikutnya.</p>
         </div>
-        ${menunggu ? '<p class="info-note" style="margin-top:14px"><i class="fas fa-info-circle"></i> Bukti pelunasan sudah terkirim dan menunggu verifikasi admin. Salah upload? Kirim ulang di bawah.</p>' : ''}
-        <div class="upload-title">Upload bukti pelunasan (${rpFmt(d.sisa)})</div>
-        <label for="pelInputBukti" class="upload">
-            <i class="fas fa-camera"></i>
-            <span id="pelLabelBukti">Tap untuk upload foto bukti</span>
-        </label>
-        <input type="file" id="pelInputBukti" accept="image/*" style="display:none;" onchange="previewPelBukti(this)">
         <div class="btn-container" style="margin-top:16px;">
-            <button type="button" id="pelBtnKirim" onclick="kirimPelunasan()">KIRIM BUKTI PELUNASAN</button>
+            <button type="button" id="pelBtnBayar" onclick="mulaiBayar('${escH(d.kode)}','P')">LANJUT BAYAR</button>
         </div>`;
 }
 
@@ -2264,7 +2224,7 @@ async function previewPelBukti(input) {
     if (!file) return;
     lbl.innerText = 'Mengunggah...';
     pelBuktiURL = null;
-    const { uploadGambar } = await import('./firebase.js?v=20261032');
+    const { uploadGambar } = await import('./firebase.js?v=20261033');
     pelBuktiURL = await uploadGambar(file, 'bukti');
     if (pelBuktiURL) lbl.innerText = '✓ ' + file.name;
     else { lbl.innerText = 'Gagal upload, coba lagi'; input.value = ''; }
@@ -2276,7 +2236,7 @@ async function kirimPelunasan() {
     const btn = document.getElementById('pelBtnKirim');
     btn.disabled = true; btn.innerText = 'MENGIRIM...';
     try {
-        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261032');
+        const { kirimBuktiPelunasan } = await import('./firebase.js?v=20261033');
         await kirimBuktiPelunasan(pelData.kode, pelBuktiURL);
         pelData.status = 'menunggu_verifikasi';
         pelBuktiURL = null;
@@ -2365,6 +2325,7 @@ function renderPantauDetail(d, timeline, mode) {
         ${d.total ? baris('Total', rpFmt(d.total)) : ''}
         ${pay === 'dp' && d.dpNominal ? baris('DP', rpFmt(d.dpNominal)) + baris('Sisa', rpFmt(d.sisa)) : ''}
         ${baris('Status', escH(PAY_LABEL[pay] || pay))}
+        ${pay === 'pending' && mode !== 'resi' ? `<button type="button" onclick="mulaiBayar('${escH(d.kode)}','F')" style="margin-top:14px">LANJUT BAYAR</button><p style="margin:8px 0 0;font-size:11px;opacity:.7;line-height:1.5">Belum dibayar? Selesaikan sebelum batas waktu, kalau tidak pesanan dibatalkan otomatis.</p>` : ''}
         ${pay === 'dp' && mode !== 'resi' ? `<p style="margin:8px 0 0;font-size:12px;opacity:.8">Lunasi sisa di menu <a href="/pelunasan" onclick="return navLink(event,'pelunasan')" style="text-decoration:underline">Pelunasan</a> dengan ID ini.</p>` : ''}
         ${mode === 'resi' ? '' : `<div style="margin-top:16px;padding-top:14px;border-top:1px solid rgba(128,128,128,.35)">
             <p style="margin:0 0 14px;font-weight:600">Timeline</p>
@@ -2379,7 +2340,7 @@ async function tampilPantau(kode) {
     box.innerHTML = '<p style="font-size:13px;opacity:.7;margin-top:14px">Memuat...</p>';
     let tl = [];
     try {
-        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261032');
+        const { getTimeline, getPoUpdates } = await import('./firebase.js?v=20261033');
         tl = (await getTimeline(kode)).filter(e => e.kind !== 'legacy');
         // update per artikel (mis. "Kaos dikirim") ikut tampil, hanya yang terjadi setelah order dibuat
         const mulai = tsMillis(d.createdAt);
@@ -2425,7 +2386,7 @@ async function cekPantau() {
     const btn = document.getElementById('pantauBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
-        const { cariLacak } = await import('./firebase.js?v=20261032');
+        const { cariLacak } = await import('./firebase.js?v=20261033');
         renderPantau(await cariLacak(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);
@@ -2470,7 +2431,7 @@ async function cekResi() {
     const btn = document.getElementById('resiBtn');
     btn.disabled = true; btn.innerText = 'MENCARI...';
     try {
-        const { cariResi } = await import('./firebase.js?v=20261032');
+        const { cariResi } = await import('./firebase.js?v=20261033');
         renderResi(await cariResi(klasifikasiPantau(val)));
     } catch (e) {
         console.error(e);
@@ -2489,3 +2450,178 @@ function lacakDariRiwayat(kode) {
 window.cekPantau = cekPantau;
 window.tampilPantau = tampilPantau;
 window.lacakDariRiwayat = lacakDariRiwayat;
+
+
+/* ================= PEMBAYARAN (MIDTRANS) =================
+   Key Midtrans tidak ada di sini. Browser hanya bicara ke API pembayaran (payment-worker) yang memegang
+   Server Key dari GitHub Secrets. Total & nominal DP dicek ulang di server. */
+let paySettings = null;
+const payState = { single: { mode: 'lunas', dp: 0 }, cart: { mode: 'lunas', dp: 0 } };
+const resetPay = type => { payState[type] = { mode: 'lunas', dp: 0 }; };
+
+async function loadPaySettings() {
+    if (!paySettings) paySettings = await FBX.getPaymentSettings();
+    return paySettings;
+}
+const totalBayar = type => Math.round(hitungTotalProduk(type) + ongkirSaatIni - nilaiDiskon);
+const payDPBoleh = type => type === 'single'
+    ? !!(cart.prod && cart.prod.dpAllowed !== 'no')
+    : (cartItems.length > 0 && !cartItems.some(i => i.prod.dpAllowed === 'no'));   // satu item "tanpa DP" => seluruh keranjang wajib lunas
+
+function infoBayar(type, total) {
+    const st = payState[type];
+    return st.mode === 'dp' ? { mode: 'dp', nominal: Math.round(st.dp) } : { mode: 'lunas', nominal: total };
+}
+
+function validasiPay(type) {
+    if (!paySettings) return 'MEMUAT PENGATURAN BAYAR, COBA LAGI';
+    const st = payState[type], total = totalBayar(type);
+    if (!(total > 0)) return 'TOTAL PESANAN TIDAK VALID';
+    if (st.mode === 'dp') {
+        if (!payDPBoleh(type)) return 'PESANAN INI TIDAK BISA DP';
+        const min = FBX.hitungMinDP(total, paySettings);
+        if (!(min < total)) return 'DP TIDAK TERSEDIA, PILIH LUNAS';
+        if (!st.dp) return 'TULIS NOMINAL DP DULU!';
+        if (st.dp < min) return 'DP MINIMAL ' + formatRupiah(min) + '!';
+        if (st.dp >= total) return 'DP HARUS KURANG DARI TOTAL';
+    }
+    return '';
+}
+
+async function renderPay(type) {
+    const box = document.getElementById(type === 'single' ? 'payBox' : 'cartPayBox');
+    if (!box) return;
+    await loadPaySettings();
+    const total = totalBayar(type), st = payState[type];
+    const min = FBX.hitungMinDP(total, paySettings);
+    const bisaDP = payDPBoleh(type) && min < total;
+    if (!bisaDP) {   // hanya lunas: pilihan LUNAS / DP tidak ditampilkan
+        st.mode = 'lunas'; st.dp = 0;
+        box.innerHTML = `<span class="cap">Pembayaran</span>
+            <div class="pay-single"><span>Bayar penuh (lunas)</span><b>${formatRupiah(total)}</b></div>
+            <p class="pay-note">Metode pembayaran (QRIS, e-wallet, virtual account bank, dll) dipilih di langkah berikutnya.</p>`;
+        return;
+    }
+    box.innerHTML = `<span class="cap">Pilihan pembayaran</span>
+        <div class="pay-opts">
+            <button type="button" class="pay-opt ${st.mode === 'lunas' ? 'on' : ''}" onclick="setPayMode('${type}','lunas')"><b>LUNAS</b><small>${formatRupiah(total)}</small></button>
+            <button type="button" class="pay-opt ${st.mode === 'dp' ? 'on' : ''}" onclick="setPayMode('${type}','dp')"><b>DP</b><small>Min. ${formatRupiah(min)}</small></button>
+        </div>
+        ${st.mode === 'dp' ? `<div class="pay-dp input-group">
+            <label for="payDp_${type}">Nominal DP</label>
+            <input type="text" inputmode="numeric" id="payDp_${type}" autocomplete="off" placeholder="Tulis nominal DP, mis. ${min.toLocaleString('id-ID')}" value="${st.dp ? st.dp.toLocaleString('id-ID') : ''}" oninput="onPayDpInput('${type}', this)">
+            <p class="pay-hint" id="payHint_${type}"></p>
+        </div>` : ''}
+        <p class="pay-note">Metode pembayaran (QRIS, e-wallet, virtual account bank, dll) dipilih di langkah berikutnya.</p>`;
+    if (st.mode === 'dp') updatePayHint(type);
+}
+
+function updatePayHint(type) {
+    const el = document.getElementById('payHint_' + type);
+    if (!el) return;
+    const total = totalBayar(type), min = FBX.hitungMinDP(total, paySettings), dp = payState[type].dp;
+    let txt, err = false;
+    if (!dp) txt = `DP minimal ${formatRupiah(min)}. Sisanya dilunasi nanti di menu Pelunasan.`;
+    else if (dp < min) { txt = `Kurang dari DP minimal ${formatRupiah(min)}.`; err = true; }
+    else if (dp >= total) { txt = 'DP harus kurang dari total. Mau bayar penuh? Pilih LUNAS.'; err = true; }
+    else txt = `Bayar sekarang ${formatRupiah(dp)} · sisa ${formatRupiah(total - dp)} dilunasi di menu Pelunasan.`;
+    el.textContent = txt;
+    el.className = 'pay-hint' + (err ? ' err' : '');
+}
+function onPayDpInput(type, el) {
+    const nom = Number(String(el.value).replace(/\D/g, '')) || 0;
+    payState[type].dp = nom;
+    el.value = nom ? nom.toLocaleString('id-ID') : '';
+    updatePayHint(type);
+}
+function setPayMode(type, mode) {
+    vibrate(20);
+    payState[type].mode = mode === 'dp' ? 'dp' : 'lunas';
+    renderPay(type);
+}
+
+/* ---- Snap ---- */
+let payCfg = null, snapLoading = null, payWaitCtx = null;
+async function payApi(path, body) {
+    const { PAYMENT_API } = await import('./payment-config.js?v=1');
+    if (/GANTI/.test(PAYMENT_API)) throw new Error('Pembayaran online belum diaktifkan. Hubungi admin.');
+    const r = await fetch(PAYMENT_API + path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Server pembayaran sedang bermasalah.');
+    return d;
+}
+function muatSnap(cfg) {
+    if (window.snap) return Promise.resolve();
+    if (!snapLoading) snapLoading = new Promise((res, rej) => {
+        const sc = document.createElement('script');
+        sc.src = cfg.snapJs; sc.setAttribute('data-client-key', cfg.clientKey);
+        sc.onload = () => res();
+        sc.onerror = () => { snapLoading = null; rej(new Error('Gagal memuat halaman pembayaran Midtrans.')); };
+        document.head.appendChild(sc);
+    });
+    return snapLoading;
+}
+const halamanAktif = id => { const e = document.getElementById(id); return !!(e && e.classList.contains('active')); };
+
+// tahap 'F' = pembayaran awal (lunas / DP), 'P' = pelunasan sisa DP
+async function mulaiBayar(kode, tahap) {
+    tahap = tahap === 'P' ? 'P' : 'F';
+    vibrate(30);
+    const loader = document.getElementById('loader');
+    if (loader) loader.classList.remove('hide');
+    let selesai = false;
+    try {
+        if (!payCfg) payCfg = await payApi('/config');
+        await muatSnap(payCfg);
+        const d = await payApi('/snap', { kode, tahap });
+        if (loader) loader.classList.add('hide');
+        window.snap.pay(d.token, {
+            onSuccess: () => { selesai = true; selesaiBayar(kode, tahap, 'success'); },
+            onPending: () => { selesai = true; selesaiBayar(kode, tahap, 'pending'); },
+            onError: () => { selesai = true; tampilPayWait(kode, tahap, 'Pembayaran gagal diproses. Coba lagi atau pilih metode lain.'); },
+            onClose: () => { if (!selesai) tampilPayWait(kode, tahap); }
+        });
+    } catch (e) {
+        console.error(e);
+        if (loader) loader.classList.add('hide');
+        tampilPayWait(kode, tahap, e.message || 'Gagal memulai pembayaran.');
+    }
+}
+
+async function selesaiBayar(kode, tahap, hasil) {
+    try { await payApi('/sync', { kode, tahap }); } catch (e) { console.warn('sync:', e); }   // webhook tetap jalan; ini supaya status langsung terbarui
+    triggerAlert(hasil === 'success' ? 'PEMBAYARAN BERHASIL!' : 'MENUNGGU PEMBAYARAN. SELESAIKAN SEBELUM BATAS WAKTU.');
+    if (halamanAktif('pelunasan')) cekKodePelunasan();
+    else if (halamanAktif('pantau')) cekPantau();
+    else { showPage('home'); if (tahap === 'F') setTimeout(() => tampilKodePelunasan(kode), 900); }
+}
+
+function tampilPayWait(kode, tahap, pesan) {
+    payWaitCtx = { kode, tahap };
+    const d = document.getElementById('payWaitDesc');
+    if (d) d.textContent = pesan || (tahap === 'P'
+        ? 'Pelunasan belum selesai. Kamu bisa lanjut sekarang atau nanti lewat menu Pelunasan.'
+        : 'Pesananmu sudah tersimpan. Selesaikan pembayarannya sebelum batas waktu, kalau tidak pesanan dibatalkan otomatis. Bisa dilanjutkan lewat menu Cek Pesanan.');
+    const m = document.getElementById('payWaitModal');
+    if (m) m.style.display = 'flex';
+}
+function tutupPayWait() {
+    vibrate(20);
+    const m = document.getElementById('payWaitModal');
+    if (m) m.style.display = 'none';
+    const c = payWaitCtx; payWaitCtx = null;
+    if (c && c.tahap === 'F' && !halamanAktif('pantau')) { showPage('home'); setTimeout(() => tampilKodePelunasan(c.kode), 400); }
+}
+function lanjutPayWait() {
+    const c = payWaitCtx; if (!c) return;
+    const m = document.getElementById('payWaitModal');
+    if (m) m.style.display = 'none';
+    payWaitCtx = null;
+    mulaiBayar(c.kode, c.tahap);
+}
+
+window.setPayMode = setPayMode;
+window.onPayDpInput = onPayDpInput;
+window.mulaiBayar = mulaiBayar;
+window.tutupPayWait = tutupPayWait;
+window.lanjutPayWait = lanjutPayWait;

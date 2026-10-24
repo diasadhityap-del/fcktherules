@@ -45,7 +45,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css?v=pc17">
+    <link rel="stylesheet" href="/style.css?v=pc18">
 </head>
 <body>
 <noscript><p style="padding:24px;font-family:Arial,sans-serif">FvcktheRules — Soccer culture. Street attitude. Born to Disobey. Aktifkan JavaScript untuk membuka toko.</p></noscript>
@@ -267,36 +267,11 @@
             <p class="sum-cust" id="sumCust"></p>
         </div>
 
-        <div class="card-box">
-            <span class="cap">Rekening pembayaran</span>
-            <div class="pay-lines">
-                MANDIRI: 1370023790229<br>
-                GOPAY: 081910421976<br>
-                <span class="pay-name">A.N Dias Adhitya Purnama Putra</span>
-            </div>
-            <button type="button" class="qris-link" onclick="vibrate(30); openQRIS()"><i class="fas fa-qrcode"></i> Atau lihat QRIS pembayaran</button>
-        </div>
+        <div class="card-box" id="payBox"></div>
 
-        <div id="dpNoteArea" style="display:none; margin-top:14px;"></div>
-
-        <div class="upload-title">Upload bukti bayar</div>
-        <label for="inputBukti" class="upload">
-            <i class="fas fa-camera"></i>
-            <span id="labelBukti">Tap untuk upload foto bukti</span>
-        </label>
-        <input type="file" id="inputBukti" accept="image/*" style="display:none;" onchange="previewBukti(this)">
-        <div class="file-chip" id="fileChip">
-            <div class="l" onclick="vibrate(20); openImage(document.getElementById('previewImg').src)">
-                <i class="fas fa-image"></i>
-                <span id="fileName">nama_file.jpg</span>
-            </div>
-            <i class="fas fa-times x" onclick="hapusBukti('inputBukti', 'fileChip', 'previewImg', 'labelBukti')"></i>
-        </div>
-        <img id="previewImg" src="" alt="" style="display:none;">
-
-        <p class="legal">Pastikan pesanan dan bukti bayar sudah benar<br>sebelum melakukan checkout.</p>
+        <p class="legal">Setelah menekan tombol di bawah, kamu akan diarahkan<br>ke halaman pembayaran aman Midtrans.</p>
         <div class="btn-container" style="margin-top:16px;">
-            <button type="button" onclick="confirmCheckout('single')">CHECKOUT SEKARANG</button>
+            <button type="button" onclick="confirmCheckout('single')">LANJUT BAYAR</button>
         </div>
     </div>
 </div>
@@ -579,36 +554,11 @@
             <p class="sum-cust" id="cartSumCust"></p>
         </div>
 
-        <div class="card-box">
-            <span class="cap">Rekening pembayaran</span>
-            <div class="pay-lines">
-                MANDIRI: 1370023790229<br>
-                GOPAY: 081910421976<br>
-                <span class="pay-name">A.N Dias Adhitya Purnama Putra</span>
-            </div>
-            <button type="button" class="qris-link" onclick="vibrate(30); openQRIS()"><i class="fas fa-qrcode"></i> Atau lihat QRIS pembayaran</button>
-        </div>
+        <div class="card-box" id="cartPayBox"></div>
 
-        <div id="cartDpNoteArea" style="display:none; margin-top:14px;"></div>
-
-        <div class="upload-title">Upload bukti bayar</div>
-        <label for="cartInputBukti" class="upload">
-            <i class="fas fa-camera"></i>
-            <span id="cartLabelBukti">Tap untuk upload foto bukti</span>
-        </label>
-        <input type="file" id="cartInputBukti" accept="image/*" style="display:none;" onchange="previewCartBukti(this)">
-        <div class="file-chip" id="cartFileChip">
-            <div class="l" onclick="vibrate(20); openImage(document.getElementById('cartPreviewImg').src)">
-                <i class="fas fa-image"></i>
-                <span id="cartFileName">nama_file.jpg</span>
-            </div>
-            <i class="fas fa-times x" onclick="hapusBukti('cartInputBukti', 'cartFileChip', 'cartPreviewImg', 'cartLabelBukti')"></i>
-        </div>
-        <img id="cartPreviewImg" src="" alt="" style="display:none;">
-
-        <p class="legal">Pastikan pesanan dan bukti bayar sudah benar<br>sebelum melakukan checkout.</p>
+        <p class="legal">Setelah menekan tombol di bawah, kamu akan diarahkan<br>ke halaman pembayaran aman Midtrans.</p>
         <div class="btn-container" style="margin-top:16px;">
-            <button type="button" onclick="confirmCheckout('cart')">CHECKOUT SEKARANG</button>
+            <button type="button" onclick="confirmCheckout('cart')">LANJUT BAYAR</button>
         </div>
     </div>
 </div>
@@ -638,16 +588,6 @@
     </div>
 </div>
 
-<div id="qrisModal" class="modal-overlay" onclick="closeQRIS()">
-    <div class="modal-card center" onclick="event.stopPropagation()">
-        <button type="button" class="modal-x" onclick="closeQRIS()" aria-label="Tutup"><i class="fas fa-times"></i></button>
-        <h3 class="modal-title">QRIS Pembayaran</h3>
-        <p class="modal-desc">Silakan scan QRIS di bawah melalui aplikasi Bank atau E-Wallet kamu.</p>
-        <div class="qris-img"><img src="/qris.jpg" alt="QRIS FvcktheRules"></div>
-        <button type="button" onclick="closeQRIS()">TUTUP</button>
-    </div>
-</div>
-
 <div id="imageModal" class="modal-overlay" onclick="closeImage()"><img id="modalImg" src="" alt="Zoomed Image"></div>
 
 <div id="floatingCartBtn" class="fab-cart" onclick="openCart()">
@@ -661,10 +601,22 @@
     <div class="modal-card center">
         <i class="fas fa-question-circle modal-icon"></i>
         <h3 class="modal-title">Konfirmasi Pesanan</h3>
-        <p class="modal-desc" style="margin-bottom:0">Apakah data diri, rincian pesanan, dan bukti transfer sudah benar? Pesanan yang diproses tidak dapat dibatalkan.</p>
+        <p class="modal-desc" style="margin-bottom:0">Apakah data diri, rincian pesanan, dan pilihan pembayaran sudah benar? Setelah ini kamu akan masuk ke halaman pembayaran.</p>
         <div class="modal-actions">
             <button type="button" class="btn-ghost" onclick="closeConfirm()">BATAL</button>
-            <button type="button" onclick="executeCheckout()">YA, PROSES</button>
+            <button type="button" onclick="executeCheckout()">YA, LANJUT</button>
+        </div>
+    </div>
+</div>
+
+<div id="payWaitModal" class="modal-overlay" style="display:none;">
+    <div class="modal-card center">
+        <i class="fas fa-hourglass-half modal-icon"></i>
+        <h3 class="modal-title">Pembayaran Belum Selesai</h3>
+        <p class="modal-desc" id="payWaitDesc" style="margin-bottom:0">Pesananmu sudah tersimpan. Selesaikan pembayarannya sebelum batas waktu, kalau tidak pesanan dibatalkan otomatis.</p>
+        <div class="modal-actions">
+            <button type="button" class="btn-ghost" onclick="tutupPayWait()">NANTI</button>
+            <button type="button" id="payWaitGo" onclick="lanjutPayWait()">LANJUT BAYAR</button>
         </div>
     </div>
 </div>
@@ -774,7 +726,7 @@
     </div>
 </div>
 
-<script type="module" src="/script.js?v=20261033"></script>
+<script type="module" src="/script.js?v=20261034"></script>
 <script>
     setTimeout(() => {
         const loader = document.getElementById('loader');

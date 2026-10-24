@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="admin.css?v=20261040">
+    <link rel="stylesheet" href="admin.css?v=20261041">
 </head>
 <body data-tab="order">
 
@@ -102,9 +102,14 @@
 
         <!-- TAB ORDER -->
         <div class="tab-content active" id="tab-order">
-            <div class="page-header">
-                <div class="page-title">Order</div>
-                <div class="page-desc">Kelola order, status bayar, DP, dan pelunasan. Timeline diatur per artikel di menu Artikel PO.</div>
+            <div class="header-row">
+                <div>
+                    <div class="page-title">Order</div>
+                    <div class="page-desc">Kelola order, status bayar, DP, dan pelunasan. Pembayaran lewat Midtrans tercatat otomatis. Timeline diatur per artikel di menu Artikel PO.</div>
+                </div>
+                <div class="header-actions">
+                    <button class="add-btn secondary" onclick="openModalPayment()"><i class="fas fa-wallet"></i> Minimal DP</button>
+                </div>
             </div>
 
             <div class="stat-row" id="orderStats">
@@ -666,6 +671,30 @@
     </div>
 </div>
 
+<!-- MODAL PENGATURAN PEMBAYARAN -->
+<div class="modal-bg" id="modalPayment">
+    <div class="modal-box">
+        <div class="modal-title">MINIMAL DP</div>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.6;">Batas DP terkecil yang boleh dibayar pembeli saat memilih DP. Berlaku untuk semua order baru (order yang sudah dibuat tidak berubah).</p>
+        <div class="form-group">
+            <label>JENIS</label>
+            <select id="payDpMode" onchange="gantiModePay()">
+                <option value="percent">Persen (%) dari total belanja</option>
+                <option value="nominal">Nominal (Rp)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label id="payDpLabel">PERSEN</label>
+            <input type="text" id="payDpValue" inputmode="decimal" placeholder="mis. 35" oninput="updatePayPreview(true)">
+        </div>
+        <div id="payPreview" style="font-size:12.5px; line-height:1.9; background:var(--bg, #f6f5f2); border-radius:12px; padding:12px 14px; margin-bottom:6px;"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModalPayment()">BATAL</button>
+            <button class="btn-save" id="btnSavePayment" onclick="savePaymentData()">SIMPAN</button>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL VOUCHER -->
 <div class="modal-bg" id="modalVoucher">
     <div class="modal-box">
@@ -697,6 +726,6 @@
     </div>
 </div>
 
-<script type="module" src="admin.js?v=20261040"></script>
+<script type="module" src="admin.js?v=20261041"></script>
 </body>
 </html>

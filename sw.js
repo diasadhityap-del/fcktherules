@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fvcktherules-v32';
+const CACHE_NAME = 'fvcktherules-v33';
 const ASSETS = [
   'index.html',
   'style.css',

@@ -12,12 +12,13 @@ import {
     listenTataLetak, saveTataLetak,
     getAksesoris, saveAksesoris, updateAksesoris, deleteAksesoris, adminSimpanStokAks, stokIdAks,
     adminBackfillOrder, turunanPO, tsMillis,
+    getPaymentSettings, savePaymentSettings, hitungMinDP,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js?v=20261032';
+} from './firebase.js?v=20261033';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js?v=20261032";
+import { adminDb } from "./firebase.js?v=20261033";
 
 let allOrders = [];
 let allProduk = [];
@@ -311,6 +312,7 @@ function orderCardHTML(o, pel) {
                 <div class="info-item full">Alamat <span>${esc(o.alamat)}</span></div>
                 <div class="info-item">Harga kaos <span>${o.hargaKaos ? rp(o.hargaKaos) : '-'}</span></div>
                 <div class="info-item">Ongkir <span>${o.ongkir ? rp(o.ongkir) : '-'}</span></div>
+                ${payInfoHTML(o)}
                 ${voucherHTML}
             </div>
             <div class="oc-total">
@@ -1393,6 +1395,61 @@ window.saveBannerTextData = async () => {
         showToast('TEKS BANNER DISIMPAN ✓');
         closeModalBannerText();
     } catch(err) { showToast('GAGAL SIMPAN!', true); }
+    btn.disabled = false; btn.innerText = 'SIMPAN';
+};
+
+
+// Info pembayaran Midtrans di kartu order
+function payInfoHTML(o) {
+    let h = '';
+    if (o.payVia === 'midtrans') {
+        h += `<div class="info-item">Bayar via <span>Midtrans${o.payMethod ? ' · ' + esc(o.payMethod) : ''}${o.payMethodLunas ? ' · pelunasan ' + esc(o.payMethodLunas) : ''}</span></div>`;
+    } else if (o.payMode && (o.status || 'pending') === 'pending') {
+        h += `<div class="info-item">Pilihan bayar <span>${o.payMode === 'dp' ? 'DP ' + rp(o.payAmount) : 'Lunas'} · menunggu pembayaran Midtrans</span></div>`;
+    }
+    if (o.payAnomali) h += `<div class="info-item warn">Cek dashboard Midtrans <span>${esc(o.payAnomali)} (bayar dobel / telat / refund)</span></div>`;
+    return h;
+}
+
+// ===== PENGATURAN MINIMAL DP =====
+const fmtPayVal = (mode, v) => mode === 'percent' ? String(Number(v) || '') : (Number(v) ? Number(v).toLocaleString('id-ID') : '');
+window.openModalPayment = async () => {
+    const s = await getPaymentSettings();
+    $('payDpMode').value = s.dpMode === 'percent' ? 'percent' : 'nominal';
+    $('payDpValue').value = fmtPayVal($('payDpMode').value, s.dpValue);
+    window.gantiModePay(true);
+    $('modalPayment').classList.add('show');
+};
+window.closeModalPayment = () => $('modalPayment').classList.remove('show');
+window.gantiModePay = (keep) => {
+    const m = $('payDpMode').value;
+    $('payDpLabel').innerText = m === 'percent' ? 'PERSEN (%)' : 'NOMINAL (Rp)';
+    $('payDpValue').placeholder = m === 'percent' ? 'mis. 35' : 'mis. 70.000';
+    if (keep !== true) $('payDpValue').value = '';
+    window.updatePayPreview();
+};
+const bacaPayVal = () => {
+    const m = $('payDpMode').value, raw = $('payDpValue').value;
+    return m === 'percent' ? (Number(raw.replace(',', '.').replace(/[^\d.]/g, '')) || 0) : (Number(raw.replace(/\D/g, '')) || 0);
+};
+window.updatePayPreview = (typing) => {
+    const m = $('payDpMode').value;
+    if (typing === true && m === 'nominal') { const n = bacaPayVal(); $('payDpValue').value = n ? n.toLocaleString('id-ID') : ''; }
+    const v = bacaPayVal(), s = { dpMode: m, dpValue: v };
+    const rows = [150000, 250000, 350000].map(t => `Total ${rp(t)} &rarr; DP minimal <b>${v ? rp(hitungMinDP(t, s)) : '-'}</b>`).join('<br>');
+    $('payPreview').innerHTML = rows + (m === 'percent' ? '<br><span style="color:var(--muted)">Hasil persen dibulatkan ke kelipatan Rp5.000 terdekat (87.500 jadi 90.000, 86.000 jadi 85.000).</span>' : '');
+};
+window.savePaymentData = async () => {
+    const m = $('payDpMode').value, v = bacaPayVal();
+    if (m === 'percent' && !(v > 0 && v < 100)) return showToast('PERSEN HARUS ANTARA 1 - 99', true);
+    if (m === 'nominal' && v < 1000) return showToast('NOMINAL MINIMAL Rp1.000', true);
+    const btn = $('btnSavePayment');
+    btn.disabled = true; btn.innerText = 'MENYIMPAN...';
+    try {
+        await savePaymentSettings({ dpMode: m, dpValue: v });
+        showToast('MINIMAL DP DISIMPAN ✓');
+        closeModalPayment();
+    } catch (e) { console.error(e); showToast('GAGAL SIMPAN: ' + errMsg(e), true); }
     btn.disabled = false; btn.innerText = 'SIMPAN';
 };
 
