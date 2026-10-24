@@ -547,6 +547,20 @@ window.hapusOrder = async (id) => {
     }
 };
 
+// Bersihkan data pelunasan "yatim": ordernya sudah dihapus tapi data pelunasannya masih tersisa (muncul di halaman Pelunasan pelanggan)
+window.bersihkanPelunasanYatim = async () => {
+    if (!ordersReady || !allOrders.length) return alert('Data order belum termuat. Coba lagi sebentar.');
+    const idAda = new Set(allOrders.map(o => o.id));
+    const kodeAda = new Set(allOrders.map(o => o.kodePelunasan).filter(Boolean));
+    const yatim = (allPelunasan || []).filter(p => !idAda.has(p.orderId) && !kodeAda.has(p.id));
+    if (!yatim.length) return showToast('TIDAK ADA DATA SISA');
+    if (!confirm(`Ada ${yatim.length} data pelunasan tanpa order:\n${yatim.map(p => p.id).join(', ')}\n\nHapus semuanya?`)) return;
+    try {
+        for (const p of yatim) await deleteDoc(doc(adminDb, "pelunasan", p.id));
+        showToast(`${yatim.length} DATA SISA DIHAPUS`);
+    } catch (e) { console.error(e); alert('Gagal membersihkan'); }
+};
+
 window.hapusProdukOrder = async () => {
     const yakin = confirm("Hapus semua order sesuai filter?");
     if (!yakin) return;
