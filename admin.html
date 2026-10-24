@@ -426,6 +426,16 @@
                 </select>
             </div>
         </div>
+        <div class="form-group" id="pDPMinWrap">
+            <label>MINIMAL DP PRODUK INI</label>
+            <select id="pDPMode" onchange="dpMinUI('p')">
+                <option value="">Ikuti pengaturan umum</option>
+                <option value="percent">Persen (%)</option>
+                <option value="nominal">Nominal (Rp)</option>
+            </select>
+            <input type="text" inputmode="numeric" id="pDPVal" autocomplete="off" style="margin-top:8px">
+            <small id="pDPHint" style="display:block;margin-top:6px;opacity:.7"></small>
+        </div>
         <div class="form-section-title">Foto</div>
         <div class="form-group">
             <label>FOTO THUMBNAIL</label>
@@ -541,6 +551,16 @@
                     <option value="no">Tidak Bisa DP</option>
                 </select>
             </div>
+        </div>
+        <div class="form-group" id="akDPMinWrap">
+            <label>MINIMAL DP PRODUK INI</label>
+            <select id="akDPMode" onchange="dpMinUI('ak')">
+                <option value="">Ikuti pengaturan umum</option>
+                <option value="percent">Persen (%)</option>
+                <option value="nominal">Nominal (Rp)</option>
+            </select>
+            <input type="text" inputmode="numeric" id="akDPVal" autocomplete="off" style="margin-top:8px">
+            <small id="akDPHint" style="display:block;margin-top:6px;opacity:.7"></small>
         </div>
         <div class="form-group">
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;text-transform:none;letter-spacing:0">
@@ -726,6 +746,6 @@
     </div>
 </div>
 
-<script type="module" src="admin.js?v=20261041"></script>
+<script type="module" src="admin.js?v=20261042"></script>
 </body>
 </html>

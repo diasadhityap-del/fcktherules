@@ -336,8 +336,7 @@ async function executeCheckout() {
     closeConfirm();
 
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyoVdbvq1JvCtzWFbJaZUdTO2I30DXn4N0p_XOidk98cPnj8m22j2Aa0q6k90KH4sOhUw/exec';
-    const loader = document.getElementById('loader');
-    if (loader) loader.classList.remove('hide');
+    tampilLoadingBayar('Menyimpan pesanan…');
 
     let kodeBaru = null;
     try {
@@ -471,13 +470,13 @@ async function executeCheckout() {
         }
 
         showPage('home');
-        if (kodeBaru) { const k = kodeBaru; setTimeout(() => mulaiBayar(k, 'F'), 400); }
+        if (kodeBaru) { mulaiBayar(kodeBaru, 'F'); }
 
     } catch (err) {
         console.error(err);
         triggerAlert("GAGAL MENYIMPAN! COBA LAGI.");
     } finally {
-        if (loader) loader.classList.add('hide');
+        if (!kodeBaru) sembunyiLoadingBayar();   // kalau lanjut bayar, loading dipegang mulaiBayar sampai popup Midtrans terbuka
     }
 }
 
@@ -684,6 +683,8 @@ window.onload = async () => {
                 specs: p.specs || '',
                 showcase: p.showcase || 'no',
                 dpAllowed: p.dpAllowed || 'yes',
+                dpMode: p.dpMode || '',
+                dpValue: Number(p.dpValue) || 0,
                 kodePrefix: p.kodePrefix || '',
                 addons: Array.isArray(p.tambahan) ? p.tambahan.filter(a => a && a.nama).map(a => ({ nama: String(a.nama), harga: Number(a.harga) || 0 })) : [],
                 poClosed: !!p.poClosed,
@@ -703,6 +704,8 @@ window.onload = async () => {
                 specs: p.specs || '',
                 showcase: p.showcase || 'no',
                 dpAllowed: p.dpAllowed || 'yes',
+                dpMode: p.dpMode || '',
+                dpValue: Number(p.dpValue) || 0,
                 kodePrefix: p.kodePrefix || '',
                 addons: [],
                 poClosed: !!p.poClosed,
@@ -2463,6 +2466,20 @@ async function loadPaySettings() {
     if (!paySettings) paySettings = await FBX.getPaymentSettings();
     return paySettings;
 }
+/* Minimal DP per produk: produk yang punya aturan sendiri dihitung sendiri, jumlahnya dijumlah.
+   Produk yang ikut "pengaturan umum" dihitung pakai aturan umum (kalau semua ikut umum: sama seperti dulu).
+   Rumus yang sama dipakai di payment-worker/worker.js -- ubah keduanya bersamaan. */
+const dpMilikSendiri = i => !!(i && (i.dpMode === 'percent' || i.dpMode === 'nominal') && Number(i.dpValue) > 0);
+function minDPType(type, total) {
+    const arr = type === 'single'
+        ? (cart.prod ? [{ harga: hargaItem(cart.prod, cart.addons), dpMode: cart.prod.dpMode, dpValue: cart.prod.dpValue }] : [])
+        : cartItems.map(i => ({ harga: hargaItem(i.prod, i.addons), dpMode: i.prod.dpMode, dpValue: i.prod.dpValue }));
+    const own = arr.filter(dpMilikSendiri), def = arr.filter(i => !dpMilikSendiri(i));
+    if (!own.length) return FBX.hitungMinDP(total, paySettings);
+    let min = own.reduce((a, i) => a + FBX.hitungMinDP(i.harga, { dpMode: i.dpMode, dpValue: i.dpValue }), 0);
+    if (def.length) min += FBX.hitungMinDP(def.reduce((a, i) => a + i.harga, 0), paySettings);
+    return min;
+}
 const totalBayar = type => Math.round(hitungTotalProduk(type) + ongkirSaatIni - nilaiDiskon);
 const payDPBoleh = type => type === 'single'
     ? !!(cart.prod && cart.prod.dpAllowed !== 'no')
@@ -2479,7 +2496,7 @@ function validasiPay(type) {
     if (!(total > 0)) return 'TOTAL PESANAN TIDAK VALID';
     if (st.mode === 'dp') {
         if (!payDPBoleh(type)) return 'PESANAN INI TIDAK BISA DP';
-        const min = FBX.hitungMinDP(total, paySettings);
+        const min = minDPType(type, total);
         if (!(min < total)) return 'DP TIDAK TERSEDIA, PILIH LUNAS';
         if (!st.dp) return 'TULIS NOMINAL DP DULU!';
         if (st.dp < min) return 'DP MINIMAL ' + formatRupiah(min) + '!';
@@ -2493,7 +2510,7 @@ async function renderPay(type) {
     if (!box) return;
     await loadPaySettings();
     const total = totalBayar(type), st = payState[type];
-    const min = FBX.hitungMinDP(total, paySettings);
+    const min = minDPType(type, total);
     const bisaDP = payDPBoleh(type) && min < total;
     if (!bisaDP) {   // hanya lunas: pilihan LUNAS / DP tidak ditampilkan
         st.mode = 'lunas'; st.dp = 0;
@@ -2519,7 +2536,7 @@ async function renderPay(type) {
 function updatePayHint(type) {
     const el = document.getElementById('payHint_' + type);
     if (!el) return;
-    const total = totalBayar(type), min = FBX.hitungMinDP(total, paySettings), dp = payState[type].dp;
+    const total = totalBayar(type), min = minDPType(type, total), dp = payState[type].dp;
     let txt, err = false;
     if (!dp) txt = `DP minimal ${formatRupiah(min)}. Sisanya dilunasi nanti di menu Pelunasan.`;
     else if (dp < min) { txt = `Kurang dari DP minimal ${formatRupiah(min)}.`; err = true; }
@@ -2563,18 +2580,34 @@ function muatSnap(cfg) {
 }
 const halamanAktif = id => { const e = document.getElementById(id); return !!(e && e.classList.contains('active')); };
 
+/* Loading khusus pembayaran (beda dari splash logo saat web pertama dibuka) */
+function tampilLoadingBayar(teks) {
+    let el = document.getElementById('payLoader');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'payLoader'; el.className = 'pay-loader';
+        el.innerHTML = '<div class="pay-loader-box"><div class="pay-spin"></div><div class="pay-loader-t" id="payLoaderT"></div><div class="pay-loader-s">Jangan tutup halaman ini</div></div>';
+        document.body.appendChild(el);
+    }
+    document.getElementById('payLoaderT').textContent = teks || 'Menyiapkan pembayaran…';
+    el.classList.add('show');
+}
+function sembunyiLoadingBayar() {
+    const el = document.getElementById('payLoader');
+    if (el) el.classList.remove('show');
+}
+
 // tahap 'F' = pembayaran awal (lunas / DP), 'P' = pelunasan sisa DP
 async function mulaiBayar(kode, tahap) {
     tahap = tahap === 'P' ? 'P' : 'F';
     vibrate(30);
-    const loader = document.getElementById('loader');
-    if (loader) loader.classList.remove('hide');
+    tampilLoadingBayar('Menyiapkan pembayaran…');
     let selesai = false;
     try {
         if (!payCfg) payCfg = await payApi('/config');
         await muatSnap(payCfg);
         const d = await payApi('/snap', { kode, tahap });
-        if (loader) loader.classList.add('hide');
+        sembunyiLoadingBayar();
         window.snap.pay(d.token, {
             onSuccess: () => { selesai = true; selesaiBayar(kode, tahap, 'success'); },
             onPending: () => { selesai = true; selesaiBayar(kode, tahap, 'pending'); },
@@ -2583,7 +2616,7 @@ async function mulaiBayar(kode, tahap) {
         });
     } catch (e) {
         console.error(e);
-        if (loader) loader.classList.add('hide');
+        sembunyiLoadingBayar();
         tampilPayWait(kode, tahap, e.message || 'Gagal memulai pembayaran.');
     }
 }

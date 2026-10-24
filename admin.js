@@ -749,6 +749,7 @@ window.openModalProduk = () => {
     document.getElementById('pSpecs').value = '';
     document.getElementById('pShowcase').value = 'yes';
     document.getElementById('pDP').value = 'yes';
+    document.getElementById('pDPMode').value = ''; document.getElementById('pDPVal').value = '';
     document.getElementById('pKode').value = '';
     toggleKodeProduk();
     document.getElementById('prevThumb').style.display = 'none';
@@ -781,6 +782,7 @@ window.editProduk = (id) => {
     document.getElementById('pSpecs').value = p.specs || '';
     document.getElementById('pShowcase').value = p.showcase || 'yes';
     document.getElementById('pDP').value = p.dpAllowed || 'yes';
+    document.getElementById('pDPMode').value = p.dpMode || ''; document.getElementById('pDPVal').value = p.dpValue || '';
     document.getElementById('pKode').value = p.kodePrefix || '';
     toggleKodeProduk();
 
@@ -873,6 +875,7 @@ window.saveProdukData = async () => {
             specs: document.getElementById('pSpecs').value,
             showcase: document.getElementById('pShowcase').value,
             dpAllowed: document.getElementById('pDP').value,
+            ...dpMinForm('p'),
             kodePrefix: bersihkanPrefix(document.getElementById('pKode').value),
             thumbnail: thumbnailURL,
             desain: desainURL,
@@ -979,6 +982,7 @@ function renderAksesoris() {
 }
 
 window.toggleAksesorisForm = () => {
+    dpMinUI('ak');
     const kode = bersihkanPrefix(document.getElementById('akKode').value) || 'FVCK';
     document.getElementById('akKodeContoh').innerText = kode;
     const badge = document.getElementById('akBadge').value;
@@ -1012,6 +1016,7 @@ window.openModalAksesoris = () => {
     document.getElementById('akStok').value = '';
     document.getElementById('akSpecs').value = '';
     document.getElementById('akDP').value = 'yes';
+    document.getElementById('akDPMode').value = ''; document.getElementById('akDPVal').value = '';
     document.getElementById('akShowcase').value = 'yes';
     document.getElementById('akBesar').checked = false;
     document.getElementById('akKode').value = '';
@@ -1034,6 +1039,7 @@ window.editAksesoris = (id) => {
     document.getElementById('akStok').value = akStokAwal === null ? '' : akStokAwal;
     document.getElementById('akSpecs').value = p.specs || '';
     document.getElementById('akDP').value = p.dpAllowed || 'yes';
+    document.getElementById('akDPMode').value = p.dpMode || ''; document.getElementById('akDPVal').value = p.dpValue || '';
     document.getElementById('akShowcase').value = p.showcase || 'yes';
     document.getElementById('akBesar').checked = !!p.besar;
     document.getElementById('akKode').value = p.kodePrefix || '';
@@ -1083,6 +1089,7 @@ window.saveAksesorisData = async () => {
             status: document.getElementById('akStatus').value,
             specs: document.getElementById('akSpecs').value,
             dpAllowed: document.getElementById('akDP').value,
+            ...dpMinForm('ak'),
             showcase: document.getElementById('akShowcase').value,
             besar: document.getElementById('akBesar').checked,
             kodePrefix: bersihkanPrefix(document.getElementById('akKode').value),
@@ -1736,7 +1743,27 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===== KODE AWAL ID ORDER (form artikel) =====
+/* Minimal DP per produk (kosong = ikut pengaturan umum). pre = 'p' (produk) atau 'ak' (aksesoris) */
+const dpMinForm = (pre) => {
+    const ok = document.getElementById(pre + 'DP').value === 'yes';
+    const mode = document.getElementById(pre + 'DPMode').value;
+    let val = Number(String(document.getElementById(pre + 'DPVal').value).replace(/\D/g, '')) || 0;
+    if (!ok || !mode || val <= 0) return { dpMode: '', dpValue: 0 };
+    if (mode === 'percent') val = Math.min(val, 99);
+    return { dpMode: mode, dpValue: val };
+};
+window.dpMinUI = (pre) => {
+    const w = document.getElementById(pre + 'DPMinWrap'); if (!w) return;
+    w.style.display = document.getElementById(pre + 'DP').value === 'yes' ? '' : 'none';
+    const mode = document.getElementById(pre + 'DPMode').value;
+    const v = document.getElementById(pre + 'DPVal');
+    v.style.display = mode ? '' : 'none';
+    v.placeholder = mode === 'percent' ? 'Isi persen, mis. 30 (artinya 30%)' : 'Isi rupiah, mis. 70000';
+    const t = document.getElementById(pre + 'DPHint');
+    if (t) t.textContent = mode ? '' : 'Kosong = ikut pengaturan Minimal DP umum (tab Order).';
+};
 window.toggleKodeProduk = () => {
+    dpMinUI('p');
     const v = bersihkanPrefix(document.getElementById('pKode').value) || 'FVCK';
     document.getElementById('pKodeContoh').innerText = v;
     const pre = document.getElementById('pBadge').value === 'pre';
