@@ -1,0 +1,27 @@
+name: Deploy API Pembayaran (Midtrans)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'payment-worker/**'
+      - '.github/workflows/deploy-payment.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Worker + pasang key Midtrans dari GitHub Secrets
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: payment-worker
+          secrets: |
+            MIDTRANS_SERVER_KEY
+            MIDTRANS_CLIENT_KEY
+        env:
+          MIDTRANS_SERVER_KEY: ${{ secrets.MIDTRANS_SERVER_KEY }}
+          MIDTRANS_CLIENT_KEY: ${{ secrets.MIDTRANS_CLIENT_KEY }}
