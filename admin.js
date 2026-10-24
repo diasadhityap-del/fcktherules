@@ -14,11 +14,11 @@ import {
     adminBackfillOrder, turunanPO, tsMillis,
     getPaymentSettings, savePaymentSettings, hitungMinDP,
     listenPoUpdates, adminTambahUpdatePo, adminHapusUpdatePo, adminBackfillPoUpdates
-} from './firebase.js?v=20261033';
+} from './firebase.js?v=20261045';
 
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
 import { deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-import { adminDb } from "./firebase.js?v=20261033";
+import { adminDb } from "./firebase.js?v=20261045";
 
 let allOrders = [];
 let allProduk = [];
@@ -558,6 +558,23 @@ window.bersihkanPelunasanYatim = async () => {
     try {
         for (const p of yatim) await deleteDoc(doc(adminDb, "pelunasan", p.id));
         showToast(`${yatim.length} DATA SISA DIHAPUS`);
+    } catch (e) { console.error(e); alert('Gagal membersihkan'); }
+};
+
+// Bersihkan data pelacakan "yatim": ordernya sudah dihapus tapi dokumen lacak-nya masih tersisa (masih muncul di Cek Pesanan / Cek Resi pelanggan)
+window.bersihkanLacakYatim = async () => {
+    try {
+        await loadOrders();   // muat ulang dulu supaya order yang baru masuk tidak ikut dianggap sisa
+        if (!ordersReady || ordersError) return alert('Data order gagal dimuat. Coba lagi sebentar.');
+        const kodeAda = new Set(allOrders.map(o => o.kodePelunasan).filter(Boolean));
+        const semua = await adminKodeLacakAda();
+        const yatim = [...semua].filter(k => !kodeAda.has(k));
+        if (!yatim.length) return showToast('TIDAK ADA DATA SISA');
+        if (!confirm(`Ada ${yatim.length} data pelacakan tanpa order:\n${yatim.join(', ')}\n\nHapus semuanya?`)) return;
+        let gagal = 0;
+        for (const k of yatim) { if (!(await adminHapusLacak(k))) gagal++; try { await deleteDoc(doc(adminDb, "pelunasan", k)); } catch (e) {} }
+        showToast(gagal ? `${yatim.length - gagal} DIHAPUS, ${gagal} GAGAL` : `${yatim.length} DATA SISA DIHAPUS`);
+        if (gagal) alert('Sebagian gagal dihapus. Pastikan Firestore Rules terbaru sudah dipublish.');
     } catch (e) { console.error(e); alert('Gagal membersihkan'); }
 };
 

@@ -768,12 +768,19 @@ export async function adminSyncPay(kode, status, sisa, dpNominal) {
     } catch (e) { console.warn("Lacak tidak ada / gagal sync:", kode, e.code || e.message); }
 }
 export async function adminHapusLacak(kode) {
-    if (!kode) return;
+    if (!kode) return false;
+    // 1) Hapus dokumen induk dulu: setelah ini pelanggan sudah tidak bisa menemukan order di Cek Pesanan / Cek Resi.
+    //    (Event timeline otomatis baru boleh dihapus kalau induknya sudah tidak ada -- lihat firestore.rules.)
+    try { await deleteDoc(doc(adminDb, "lacak", kode)); }
+    catch (e) { console.warn("Gagal hapus lacak:", kode, e.code || e.message); return false; }
+    // 2) Lalu bersihkan timeline-nya satu per satu (gagal di sini tidak mengganggu pelanggan).
     try {
         const tl = await getDocs(collection(adminDb, "lacak", kode, "timeline"));
-        for (const d of tl.docs) await deleteDoc(d.ref);
-        await deleteDoc(doc(adminDb, "lacak", kode));
-    } catch (e) { console.warn(e); }
+        for (const d of tl.docs) {
+            try { await deleteDoc(d.ref); } catch (e) { console.warn("Gagal hapus timeline:", kode, d.id, e.code || e.message); }
+        }
+    } catch (e) { console.warn("Gagal baca timeline:", kode, e.code || e.message); }
+    return true;
 }
 
 /* ----- Update per ARTIKEL Pre Order -----
