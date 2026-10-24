@@ -142,6 +142,15 @@ function hitungMinDP(total, s) {
   if (s && s.dpMode === 'percent') return Math.max(5000, Math.floor((total * val / 100 + 2500) / 5000) * 5000);
   return Math.max(1, Math.round(val));
 }
+// Minimal DP per produk (rumus sama dengan minDPType di script.js). items: [{ harga, dpMode, dpValue }]
+const dpMilikSendiri = i => !!(i && (i.dpMode === 'percent' || i.dpMode === 'nominal') && Number(i.dpValue) > 0);
+function hitungMinDPItems(items, total, s) {
+  const own = items.filter(dpMilikSendiri), def = items.filter(i => !dpMilikSendiri(i));
+  if (!own.length) return hitungMinDP(total, s);
+  let min = own.reduce((a, i) => a + hitungMinDP(i.harga, { dpMode: i.dpMode, dpValue: i.dpValue }), 0);
+  if (def.length) min += hitungMinDP(def.reduce((a, i) => a + i.harga, 0), s);
+  return min;
+}
 async function ambilSetting(env) {
   const d = await getDocRaw(env, 'settings/payment');
   return Object.assign({ dpMode: 'nominal', dpValue: 70000 }, d ? d.data : {});
@@ -155,7 +164,7 @@ async function hargaResmi(env) {
       if (!p.nama) return;
       const add = {};
       (Array.isArray(p.tambahan) ? p.tambahan : []).forEach(a => { if (a && a.nama) add[String(a.nama)] = Number(a.harga) || 0; });
-      out[p.nama] = { harga: Number(String(p.harga || '').replace(/\D/g, '')) || 0, add, dpAllowed: p.dpAllowed || 'yes' };
+      out[p.nama] = { harga: Number(String(p.harga || '').replace(/\D/g, '')) || 0, add, dpAllowed: p.dpAllowed || 'yes', dpMode: p.dpMode || '', dpValue: Number(p.dpValue) || 0 };
     });
   }
   return out;
@@ -164,12 +173,15 @@ async function validasiHarga(env, o) {
   const kat = await hargaResmi(env);
   const items = Array.isArray(o.produk) ? o.produk : [{ nama: o.produk, tambahan: o.tambahan }];
   let minKaos = 0, dpOk = true;
+  const dpItems = [];
   for (const it of items) {
     const p = kat[it.nama];
     if (!p) throw new HttpError(400, `Produk "${it.nama}" sudah tidak tersedia. Silakan pesan ulang.`);
+    const awalKaos = minKaos;
     minKaos += p.harga;
     String(it.tambahan || '').split(',').map(s => s.trim()).filter(Boolean).forEach(n => { if (p.add[n] !== undefined) minKaos += p.add[n]; });
     if (p.dpAllowed === 'no') dpOk = false;
+    dpItems.push({ harga: minKaos - awalKaos, dpMode: p.dpMode, dpValue: p.dpValue });
   }
   const kaos = Number(o.hargaKaos), ongkir = Number(o.ongkir), total = Math.round(Number(o.totalAkhir));
   if (![kaos, ongkir, total].every(Number.isFinite) || ongkir < 0 || total <= 0) throw new HttpError(400, 'Data harga pesanan tidak valid.');
@@ -184,7 +196,7 @@ async function validasiHarga(env, o) {
     }
   }
   if (diskon < -1 || diskon > maxDiskon) throw new HttpError(400, 'Diskon pesanan tidak valid.');
-  return { total, dpOk };
+  return { total, dpOk, dpItems };
 }
 
 /* ---------- Helper data ---------- */
@@ -206,10 +218,10 @@ async function buatSnap(env, kode, tahap) {
   if (tahap === 'F') {
     if (o.status !== 'pending') throw new HttpError(409, 'Pesanan ini sudah dibayar atau sudah tidak aktif.');
     if (o.buktiURL) throw new HttpError(409, 'Pesanan ini memakai pembayaran manual (bukti transfer). Hubungi admin.');
-    const { total, dpOk } = await validasiHarga(env, o);
+    const { total, dpOk, dpItems } = await validasiHarga(env, o);
     mode = o.payMode === 'dp' ? 'dp' : 'lunas';
     if (mode === 'dp') {
-      const min = hitungMinDP(total, await ambilSetting(env));
+      const min = hitungMinDPItems(dpItems, total, await ambilSetting(env));
       amount = Math.round(Number(o.payAmount));
       if (!dpOk || !(min < total)) throw new HttpError(400, 'Pesanan ini tidak bisa DP. Pilih lunas.');
       if (!Number.isInteger(amount) || amount < min || amount >= total) throw new HttpError(400, `Nominal DP minimal Rp${min.toLocaleString('id-ID')} dan kurang dari total.`);
