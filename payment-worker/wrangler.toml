@@ -1,0 +1,13 @@
+name = "fvck-pay"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+FIREBASE_PROJECT_ID = "fvcktherules-store"
+# Domain toko yang boleh memanggil API pembayaran ini (pisahkan dengan koma)
+ALLOWED_ORIGINS = "https://fucktherules.my.id,https://www.fucktherules.my.id"
+# Batas waktu bayar (menit). Lewat batas => transaksi kedaluwarsa, order ditolak otomatis & stok dikembalikan
+PAYMENT_EXPIRY_MINUTES = "180"
+
+# Rahasia (MIDTRANS_SERVER_KEY, MIDTRANS_CLIENT_KEY, FIREBASE_SERVICE_ACCOUNT) TIDAK ditulis di sini.
+# Diisi lewat GitHub Secrets -> di-push otomatis oleh .github/workflows/deploy-payment.yml
