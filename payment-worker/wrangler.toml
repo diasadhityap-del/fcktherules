@@ -4,8 +4,8 @@ compatibility_date = "2024-11-01"
 
 [vars]
 FIREBASE_PROJECT_ID = "fvcktherules-store"
-# Domain toko yang boleh memanggil API pembayaran ini (pisahkan dengan koma)
-ALLOWED_ORIGINS = "https://fucktherules.my.id,https://www.fucktherules.my.id"
+# Domain toko yang boleh memanggil API pembayaran ini (pisahkan dengan koma). game.fucktherules.my.id = toko 3D (repo game), memakai API yang sama.
+ALLOWED_ORIGINS = "https://fucktherules.my.id,https://www.fucktherules.my.id,https://game.fucktherules.my.id"
 # Batas waktu bayar (menit). Lewat batas => transaksi kedaluwarsa, order ditolak otomatis & stok dikembalikan
 PAYMENT_EXPIRY_MINUTES = "180"
 
