@@ -199,6 +199,20 @@ async function validasiHarga(env, o) {
   return { total, dpOk, dpItems };
 }
 
+/* ---------- Notifikasi ke Google Apps Script (spreadsheet + email) ---------- */
+// Dipanggil hanya saat status order benar-benar berpindah (pending -> dp/lunas, dp -> lunas), jadi tidak terkirim ganda.
+// Kegagalan di sini tidak boleh menggagalkan pencatatan pembayaran.
+async function kirimGAS(env, payload) {
+  if (!env.GAS_URL || !env.GAS_SECRET) { console.warn('GAS_URL / GAS_SECRET belum diatur: spreadsheet dan email dilewati'); return; }
+  const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const r = await fetch(env.GAS_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...payload, event: 'bayar', secret: env.GAS_SECRET }), signal: ctrl.signal });
+    const tx = await r.text();
+    if (!/^OK/.test(tx)) console.error('Apps Script:', tx.slice(0, 200));
+  } catch (e) { console.error('Apps Script gagal:', e && e.message || e); }
+  finally { clearTimeout(t); }
+}
+
 /* ---------- Helper data ---------- */
 const bersihKode = k => String(k || '').toUpperCase().replace(/[^A-Z0-9-]/g, '');
 const maskNama = n => { const w = String(n || '').trim().split(/\s+/)[0] || ''; return w.length > 2 ? w.slice(0, 2) + '*'.repeat(Math.min(w.length - 2, 4)) : w; };
@@ -260,7 +274,7 @@ async function buatSnap(env, kode, tahap) {
 }
 
 /* ---------- Proses hasil transaksi -> update order (idempotent, aman dipanggil berulang) ---------- */
-async function prosesTransaksi(env, midOrderId, st) {
+async function prosesTransaksi(env, midOrderId, st, ctx) {
   const m = /^(.+)_([FP])([A-Za-z0-9]+)$/.exec(midOrderId);
   if (!m) return { abaikan: true };
   const kode = m[1], tahap = m[2];
@@ -277,7 +291,7 @@ async function prosesTransaksi(env, midOrderId, st) {
     const iso = new Date().toISOString();
     const total = Math.round(Number(o.totalAkhir || o.hargaKaos || 0));
     const lacak = await getDocRaw(env, `lacak/${kode}`);
-    const writes = []; let status = o.status, tulisTimeline = false;
+    const writes = []; let status = o.status, tulisTimeline = false, notif = null;
     const orderOpts = extra => ({ updateTime: oDoc.updateTime, append: { payLog: logE }, ...extra });
 
     if (dibayar) {
@@ -298,12 +312,14 @@ async function prosesTransaksi(env, midOrderId, st) {
         if (mode === 'dp') writes.push(wUpdate(env, `pelunasan/${kode}`, { kode, orderId: oDoc.id, orderNo: o.orderNo || '', nama: maskNama(o.nama), produk: produkText(o), totalAkhir: total, dpNominal: amt, sisa: total - amt, status: 'dp', createdAt: iso }));
         if (lacak) writes.push(wUpdate(env, `lacak/${kode}`, mode === 'dp' ? { pay: 'dp', payAt: iso, sisa: total - amt, dpNominal: amt } : { pay: 'lunas', payAt: iso, sisa: 0, dpNominal: null }));
         status = upd.status;
+        notif = { tahap: 'F', status: upd.status, dibayar: amt, sisa: upd.status === 'dp' ? total - amt : 0 };
       } else if (tahap === 'P' && o.status === 'dp') {
         writes.push(wUpdate(env, `orders/${oDoc.id}`, { status: 'lunas', sisaBayar: 0, paidLunasAt: iso, payMethodLunas: st.payment_type || '' }, orderOpts()));
         if (await getDocRaw(env, `pelunasan/${kode}`)) writes.push(wUpdate(env, `pelunasan/${kode}`, { status: 'lunas', paidAt: iso }, { mustExist: true }));
         if (lacak) writes.push(wUpdate(env, `lacak/${kode}`, { pay: 'lunas', payAt: iso, sisa: 0 }));
         tulisTimeline = !!o.isPO;
         status = 'lunas';
+        notif = { tahap: 'P', status: 'lunas', dibayar: amt, sisa: 0 };
       } else {
         // Sudah tercatat / dobel bayar: hanya dicatat di payLog supaya admin bisa cek & refund manual bila perlu
         writes.push(wUpdate(env, `orders/${oDoc.id}`, { payAnomali: 'bayar_dobel_atau_telat' }, orderOpts()));
@@ -327,6 +343,15 @@ async function prosesTransaksi(env, midOrderId, st) {
       if (e.status === 409 || e.fsStatus === 'ABORTED' || e.fsStatus === 'FAILED_PRECONDITION') continue;   // order berubah di tengah jalan -> baca ulang
       throw e;
     }
+    if (notif) {
+      const p = kirimGAS(env, {
+        kodePelunasan: kode, tahap: notif.tahap, status: notif.status, dibayar: notif.dibayar, sisa: notif.sisa, metode: st.payment_type || '',
+        orderNo: o.orderNo || '', sumber: o.sumber || '', nama: o.nama || '', wa: o.wa || '', email: o.email || '', alamat: o.alamat || '',
+        produk: o.produk, tambahan: o.tambahan || '', warna: o.warna || '', size: o.size || '',
+        hargaKaos: Number(o.hargaKaos) || 0, ongkir: Number(o.ongkir) || 0, voucherKode: o.voucherKode || '', voucherDeskripsi: o.voucherDeskripsi || '', totalAkhir: total
+      });
+      if (ctx && ctx.waitUntil) ctx.waitUntil(p); else await p;
+    }
     if (tulisTimeline) {
       try {   // id dokumen tetap + mustNotExist => timeline "Pelunasan" hanya terbuat sekali
         await commit(env, [wUpdate(env, `lacak/${kode}/timeline/pelunasan`, { kode, orderId: oDoc.id, text: 'Pelunasan', type: 'automatic', kind: 'pelunasan' }, { mustNotExist: true, serverTime: ['createdAt'] })]);
@@ -339,7 +364,7 @@ async function prosesTransaksi(env, midOrderId, st) {
 
 /* ---------- Router ---------- */
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
     const origin = req.headers.get('Origin') || '';
     const allowed = String(env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -353,7 +378,7 @@ export default {
         const sig = await sha512hex(String(b.order_id) + String(b.status_code) + String(b.gross_amount) + env.MIDTRANS_SERVER_KEY);
         if (sig !== b.signature_key) return json({ error: 'signature tidak valid' }, 403);
         const st = await midtransStatus(env, b.order_id);                   // sumber kebenaran = API Midtrans, bukan isi webhook
-        if (st) await prosesTransaksi(env, b.order_id, st);
+        if (st) await prosesTransaksi(env, b.order_id, st, ctx);
         return json({ ok: true });
       }
 
@@ -375,7 +400,7 @@ export default {
         if (!snap || !snap.orderId) return json({ status: oDoc.data.status, trx: null }, 200, cors);
         const st = await midtransStatus(env, snap.orderId);
         if (!st) return json({ status: oDoc.data.status, trx: null }, 200, cors);
-        const r = await prosesTransaksi(env, snap.orderId, st);
+        const r = await prosesTransaksi(env, snap.orderId, st, ctx);
         return json({ status: r.status || oDoc.data.status, trx: st.transaction_status }, 200, cors);
       }
 

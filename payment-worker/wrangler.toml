@@ -3,6 +3,8 @@ main = "worker.js"
 compatibility_date = "2024-11-01"
 
 [vars]
+# Alamat Google Apps Script (spreadsheet + email). Bukan rahasia. Kunci rahasianya (GAS_SECRET) ada di GitHub Secrets.
+GAS_URL = "https://script.google.com/macros/s/AKfycbz3vRP4hkKjzv7b_lc3Qq6N5bhXZk44WJZd19fTNJNblwiGBGDH8uw0LKrFckqosBxtzw/exec"
 FIREBASE_PROJECT_ID = "fvcktherules-store"
 # Domain toko yang boleh memanggil API pembayaran ini (pisahkan dengan koma). game.fucktherules.my.id = toko 3D (repo game), memakai API yang sama.
 ALLOWED_ORIGINS = "https://fucktherules.my.id,https://www.fucktherules.my.id,https://game.fucktherules.my.id"
