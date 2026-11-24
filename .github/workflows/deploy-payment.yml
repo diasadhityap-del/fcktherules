@@ -23,6 +23,8 @@ jobs:
           secrets: |
             MIDTRANS_SERVER_KEY
             MIDTRANS_CLIENT_KEY
+            GAS_SECRET
         env:
           MIDTRANS_SERVER_KEY: ${{ secrets.MIDTRANS_SERVER_KEY }}
           MIDTRANS_CLIENT_KEY: ${{ secrets.MIDTRANS_CLIENT_KEY }}
+          GAS_SECRET: ${{ secrets.GAS_SECRET }}
