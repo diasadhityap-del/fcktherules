@@ -335,7 +335,7 @@ async function executeCheckout() {
     vibrate(40);
     closeConfirm();
 
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyoVdbvq1JvCtzWFbJaZUdTO2I30DXn4N0p_XOidk98cPnj8m22j2Aa0q6k90KH4sOhUw/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3vRP4hkKjzv7b_lc3Qq6N5bhXZk44WJZd19fTNJNblwiGBGDH8uw0LKrFckqosBxtzw/exec';
     tampilLoadingBayar('Menyimpan pesanan…');
 
     let kodeBaru = null;
