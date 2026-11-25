@@ -18,9 +18,10 @@ const RESERVED = new Set(['', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang
 const slugify = t => String(t).toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim();
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const DESKRIPSI = 'Fuck the Rules';
-/* gambar Cloudinary dikecilkan jadi JPG 1200x630 (WhatsApp menolak gambar besar dan jatuh ke ikon situs) */
-const kecil = u => /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(u) && !/\/upload\/[^/]*(w_|c_pad)/.test(u)
-  ? u.replace('/image/upload/', '/image/upload/c_pad,b_white,w_1200,h_630,f_jpg,q_auto:eco/').replace(/\.(png|webp|gif)(\?.*)?$/i, '.jpg') : u;
+/* gambar Cloudinary dikecilkan (lebar maks 1200, JPG, ukuran file kecil) TANPA mengubah rasio/bentuk foto aslinya.
+   Foto PNG asli terlalu besar untuk WhatsApp, makanya WA jatuh ke ikon situs. */
+const kecil = u => /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(u) && !/\/upload\/[^/]*(w_\d|f_jpg)/.test(u)
+  ? u.replace('/image/upload/', '/image/upload/c_limit,w_1200,b_white,f_jpg,q_auto:eco/').replace(/\.(png|webp|gif)(\?.*)?$/i, '.jpg') : u;
 const rupiah = v => 'Rp' + Number(String(v).replace(/\D/g, '') || 0).toLocaleString('id-ID');
 
 /* ---- baca Firestore lewat REST ---- */
@@ -67,7 +68,6 @@ function bangun(templat, p, slug) {
     ['name', 'twitter:title', p.nama], ['name', 'twitter:description', DESKRIPSI], ['name', 'twitter:image', gambar]
   ]) h = setMeta(h, attr, nama, isi);
   h = h.replace(/<meta property="og:image:(width|height)"[^>]*>\s*/g, '');     // ukuran gambar default tidak berlaku untuk gambar produk
-  if (gambar !== `${SITE}/og-default.jpg`) h = h.replace('</head>', `<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n</head>`);
   h = h.replace('</head>', `<meta property="product:price:amount" content="${esc(String(p.harga || '').replace(/\D/g, ''))}">\n<meta property="product:price:currency" content="IDR">\n</head>`);
   return h;
 }
