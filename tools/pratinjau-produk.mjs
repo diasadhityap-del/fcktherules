@@ -17,6 +17,10 @@ const RESERVED = new Set(['', 'preorder', 'katalog', 'arsip', 'galeri', 'tentang
 /* sama persis dengan slugify() di script.js, agar alamatnya cocok dengan yang dibaca situs */
 const slugify = t => String(t).toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim();
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const DESKRIPSI = 'Fuck the Rules';
+/* gambar Cloudinary dikecilkan jadi JPG 1200x630 (WhatsApp menolak gambar besar dan jatuh ke ikon situs) */
+const kecil = u => /^https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\//.test(u) && !/\/upload\/[^/]*(w_|c_pad)/.test(u)
+  ? u.replace('/image/upload/', '/image/upload/c_pad,b_white,w_1200,h_630,f_jpg,q_auto:eco/').replace(/\.(png|webp|gif)(\?.*)?$/i, '.jpg') : u;
 const rupiah = v => 'Rp' + Number(String(v).replace(/\D/g, '') || 0).toLocaleString('id-ID');
 
 /* ---- baca Firestore lewat REST ---- */
@@ -50,18 +54,20 @@ function setMeta(html, attr, nama, isi) {
 }
 function bangun(templat, p, slug) {
   const url = `${SITE}/${slug}`, judulTab = `${p.nama} | FvcktheRules`;
-  const gambar = /^https:\/\//.test(p.thumbnail || '') ? p.thumbnail : `${SITE}/og-default.jpg`;
+  const gambar = /^https:\/\//.test(p.thumbnail || '') ? kecil(p.thumbnail) : `${SITE}/og-default.jpg`;
   let h = templat.replace('src="ftr-track.js"', 'src="/ftr-track.js"');   // alamat relatif akan rusak di /<slug>/
   h = h.replace(/<title>[^<]*<\/title>/, `<title>${esc(judulTab)}</title>`);
   h = h.replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${esc(url)}$2`);
-  /* kartu pratinjau: hanya gambar produk + nama produk. Semua tag deskripsi dibuang agar tidak ada teks deskripsi. */
+  /* kartu pratinjau: judul = nama produk, deskripsi = "Fuck the Rules" (sama di IG, WA, Telegram, dll). Deskripsi lama dibuang lalu ditulis ulang. */
   h = h.replace(/\s*<meta\s+(?:property="og:description"|name="twitter:description"|name="description")[^>]*>/g, '');
   for (const [attr, nama, isi] of [
     ['property', 'og:title', p.nama], ['property', 'og:image', gambar], ['property', 'og:image:alt', p.nama],
     ['property', 'og:url', url], ['property', 'og:type', 'product'],
-    ['name', 'twitter:title', p.nama], ['name', 'twitter:image', gambar]
+    ['property', 'og:description', DESKRIPSI], ['name', 'description', DESKRIPSI],
+    ['name', 'twitter:title', p.nama], ['name', 'twitter:description', DESKRIPSI], ['name', 'twitter:image', gambar]
   ]) h = setMeta(h, attr, nama, isi);
   h = h.replace(/<meta property="og:image:(width|height)"[^>]*>\s*/g, '');     // ukuran gambar default tidak berlaku untuk gambar produk
+  if (gambar !== `${SITE}/og-default.jpg`) h = h.replace('</head>', `<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n</head>`);
   h = h.replace('</head>', `<meta property="product:price:amount" content="${esc(String(p.harga || '').replace(/\D/g, ''))}">\n<meta property="product:price:currency" content="IDR">\n</head>`);
   return h;
 }
