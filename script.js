@@ -2564,9 +2564,19 @@ function setPayMode(type, mode) {
 /* ---- Snap ---- */
 let payCfg = null, snapLoading = null, payWaitCtx = null;
 async function payApi(path, body) {
-    const { PAYMENT_API } = await import('./payment-config.js?v=1');
+    const { PAYMENT_API } = await import('./payment-config.js?v=2');
     if (/GANTI/.test(PAYMENT_API)) throw new Error('Pembayaran online belum diaktifkan. Hubungi admin.');
-    const r = await fetch(PAYMENT_API + path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+    const opsi = body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {};
+    let r;
+    for (let i = 0; i < 3; i++) {   // coba sampai 3x (koneksi HP / browser Instagram sering putus sesaat)
+        const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 20000);
+        try { r = await fetch(PAYMENT_API + path, { ...opsi, signal: ctrl.signal, cache: 'no-store' }); clearTimeout(t); break; }
+        catch (e) {
+            clearTimeout(t);
+            if (i === 2) throw new Error('Tidak bisa terhubung ke server pembayaran. Cek koneksi, lalu tekan "lanjut bayar" lagi. Kalau dari Instagram, buka lewat Chrome.');
+            await new Promise(res => setTimeout(res, 1200 * (i + 1)));
+        }
+    }
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'Server pembayaran sedang bermasalah.');
     return d;
