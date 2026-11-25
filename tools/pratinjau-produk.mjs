@@ -34,8 +34,8 @@ async function baca(koleksi) {
   const hasil = []; let token = '';
   do {
     const url = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents/${koleksi}?pageSize=300&key=${API_KEY}${token ? '&pageToken=' + encodeURIComponent(token) : ''}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`${koleksi}: HTTP ${r.status}`);
+    const r = await fetch(url, { headers: { Referer: SITE + '/', Origin: SITE } });
+    if (!r.ok) throw new Error(`${koleksi}: HTTP ${r.status}` + (r.status === 403 ? ' (kunci API dibatasi? tambahkan fucktherules.my.id dan *.github.io pada pembatasan referrer, atau hapus pembatasan)' : ''));
     const j = await r.json();
     for (const d of j.documents || []) hasil.push({ id: d.name.split('/').pop(), ...Object.fromEntries(Object.entries(d.fields || {}).map(([k, x]) => [k, nilai(x)])) });
     token = j.nextPageToken || '';
@@ -44,31 +44,22 @@ async function baca(koleksi) {
 }
 
 /* ---- isi pratinjau ---- */
-const STATUS = { pre: 'Pre Order', ready: 'Ready Stock', sold: 'Sold Out' };
-function deskripsi(p) {
-  const badge = String(p.badge || '').toLowerCase();
-  const status = p.status || STATUS[badge] || '';
-  const detail = (Array.isArray(p.details) ? p.details : []).map(x => typeof x === 'string' ? x : Object.values(x || {}).join(' ')).filter(Boolean);
-  const isi = String(p.specs || '').trim() || detail.join('. ');
-  const awal = [rupiah(p.harga), status].filter(Boolean).join(' | ');
-  const t = (awal + (isi ? '. ' + isi.replace(/\s+/g, ' ') : '')).trim();
-  return t.length > 200 ? t.slice(0, 197).trimEnd() + '...' : t;
-}
 function setMeta(html, attr, nama, isi) {
   const re = new RegExp(`(<meta\\s+${attr}="${nama.replace(/[:.]/g, '\\$&')}"\\s+content=")[^"]*(")`);
   return re.test(html) ? html.replace(re, `$1${esc(isi)}$2`) : html.replace('</head>', `<meta ${attr}="${nama}" content="${esc(isi)}">\n</head>`);
 }
 function bangun(templat, p, slug) {
-  const url = `${SITE}/${slug}`, judul = `${p.nama} | FvcktheRules`, desk = deskripsi(p);
+  const url = `${SITE}/${slug}`, judulTab = `${p.nama} | FvcktheRules`;
   const gambar = /^https:\/\//.test(p.thumbnail || '') ? p.thumbnail : `${SITE}/og-default.jpg`;
   let h = templat.replace('src="ftr-track.js"', 'src="/ftr-track.js"');   // alamat relatif akan rusak di /<slug>/
-  h = h.replace(/<title>[^<]*<\/title>/, `<title>${esc(judul)}</title>`);
+  h = h.replace(/<title>[^<]*<\/title>/, `<title>${esc(judulTab)}</title>`);
   h = h.replace(/(<link rel="canonical" href=")[^"]*(")/, `$1${esc(url)}$2`);
-  h = setMeta(h, 'name', 'description', desk);
+  /* kartu pratinjau: hanya gambar produk + nama produk. Semua tag deskripsi dibuang agar tidak ada teks deskripsi. */
+  h = h.replace(/\s*<meta\s+(?:property="og:description"|name="twitter:description"|name="description")[^>]*>/g, '');
   for (const [attr, nama, isi] of [
-    ['property', 'og:title', judul], ['property', 'og:description', desk], ['property', 'og:image', gambar], ['property', 'og:image:alt', p.nama],
+    ['property', 'og:title', p.nama], ['property', 'og:image', gambar], ['property', 'og:image:alt', p.nama],
     ['property', 'og:url', url], ['property', 'og:type', 'product'],
-    ['name', 'twitter:title', judul], ['name', 'twitter:description', desk], ['name', 'twitter:image', gambar]
+    ['name', 'twitter:title', p.nama], ['name', 'twitter:image', gambar]
   ]) h = setMeta(h, attr, nama, isi);
   h = h.replace(/<meta property="og:image:(width|height)"[^>]*>\s*/g, '');     // ukuran gambar default tidak berlaku untuk gambar produk
   h = h.replace('</head>', `<meta property="product:price:amount" content="${esc(String(p.harga || '').replace(/\D/g, ''))}">\n<meta property="product:price:currency" content="IDR">\n</head>`);
