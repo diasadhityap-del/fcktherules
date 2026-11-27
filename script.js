@@ -9,6 +9,9 @@ let cartItems = [];
 const URL_GAS_BITESHIP = "https://script.google.com/macros/s/AKfycbyDTEPvP5yndja35U02nkC4lsYRy3vQqVe2s4NTx-MxBE8MCSB9co2ztG5ZDMtJzuAO/exec";
 let ongkirSaatIni = 0;
 
+// Pelacak aktivitas (ftr-track.js): aman dipanggil walau pelacak belum termuat.
+function ftrEv(k, d, o) { try { if (window.ftrEvent) window.ftrEvent(k, d, o); } catch (e) { } }
+
 // ===== CUSTOMER AUTH STATE =====
 let currentCustomer = null;
 let authMode = 'signin'; // 'signin' | 'signup'
@@ -157,6 +160,7 @@ function addToCart() {
     });
 
     vibrate([30, 30, 30]);
+    ftrEv('tas', cart.prod && cart.prod.name);
     updateCartBadge();
     showCartToast();
 }
@@ -470,7 +474,7 @@ async function executeCheckout() {
         }
 
         showPage('home');
-        if (kodeBaru) { mulaiBayar(kodeBaru, 'F'); }
+        if (kodeBaru) { ftrEv('pesan'); mulaiBayar(kodeBaru, 'F'); }
 
     } catch (err) {
         console.error(err);
@@ -1097,6 +1101,7 @@ function goDetailSilent(p) {
 function selOpt(type, val, el) {
     vibrate(20);
     cart[type] = val;
+    ftrEv(type === 'size' ? 'ukuran' : 'warna', val);
     if (cart.prod && stokTracked(cart.prod)) { renderVarianOptions(cart.prod); return; }
     el.parentElement.querySelectorAll('div').forEach(d => d.classList.remove('active'));
     el.classList.add('active');
@@ -2615,6 +2620,7 @@ function sembunyiLoadingBayar() {
 async function mulaiBayar(kode, tahap) {
     tahap = tahap === 'P' ? 'P' : 'F';
     vibrate(30);
+    ftrEv('bayar_buka', tahap);
     tampilLoadingBayar('Menyiapkan pembayaran…');
     let selesai = false;
     try {
@@ -2637,6 +2643,7 @@ async function mulaiBayar(kode, tahap) {
 
 async function selesaiBayar(kode, tahap, hasil) {
     try { await payApi('/sync', { kode, tahap }); } catch (e) { console.warn('sync:', e); }   // webhook tetap jalan; ini supaya status langsung terbarui
+    ftrEv(hasil === 'success' ? 'bayar_ok' : 'bayar_tunggu', tahap);
     triggerAlert(hasil === 'success' ? 'PEMBAYARAN BERHASIL!' : 'MENUNGGU PEMBAYARAN. SELESAIKAN SEBELUM BATAS WAKTU.');
     if (halamanAktif('pelunasan')) cekKodePelunasan();
     else if (halamanAktif('pantau')) cekPantau();
